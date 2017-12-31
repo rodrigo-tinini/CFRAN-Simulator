@@ -122,7 +122,23 @@ class Digital_Unit(object):
     #Turn the DU off
     def endDU(self):
         self.enabled = False
- 
+
+#This class represents a Processing Node
+#available wavelengths is the global wavelengths available for use, used is the ones allocated to this node
+class Processing_Node(object):
+    def __init__(self, env, node_id, node_type, du_amount, available_wavelengths, used_wavelengths):
+        self.env = env
+        self.node_id = node_id
+        self.node_type = node_type
+        self.du_amount = du_amount
+        self.available_wavelengths = available_wavelengths
+        self.used_wavelengths = used_wavelengths
+        self.enabled = False
+
+    #Main method
+    def run(self):
+        pass
+
 #Main loop
 # environment
 env = simpy.Environment()
