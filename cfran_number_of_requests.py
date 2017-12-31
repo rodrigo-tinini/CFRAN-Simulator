@@ -101,6 +101,27 @@ class Request(object):
         self.src = src
         self.dst = self.packet = packet
         self.id =  self.packet.id
+
+#This class represents a Digital Unit that deploys baseband processing or other functions
+class Digital_Unit(object):
+    def __init__(self, env, du_id, processing_capacity):
+        self.env = env
+        self.du_id = du_id
+        self.processing_capacity = processing_capacity
+        self.enabled = False
+        self.VPONs = []
+
+    #Adds a VPON to the DU
+    def addVPON(self, vpon):
+        self.VPONs.append(vpon)
+
+    #Starts the DU
+    def startDU(self):
+        self.enabled = True
+
+    #Turn the DU off
+    def endDU(self)
+        self.enabled = False
  
 #Main loop
 # environment
@@ -109,7 +130,7 @@ env = simpy.Environment()
 distribution = lambda x: random.expovariate(10)
 #number of total requests to be generated
 global total_requests
-total_requests = 1000000
+total_requests = 100000
 global id_generated_packet
 id_generated_packet = 1
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
