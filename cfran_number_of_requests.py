@@ -139,6 +139,10 @@ class Processing_Node(object):
     def run(self):
         pass
 
+    #Heuristic method, only executes on the cloud node to activate nodes and establish VPONs
+    def scheduleRequests(Request):
+        pass
+
 #Main loop
 # environment
 env = simpy.Environment()
