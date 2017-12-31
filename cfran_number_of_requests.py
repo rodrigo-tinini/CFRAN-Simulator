@@ -120,7 +120,7 @@ class Digital_Unit(object):
         self.enabled = True
 
     #Turn the DU off
-    def endDU(self)
+    def endDU(self):
         self.enabled = False
  
 #Main loop
