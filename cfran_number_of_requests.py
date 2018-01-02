@@ -118,7 +118,7 @@ class Digital_Unit(object):
         self.env = env
         self.du_id = du_id
         #self.du_wavelength = wavelength #initial wavelength of the DU - i.e., when it is first established to a VPON
-        self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations)
+        self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations
         self.enabled = False
         self.VPONs = [] #VPONs attached to this DU
         self.processing_queue = []
