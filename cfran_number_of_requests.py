@@ -182,6 +182,10 @@ class Control_Plane(object):
 class Simulation(object):
     pass
 
+#Class that distributes the traffic to RRHs according to the total traffic pattern
+class Load_Distribution(object)
+    pass
+
 
 #Main loop
 # environment
