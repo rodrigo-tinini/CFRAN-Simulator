@@ -4,7 +4,7 @@ import random
 import time
 from enum import Enum
  
- #teste
+
 class Traffic_Generator(object):
     #constructor
     def __init__(self, env, id, distribution_type, packet_size):
@@ -139,9 +139,20 @@ class Processing_Node(object):
     def run(self):
         pass
 
-    #Heuristic method, only executes on the cloud node to activate nodes and establish VPONs
-    def scheduleRequests(Request):
+#This class represents the CF-RAN control plane entity that process the requests and activate nodes and VPONs
+#It is placed on the cloud
+class Control_Plane(object):
+    def __init__(self, env, list_of_requests, list_of_nodes, available_wavelengths):
+        self.env = env
+        self.list_of_requests = list_of_requests
+        self.list_of_nodes = list_of_nodes
+        self.available_wavelengths = available_wavelengths
+
+    #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
+    #and establish or remove VPONs
+    def mainHeuristic(self):
         pass
+
 
 #Main loop
 # environment
