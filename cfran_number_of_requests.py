@@ -174,6 +174,10 @@ class Control_Plane(object):
     def mainHeuristic(self):
         pass
 
+    #Random node activation and VPON creation - Could be a energy efficient node activation but random VPON creation
+    def random(self):
+        pass
+
 #Simulation main class, initiates all process
 class Simulation(object):
     pass
