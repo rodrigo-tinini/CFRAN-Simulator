@@ -102,14 +102,26 @@ class Request(object):
         self.dst = self.packet = packet
         self.id =  self.packet.id
 
+#This class represents a VPON
+class VPON(object):
+    def __init__(self, env, vpon_id, wavelength, vpon_capacity, vpon_du):
+        self.env = env
+        self.vpon_id = vpon_id
+        self.vpon_wavelength = wavelength #operating wavelength of this VPON
+        self.vpon_capacity = vpon_capacity
+        self.vpon_du = vpon_du #DU attached to this vpon
+        self.rrhs = [] #rrhs served by this vpon
+
 #This class represents a Digital Unit that deploys baseband processing or other functions
 class Digital_Unit(object):
     def __init__(self, env, du_id, processing_capacity):
         self.env = env
         self.du_id = du_id
-        self.processing_capacity = processing_capacity
+        #self.du_wavelength = wavelength #initial wavelength of the DU - i.e., when it is first established to a VPON
+        self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations)
         self.enabled = False
-        self.VPONs = []
+        self.VPONs = [] #VPONs attached to this DU
+        self.processing_queue = []
 
     #Adds a VPON to the DU
     def addVPON(self, vpon):
@@ -133,11 +145,20 @@ class Processing_Node(object):
         self.du_amount = du_amount
         self.available_wavelengths = available_wavelengths
         self.used_wavelengths = used_wavelengths
+        self.DUs = []
         self.enabled = False
 
     #Main method
     def run(self):
         pass
+
+    #Activates the processing node
+    def startNode(self):
+        self.enabled = True
+
+    #Deactivates the processing node
+    def endNode(self):
+        self.enabled = False
 
 #This class represents the CF-RAN control plane entity that process the requests and activate nodes and VPONs
 #It is placed on the cloud
@@ -152,6 +173,10 @@ class Control_Plane(object):
     #and establish or remove VPONs
     def mainHeuristic(self):
         pass
+
+#Simulation main class, initiates all process
+class Simulation(object):
+    pass
 
 
 #Main loop
