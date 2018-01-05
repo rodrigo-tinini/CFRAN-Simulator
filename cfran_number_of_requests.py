@@ -90,14 +90,17 @@ class ONU(RRH):
         self.distribution = distribution
         self.rrh = RRH(self.env, self.onu_id, self.distribution, self.line_rate)
         self.action = env.process(self.run())
+        self.reqs = []
 
     #run method
     def run(self):
         #while True:
         packet = yield self.rrh.hold.get()
+        self.rrh.hold.put(packet)
         #print("ONU "+str(self.onu_id)+ " has Packet " +str(packet.id)+ " From RRH "+str(self.rrh.rrh_id))
         request = Request(env, self.onu_id, "Cloud", packet, packet.size)
         self.hold.put(request)
+        self.reqs.append(request)
         #print("ONU " +str(self.onu_id)+" has VPON request "+str(request.id))
 
     #Starts ONU
@@ -117,6 +120,8 @@ class Request(object):
         self.packet = packet
         self.id =  self.packet.id
         self.bandwidth = bandwidth
+        self.cp = 3
+        self.up = 15
 
 #This class represents a VPON
 class VPON(object):
@@ -231,7 +236,7 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
                 #Activate the ONU
                 self.onus[i].starts()
                 #o = self.onus.pop()
-                pck = yield self.onus[i].hold.get()
+                pck = yield self.onus[i].reqs[0]
                 self.traffic.append(pck)
                 t += pck.bandwidth
                 print("Load Distributor has took Request "+str(pck.id)+" From ONU "+str(o.onu_id))
@@ -261,7 +266,7 @@ global id_generated_packet
 id_generated_packet = 1
 rs = []
 onus = []
-traffic_pattern = 61440
+traffic_pattern = 30720
 cpri_line_rate = 614.4
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
 #tg2 = Traffic_Generator(env, 2, distribution, 614.4)
@@ -272,7 +277,7 @@ cpri_line_rate = 614.4
 #env.process(rrh2.run())
 #env.process(onu.run())
 for i in range (100):
-    o = ONU(env, i, False, distribution, 614.4)
+    o = ONU(env, i, True, distribution, 614.4)
     onus.append(o)
 
 #load = Load_Distribution(env, 61440, onus)
