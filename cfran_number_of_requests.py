@@ -100,6 +100,14 @@ class ONU(RRH):
         self.hold.put(request)
         #print("ONU " +str(self.onu_id)+" has VPON request "+str(request.id))
 
+    #Starts ONU
+    def starts(self):
+        self.enabled = True
+
+    #Ends ONU
+    def ends(self):
+        self.enabled = False
+
 #This class represents a VPON request
 class Request(object):
     def __init__(self, env, src, dst, packet, bandwidth):
@@ -212,16 +220,32 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
     def run(self):
         t = 0
         p = 0
-        while self.traffic_pattern > t:
+        true = 0;
+        false = 0;
+        #while self.traffic_pattern > t:
+        for i in range(len(self.onus)):
             #rrh generates cpri traffic
-            o = self.onus.pop()
-            pck = yield o.hold.get()
-            self.traffic.append(pck)
-            t += pck.bandwidth
-            print("Load Distributor has took Request "+str(pck.id)+" From ONU "+str(o.onu_id))
-            p += 1
+            if self.traffic_pattern > t:
+                #Get the request from ONU
+                #o = self.onus[i]
+                #Activate the ONU
+                self.onus[i].starts()
+                #o = self.onus.pop()
+                pck = yield self.onus[i].hold.get()
+                self.traffic.append(pck)
+                t += pck.bandwidth
+                print("Load Distributor has took Request "+str(pck.id)+" From ONU "+str(o.onu_id))
+                p += 1
         print(str(p)+ " Requests stored")
         print("Total Network Load for Time " +str(self.env.now)+ " is "+str(self.traffic_pattern/1000)+ " Gbps")
+        for i in range(len(self.onus)):
+            if self.onus[i].enabled == True:
+                true += 1
+            else:
+                false += 1
+        print("Actives ONU "+str(true))
+        print("ONUs turned off "+str(false))
+
 
 #Main loop
 # environment
@@ -236,7 +260,7 @@ global id_generated_packet
 id_generated_packet = 1
 rs = []
 onus = []
-traffic_pattern = 30720
+traffic_pattern = 15360
 cpri_line_rate = 614.4
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
 #tg2 = Traffic_Generator(env, 2, distribution, 614.4)
@@ -247,7 +271,7 @@ cpri_line_rate = 614.4
 #env.process(rrh2.run())
 #env.process(onu.run())
 for i in range (100):
-    o = ONU(env, i, True, distribution, 614.4)
+    o = ONU(env, i, False, distribution, 614.4)
     onus.append(o)
 
 #load = Load_Distribution(env, 61440, onus)
