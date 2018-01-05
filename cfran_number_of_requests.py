@@ -243,6 +243,7 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
                 true += 1
             else:
                 false += 1
+            print("ONU "+str(self.onus[i].onu_id)+ " is "+str(self.onus[i].enabled))
         print("Actives ONU "+str(true))
         print("ONUs turned off "+str(false))
 
@@ -260,7 +261,7 @@ global id_generated_packet
 id_generated_packet = 1
 rs = []
 onus = []
-traffic_pattern = 15360
+traffic_pattern = 61440
 cpri_line_rate = 614.4
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
 #tg2 = Traffic_Generator(env, 2, distribution, 614.4)
