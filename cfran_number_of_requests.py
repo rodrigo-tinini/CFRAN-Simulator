@@ -26,14 +26,14 @@ class Traffic_Generator(object):
         print("Started Traffic Generator " + str(self.id) + " At Time " + str(self.env.now))
         #reqs = 0
         #while True:
-        while total_requests >  id_generated_packet: #It was while True
+        #while total_requests >  id_generated_packet: #It was while True
             #Wait for the time to generate the packet
-            yield self.env.timeout(self.distribution_type(self))
-            packet = Packet(env, id_generated_packet, self.packet_size, self.env.now)
+        yield self.env.timeout(self.distribution_type(self))
+        packet = Packet(env, id_generated_packet, self.packet_size, self.env.now)
             #store the generated packet to be retrieved by the RRH
-            self.hold.put(packet)
-            self.packet_generated += 1
-            id_generated_packet += 1
+        self.hold.put(packet)
+        self.packet_generated += 1
+        id_generated_packet += 1
             #total_requests -= 1
             #self.packet_id += 1
             #reqs += 1
@@ -57,11 +57,11 @@ class RRH(Traffic_Generator):
         self.hold = simpy.Store(self.env) #to store the packet received and pass it to the ONU
     #run and generate packets
     def run(self):
-        while True: #It was while True
+        #while True: #It was while True
             #print("Started Receiving Packets from Traffic Generator at " + str(self.env.now))
-            packet = yield self.traffic_generator.hold.get()
-            print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
-            self.hold.put(packet)
+        packet = yield self.traffic_generator.hold.get()
+        print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
+        self.hold.put(packet)
 
 #Packet Generator - Control the generation of packets based on a quantity to be generated
 #class Packet_Generator(object):
@@ -183,30 +183,56 @@ class Simulation(object):
     pass
 
 #Class that distributes the traffic to RRHs according to the total traffic pattern
-class Load_Distribution(object)
-    pass
+class Load_Distribution(object): #modify to create the ONU, not only the rrh
+    def __init__(self, env, traffic_pattern, rrhs):#traffic pattern is the load of a given time, rrhs is the total
+    #number of rrhs regarding the full load scenatio
+        self.env = env
+        self.traffic_pattern = traffic_pattern
+        self.rrhs = rrhs
+        self.action = self.env.process(self.run())
+        self.traffic = []
 
+    def run(self):
+        t = 0
+        p = 0
+        while self.traffic_pattern > t:
+            #rrh generates cpri traffic
+            print("Pop Element")
+            r = self.rrhs.pop()
+            self.action2 = self.env.process(r.run())
+            t += 614.4
+            pck = yield r.hold.get()
+            self.traffic.append(pck)
+            p += 1
+        print(str(p)+ " Packets stored")
 
 #Main loop
 # environment
 env = simpy.Environment()
 #distribution time
 distribution = lambda x: random.expovariate(10)
+#distribution = lambda x: 1
 #number of total requests to be generated
 global total_requests
 total_requests = 100000
 global id_generated_packet
 id_generated_packet = 1
+rs = []
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
 #tg2 = Traffic_Generator(env, 2, distribution, 614.4)
-rrh = RRH(env, 1, distribution)
-rrh2 = RRH(env, 2, distribution)
+#rrh = RRH(env, 1, distribution)
+#rrh2 = RRH(env, 2, distribution)
 #onu = ONU(env, "C3PO", rrh, True)
-env.process(rrh.run())
-env.process(rrh2.run())
+#env.process(rrh.run())
+#env.process(rrh2.run())
 #env.process(onu.run())
+for i in range (100):
+    r = RRH(env, i, distribution)
+    rs.append(r)
+load = Load_Distribution(env, 61440, rs)
+
 print("\tBegin at " + str(env.now))
 env.run()
-print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
-print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
+#print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
+#print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
