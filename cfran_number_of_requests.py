@@ -49,18 +49,20 @@ class Packet(object):
  
 #Packets generation example
 class RRH(Traffic_Generator):
-    def __init__(self, env, rrh_id, dist):
+    def __init__(self, env, rrh_id, dist, line_rate):
         self.env = env
         self.dist = dist
         self.rrh_id = rrh_id
-        self.traffic_generator = Traffic_Generator(self.env, self.rrh_id, self.dist, 614.4,)
+        self.line_rate = line_rate
+        self.traffic_generator = Traffic_Generator(self.env, self.rrh_id, self.dist, self.line_rate)
         self.hold = simpy.Store(self.env) #to store the packet received and pass it to the ONU
+        self.action = self.env.process(self.run())
     #run and generate packets
     def run(self):
         #while True: #It was while True
             #print("Started Receiving Packets from Traffic Generator at " + str(self.env.now))
         packet = yield self.traffic_generator.hold.get()
-        print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
+        #print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
         self.hold.put(packet)
 
 #Packet Generator - Control the generation of packets based on a quantity to be generated
@@ -78,29 +80,35 @@ class RRH(Traffic_Generator):
        #     rrhs.run()
 
 #This class represents an Optical Network Unit that is connected to one or more RRHs
-class ONU(object):
-    def __init__(self, env, onu_id, rrh, enabled):
+class ONU(RRH):
+    def __init__(self, env, onu_id, enabled, distribution, line_rate):
         self.env = env
+        self.hold = simpy.Store(self.env)
         self.onu_id = onu_id
-        self.rrh = rrh
+        self.line_rate = line_rate
         self.enabled = enabled
+        self.distribution = distribution
+        self.rrh = RRH(self.env, self.onu_id, self.distribution, self.line_rate)
         self.action = env.process(self.run())
 
     #run method
     def run(self):
-        while True:
-            packet = yield self.rrh.hold.get()
-            print("ONU "+str(self.onu_id)+ " has Packet " +str(packet.id)+ " From RRH "+str(self.rrh.rrh_id))
-            request = Request(env, self.onu_id, "Cloud", packet)
-            #print("Generated VPON request "+str(request.id))
+        #while True:
+        packet = yield self.rrh.hold.get()
+        #print("ONU "+str(self.onu_id)+ " has Packet " +str(packet.id)+ " From RRH "+str(self.rrh.rrh_id))
+        request = Request(env, self.onu_id, "Cloud", packet, packet.size)
+        self.hold.put(request)
+        #print("ONU " +str(self.onu_id)+" has VPON request "+str(request.id))
 
 #This class represents a VPON request
 class Request(object):
-    def __init__(self, env, src, dst, packet):
+    def __init__(self, env, src, dst, packet, bandwidth):
         self.env = env
         self.src = src
-        self.dst = self.packet = packet
+        self.dst = dst
+        self.packet = packet
         self.id =  self.packet.id
+        self.bandwidth = bandwidth
 
 #This class represents a VPON
 class VPON(object):
@@ -110,7 +118,7 @@ class VPON(object):
         self.vpon_wavelength = wavelength #operating wavelength of this VPON
         self.vpon_capacity = vpon_capacity
         self.vpon_du = vpon_du #DU attached to this vpon
-        self.rrhs = [] #rrhs served by this vpon
+        self.onus = [] #ONUs served by this vpon
 
 #This class represents a Digital Unit that deploys baseband processing or other functions
 class Digital_Unit(object):
@@ -180,15 +188,24 @@ class Control_Plane(object):
 
 #Simulation main class, initiates all process
 class Simulation(object):
-    pass
+    def __init__(self, env, onus, traffic_load, cpri_rate):
+        self.env = env
+        self.traffic_load = traffic_load
+        self.cpri_rate = cpri_rate
+        self.onus = onus
+        load_distributor = Load_Distribution(self.env, self.traffic_load, self.onus)
+
+    def run(self):
+        pass
+
 
 #Class that distributes the traffic to RRHs according to the total traffic pattern
 class Load_Distribution(object): #modify to create the ONU, not only the rrh
-    def __init__(self, env, traffic_pattern, rrhs):#traffic pattern is the load of a given time, rrhs is the total
+    def __init__(self, env, traffic_pattern, onus):#traffic pattern is the load of a given time, rrhs is the total
     #number of rrhs regarding the full load scenatio
         self.env = env
         self.traffic_pattern = traffic_pattern
-        self.rrhs = rrhs
+        self.onus = onus
         self.action = self.env.process(self.run())
         self.traffic = []
 
@@ -197,14 +214,14 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
         p = 0
         while self.traffic_pattern > t:
             #rrh generates cpri traffic
-            print("Pop Element")
-            r = self.rrhs.pop()
-            self.action2 = self.env.process(r.run())
-            t += 614.4
-            pck = yield r.hold.get()
+            o = self.onus.pop()
+            pck = yield o.hold.get()
             self.traffic.append(pck)
+            t += pck.bandwidth
+            print("Load Distributor has took Request "+str(pck.id)+" From ONU "+str(o.onu_id))
             p += 1
-        print(str(p)+ " Packets stored")
+        print(str(p)+ " Requests stored")
+        print("Total Network Load for Time " +str(self.env.now)+ " is "+str(self.traffic_pattern/1000)+ " Gbps")
 
 #Main loop
 # environment
@@ -218,6 +235,9 @@ total_requests = 100000
 global id_generated_packet
 id_generated_packet = 1
 rs = []
+onus = []
+traffic_pattern = 30720
+cpri_line_rate = 614.4
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
 #tg2 = Traffic_Generator(env, 2, distribution, 614.4)
 #rrh = RRH(env, 1, distribution)
@@ -227,9 +247,11 @@ rs = []
 #env.process(rrh2.run())
 #env.process(onu.run())
 for i in range (100):
-    r = RRH(env, i, distribution)
-    rs.append(r)
-load = Load_Distribution(env, 61440, rs)
+    o = ONU(env, i, True, distribution, 614.4)
+    onus.append(o)
+
+#load = Load_Distribution(env, 61440, onus)
+simulation = Simulation(env, onus, traffic_pattern, cpri_line_rate)
 
 print("\tBegin at " + str(env.now))
 env.run()
