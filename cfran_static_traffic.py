@@ -60,7 +60,7 @@ class Digital_Unit(object):
         #self.du_wavelength = wavelength #initial wavelength of the DU - i.e., when it is first established to a VPON
         self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations
         self.enabled = False
-        self.VPONs = [] #VPONs attached to this DU
+        self.VPONs = {} #VPONs attached to this DU. The index is the wavelength of the vpon
         self.processing_queue = []
 
     #Adds a VPON to the DU
@@ -78,15 +78,15 @@ class Digital_Unit(object):
 #This class represents a Processing Node
 #available wavelengths is the global wavelengths available for use, used is the ones allocated to this node
 class Processing_Node(object):
-    def __init__(self,  node_id, node_type, du_amount, available_wavelengths, used_wavelengths):
+    def __init__(self,  node_id, node_type, du_amount, used_wavelengths):
         
         self.node_id = node_id
         self.node_type = node_type
         self.du_amount = du_amount
-        self.available_wavelengths = available_wavelengths
         self.used_wavelengths = used_wavelengths
         self.DUs = []
         self.enabled = False
+        self.VPONs = {} #List of all vpons on this node (vpons of all DUs), indexed by its wavelength
 
     #Main method
     def run(self):
@@ -120,11 +120,12 @@ class Control_Plane(object):
 
 #Simulation main class, initiates all process
 class Simulation(object):
-    def __init__(self, env, onus, traffic_load, cpri_rate):
+    def __init__(self, env, onus, nodes, traffic_load, cpri_rate):
         self.env = env
         self.traffic_load = traffic_load
         self.cpri_rate = cpri_rate
         self.onus = onus
+        self.nodes = nodes
         load_distributor = Load_Distribution(self.env, self.traffic_load, self.onus)
 
     def run(self):
@@ -133,7 +134,7 @@ class Simulation(object):
 
 #Class that activates the ONUs according to the total traffic pattern
 class ONUs_Management(object):
-    def __init__(self, onus, traffic_pattern, cpri_line):
+    def __init__(self, onus, nodes, traffic_pattern, cpri_line):
         self.onus = onus
         self.traffic_pattern = traffic_pattern
         self.cpri_line = cpri_line
@@ -152,18 +153,41 @@ class ONUs_Management(object):
                 f += 1
         print("There are " +str(t)+ " active ONUs and "+str(f)+" deactivated ONUs")
 
+    #calculates the number of necessary active ONUs
+    def numOfActiveONUs(self):
+    	x = self.traffic_pattern/cpri_line
+    	return x
+
 #Main loop
 number_of_onus = 100
 cpri_line = 614.4
-traffic_pattern = [61440]
-list_onus = []
+traffic_pattern = 61440
+#global variables that will be modified by the heuristics
+nodes = []
+onus = []
+wavelengths = []
+number_of_nodes = 2
+number_of_dus = 10
 #create the onus
 for i in range(100):
     o = ONU(i, cpri_line)
     print("Created ONU "+str(o.onu_id))
     print("ONU "+str(o.onu_id)+ " is "+str(o.enabled))
-    list_onus.append(o)
+    onus.append(o)
     o.getRequest()
     #o.printReqs()
-om = ONUs_Management(list_onus, traffic_pattern, cpri_line)
+
+#create the nodes
+for i in range(number_of_nodes):
+	if i < 1:
+		#cloud node
+		p = Processing_Node(i, "Cloud", number_of_dus, used_wavelengths = [])
+		nodes.append(p)
+	else:
+		#fog node
+		p = Processing_Node(i, "Fog", number_of_dus, used_wavelengths = [])
+		nodes.append(p)
+om = ONUs_Management(onus, nodes, traffic_pattern, cpri_line)
+x = om.numOfActiveONUs()
+print(str(x))
 om.verifyEnabled()
