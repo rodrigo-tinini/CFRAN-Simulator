@@ -33,11 +33,11 @@ class ONU(object):
 
 #This class represents a VPON request
 class Request(object):
-    def __init__(self,  src, dst, bandwidth, req_id):
+    def __init__(self,  src, dst, bandwidth):
        
         self.src = src
         self.dst = dst
-        self.id = req_id
+        #self.id = req_id
         self.bandwidth = bandwidth
         self.cp = 3
         self.up = 15
@@ -134,20 +134,35 @@ class Simulation(object):
 
 #Class that activates the ONUs according to the total traffic pattern
 class ONUs_Management(object):
-    def __init__(self, onus, nodes, traffic_pattern, cpri_line):
-        self.onus = onus
-        self.traffic_pattern = traffic_pattern
-        self.cpri_line = cpri_line
+    def __init__(self):
+        global nodes
+        global onus
+        global traffic_pattern
+        global cpri_line
+        global requests
+        #self.onus = onus
+        #self.traffic_pattern = traffic_pattern
+        #self.cpri_line = cpri_line
 
     #activates the ONUs according to the given traffic load
-    def manageONUs(self):
-        pass
+    def manageONUs(self, number_of_onus):
+        #get the necessarynumber of active ONUs to serve the traffic
+        os = number_of_onus
+        #activate the necessary onus
+        for i in range(len(onus)):
+        	if i <= os - 1:
+        		if onus[i].enabled == True:
+        			pass
+        		else:
+        			onus[i].starts()
+        	else:
+        		onus[i].ends()
 
     def verifyEnabled(self):
         t = 0;
         f = 0;
-        for i in range(len(self.onus)):
-            if self.onus[i].enabled == True:
+        for i in range(len(onus)):
+            if onus[i].enabled == True:
                 t += 1       
             else:
                 f += 1
@@ -156,10 +171,18 @@ class ONUs_Management(object):
     #calculates the number of necessary active ONUs
     def numOfActiveONUs(self):
     	num_of_active_onus = []
-    	for i in range(len(self.traffic_pattern)):
-    		x = self.traffic_pattern[i]/cpri_line
+    	for i in range(len(traffic_pattern)):
+    		x = traffic_pattern[i]/cpri_line
     		num_of_active_onus.append(x)
     	return num_of_active_onus
+
+    #get the numer of requests for the given period
+    def getRequests(self):	
+    	for i in range(len(onus)):
+    		if onus[i].enabled == True:
+    			r = Request(onus[i].onu_id, None, onus[i].line_rate)
+    			requests.append(r)
+
 
 #Main loop
 number_of_onus = 100
@@ -171,13 +194,15 @@ onus = []
 wavelengths = []
 number_of_nodes = 2
 number_of_dus = 10
+requests = []
+activated_onus = []
 #create the onus
 for i in range(100):
     o = ONU(i, cpri_line)
     print("Created ONU "+str(o.onu_id))
     print("ONU "+str(o.onu_id)+ " is "+str(o.enabled))
     onus.append(o)
-    o.getRequest()
+    #o.getRequest()
     #o.printReqs()
 
 #create the nodes
@@ -190,8 +215,24 @@ for i in range(number_of_nodes):
 		#fog node
 		p = Processing_Node(i, "Fog", number_of_dus, used_wavelengths = [])
 		nodes.append(p)
-om = ONUs_Management(onus, nodes, traffic_pattern, cpri_line)
+om = ONUs_Management()
 x = om.numOfActiveONUs()
 for i in range(len(x)):
 	print(str(x[i]))
+om.manageONUs(50)
+#om.getRequests()
+#for i in range(len(requests)):
+	#print(str(requests[i].src))
 om.verifyEnabled()
+om.manageONUs(70)
+om.verifyEnabled()
+#om.manageONUs(3)
+#om.verifyEnabled()
+#om.manageONUs(10)
+#om.verifyEnabled()
+#om.manageONUs(1)
+#om.verifyEnabled()
+#om.manageONUs(0)
+#om.verifyEnabled()
+#om.manageONUs(100)
+#om.verifyEnabled()
