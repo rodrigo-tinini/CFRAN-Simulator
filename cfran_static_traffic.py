@@ -155,13 +155,16 @@ class ONUs_Management(object):
 
     #calculates the number of necessary active ONUs
     def numOfActiveONUs(self):
-    	x = self.traffic_pattern/cpri_line
-    	return x
+    	num_of_active_onus = []
+    	for i in range(len(self.traffic_pattern)):
+    		x = self.traffic_pattern[i]/cpri_line
+    		num_of_active_onus.append(x)
+    	return num_of_active_onus
 
 #Main loop
 number_of_onus = 100
 cpri_line = 614.4
-traffic_pattern = 61440
+traffic_pattern = [61440, 30720]
 #global variables that will be modified by the heuristics
 nodes = []
 onus = []
@@ -189,5 +192,6 @@ for i in range(number_of_nodes):
 		nodes.append(p)
 om = ONUs_Management(onus, nodes, traffic_pattern, cpri_line)
 x = om.numOfActiveONUs()
-print(str(x))
+for i in range(len(x)):
+	print(str(x[i]))
 om.verifyEnabled()
