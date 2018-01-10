@@ -12,6 +12,7 @@ class ONU(object):
         self.onu_id = onu_id
         self.line_rate = line_rate
         self.reqs = []
+        self.vpon = None
 
     #run method
     def getRequest(self):
@@ -25,6 +26,10 @@ class ONU(object):
     #Ends ONU
     def ends(self):
         self.enabled = False
+
+    #add the ONU's VPON reference to the ONU itself
+    def addVPON(self, vpon):
+    	self.vpon = vpon
 
     #print reqs
     def printReqs(self):
@@ -168,6 +173,11 @@ class ONUs_Management(object):
                 f += 1
         print("There are " +str(t)+ " active ONUs and "+str(f)+" deactivated ONUs")
 
+    #removes an ONU from a VPON
+    def removeONUfromVPON(self):
+    	#take the off ONUs, take its processing node, search for the VPON and remove the ONU from the VPONs ONU's list
+    	pass
+    	
     #calculates the number of necessary active ONUs
     def numOfActiveONUs(self):
     	num_of_active_onus = []
@@ -199,8 +209,8 @@ activated_onus = []
 #create the onus
 for i in range(100):
     o = ONU(i, cpri_line)
-    print("Created ONU "+str(o.onu_id))
-    print("ONU "+str(o.onu_id)+ " is "+str(o.enabled))
+    #print("Created ONU "+str(o.onu_id))
+    #print("ONU "+str(o.onu_id)+ " is "+str(o.enabled))
     onus.append(o)
     #o.getRequest()
     #o.printReqs()
@@ -216,9 +226,9 @@ for i in range(number_of_nodes):
 		p = Processing_Node(i, "Fog", number_of_dus, used_wavelengths = [])
 		nodes.append(p)
 om = ONUs_Management()
-x = om.numOfActiveONUs()
-for i in range(len(x)):
-	print(str(x[i]))
+#x = om.numOfActiveONUs()
+#for i in range(len(x)):
+	#print(str(x[i]))
 om.manageONUs(50)
 #om.getRequests()
 #for i in range(len(requests)):
