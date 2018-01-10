@@ -39,6 +39,9 @@ class Traffic_Generator(object):
             self.packet_id += 1
             #self.generated_request = True
             #reqs += 1
+            #self.stop_generating()
+    def stop_generating(self):
+        self.generated_request = True
        
  
 #Packet Class
@@ -50,7 +53,7 @@ class Packet(object):
         self.time_of_generation = packet_time_of_generation
  
 #Packets generation example
-class RRH(Traffic_Generator):
+class RRH(object):
     def __init__(self, env, rrh_id, dist, line_rate):
         self.env = env
         self.dist = dist
@@ -59,19 +62,28 @@ class RRH(Traffic_Generator):
         self.traffic_generator = Traffic_Generator(self.env, self.rrh_id, self.dist, self.line_rate)
         self.hold = simpy.Store(self.env) #to store the packet received and pass it to the ONU
         self.action = self.env.process(self.run())
-        
+        self.packet_taken = False
 
     #run and generate packets
     def run(self):
-        while True: #It was while True
-            #print("Started Receiving Packets from Traffic Generator at " + str(self.env.now))
-            packet = yield self.traffic_generator.hold.get()
-            print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
-            self.hold.put(packet)
-            self.stopGeneration()
+        while True:                
+            if self.packet_taken == False:
+                packet = yield self.traffic_generator.hold.get()
+                print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
+                self.hold.put(packet)
+                self.stopGeneration()
+                print("Packet Taken")
+                self.stopGeneration()
+            yield self.env.timeout(0.005)
+            print("No loop do yield")
+
+
     #tell traffic generator to not generate
     def stopGeneration(self):
-        self.traffic_generator.generated_request = True
+        self.packet_taken = True
+    #tell traffic generator to not generate
+    def startGeneration(self):
+        self.packet_taken = False
 
             
 
@@ -263,6 +275,8 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
         print("ONUs turned off "+str(false))
 
 
+
+
 #Main loop
 # environment
 env = simpy.Environment()
@@ -281,10 +295,10 @@ cpri_line_rate = 614.4
 #tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
 #tg2 = Traffic_Generator(env, 2, distribution, 614.4)
 rrh = RRH(env, 1, distribution,cpri_line_rate)
-rrh2 = RRH(env, 2, distribution,cpri_line_rate)
+#rrh2 = RRH(env, 2, distribution,cpri_line_rate)
 #onu = ONU(env, "C3PO", rrh, True)
-env.process(rrh.run())
-env.process(rrh2.run())
+#env.process(rrh.run())
+#env.process(rrh2.run())
 #env.process(onu.run())
 #for i in range (100):
  #   o = ONU(env, i, True, distribution, 614.4)
@@ -294,7 +308,7 @@ env.process(rrh2.run())
 #simulation = Simulation(env, onus, traffic_pattern, cpri_line_rate)
 
 print("\tBegin at " + str(env.now))
-env.run(until=3600)
+env.run(until=0.5)
 #print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
 #print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
