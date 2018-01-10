@@ -74,7 +74,9 @@ class RRH(object):
                 self.stopGeneration()
                 print("Packet Taken")
                 self.stopGeneration()
-            yield self.env.timeout(0.005)
+            yield self.env.timeout(foo_delay)
+            #eu poderia criar um evento pra processar a alocação e quando esse evento terminasse, setava
+            #a packet_taken como false pro rrh gerar de novo
             print("No loop do yield")
 
 
@@ -279,6 +281,7 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
 
 #Main loop
 # environment
+foo_delay = 0.0036
 env = simpy.Environment()
 #distribution time
 distribution = lambda x: random.expovariate(10)
@@ -308,7 +311,7 @@ rrh = RRH(env, 1, distribution,cpri_line_rate)
 #simulation = Simulation(env, onus, traffic_pattern, cpri_line_rate)
 
 print("\tBegin at " + str(env.now))
-env.run(until=0.5)
+env.run(until=3600)
 #print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
 #print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
