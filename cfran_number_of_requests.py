@@ -242,6 +242,7 @@ class Control_Plane(object):
     #allocate a ONU request with first fit policy to the node and the dus and vpon - Put cp and up only on the same du
     def firstFitAllocation(self, onu):
     	global nodes
+    	global wavelengths
     	request = onu.hold.get()
     	#search the nodes and put the request on the first available
     	for i in range(len(nodes)):
@@ -252,9 +253,18 @@ class Control_Plane(object):
     			#verify the cp and up processing availability
     			if request.cp <= d.cp_capacity and request.up <= d.up_capacity:
     				#verify the vpons availability
-    				for z in range (len(nodes[i].VPONs[z])):
-    					#verify if 
-
+    				#first verify if there are active vpons to use them first - if not, create a new one
+    				if VPONs:
+    					for z in range (len(nodes[i].VPONs[z])):
+    						pass
+    				else:
+    					#create a new VPON if there is available wavelengths in general 
+    					if len(wavelengths) > 0:
+    						#take the first one and create the vpon
+    						pass
+    					else:
+    						#there is no available wavelengths to be assigned
+    						pass
 
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
@@ -369,7 +379,7 @@ for i in range(number_nodes):
 	nodes.append(p)
 
 print("\tBegin at " + str(env.now))
-env.run(until=3600)
+env.run(until=100)
 #print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
 #print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
