@@ -51,9 +51,11 @@ class Packet(object):
         self.id = packet_id
         self.size = packet_size
         self.time_of_generation = packet_time_of_generation
+        self.cp = 3
+        self.up = 15
  
 #Packets generation example
-class RRH(object):
+class ONU(object):
     def __init__(self, env, rrh_id, dist, line_rate):
         self.env = env
         self.dist = dist
@@ -63,7 +65,8 @@ class RRH(object):
         self.hold = simpy.Store(self.env) #to store the packet received and pass it to the ONU
         self.action = self.env.process(self.run())
         self.packet_taken = False
-
+        global onus
+        global nodes
     #run and generate packets
     def run(self):
         while True:                
@@ -71,13 +74,19 @@ class RRH(object):
                 packet = yield self.traffic_generator.hold.get()
                 print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
                 self.hold.put(packet)
-                self.stopGeneration()
+                #self.stopGeneration()
                 print("Packet Taken")
                 self.stopGeneration()
+                #time to send the request to the cloud
+                print("Propagating...")
+                yield self.env.timeout(20000/300000000)
+                self.allocate(packet, nodes)
+                yield self.env.timeout(self.dist(self))
+                self.deallocate(packet)
             yield self.env.timeout(foo_delay)
             #eu poderia criar um evento pra processar a alocação e quando esse evento terminasse, setava
             #a packet_taken como false pro rrh gerar de novo
-            print("No loop do yield")
+            #print("No loop do yield")
 
 
     #tell traffic generator to not generate
@@ -87,6 +96,21 @@ class RRH(object):
     def startGeneration(self):
         self.packet_taken = False
 
+    #starts allocation
+    def allocate(self, request, nodes):
+    	r = request
+    	for i in range(len(nodes)):
+    		#print(" Accessing pn "+str(nodes[i].node_id))
+    		pass
+    	print("Allocating request "+str(r.id)+" at "+str(self.env.now))
+
+    def deallocate(self, request):
+    	r = request
+    	print("Request "+str(r.id)+" Exit the VPON at "+str(self.env.now))
+
+
+    #starts deallocation
+	
             
 
 #Packet Generator - Control the generation of packets based on a quantity to be generated
@@ -104,36 +128,36 @@ class RRH(object):
        #     rrhs.run()
 
 #This class represents an Optical Network Unit that is connected to one or more RRHs
-class ONU(RRH):
-    def __init__(self, env, onu_id, enabled, distribution, line_rate):
-        self.env = env
-        self.hold = simpy.Store(self.env)
-        self.onu_id = onu_id
-        self.line_rate = line_rate
-        self.enabled = enabled
-        self.distribution = distribution
-        self.rrh = RRH(self.env, self.onu_id, self.distribution, self.line_rate)
-        self.action = env.process(self.run())
-        self.reqs = []
+#class ONU(RRH):
+ #   def __init__(self, env, onu_id, enabled, distribution, line_rate):
+  #      self.env = env
+   #     self.hold = simpy.Store(self.env)
+    #    self.onu_id = onu_id
+     #   self.line_rate = line_rate
+      #  self.enabled = enabled
+       # self.distribution = distribution
+        #self.rrh = RRH(self.env, self.onu_id, self.distribution, self.line_rate)
+        #self.action = env.process(self.run())
+        #self.reqs = []
 
     #run method
-    def run(self):
-        #while True:
-        packet = yield self.rrh.hold.get()
-        self.rrh.hold.put(packet)
-        #print("ONU "+str(self.onu_id)+ " has Packet " +str(packet.id)+ " From RRH "+str(self.rrh.rrh_id))
-        request = Request(env, self.onu_id, "Cloud", packet, packet.size)
-        self.hold.put(request)
-        self.reqs.append(request)
+    #def run(self):
+     #   #while True:
+      #  packet = yield self.rrh.hold.get()
+       # self.rrh.hold.put(packet)
+       # #print("ONU "+str(self.onu_id)+ " has Packet " +str(packet.id)+ " From RRH "+str(self.rrh.rrh_id))
+       # request = Request(env, self.onu_id, "Cloud", packet, packet.size)
+       # self.hold.put(request)
+       # self.reqs.append(request)
         #print("ONU " +str(self.onu_id)+" has VPON request "+str(request.id))
 
     #Starts ONU
-    def starts(self):
-        self.enabled = True
+    #def starts(self):
+    #    self.enabled = True
 
     #Ends ONU
-    def ends(self):
-        self.enabled = False
+    #def ends(self):
+    #    self.enabled = False
 
 #This class represents a VPON request
 class Request(object):
@@ -155,18 +179,20 @@ class VPON(object):
         self.vpon_wavelength = wavelength #operating wavelength of this VPON
         self.vpon_capacity = vpon_capacity
         self.vpon_du = vpon_du #DU attached to this vpon
-        self.onus = [] #ONUs served by this vpon
+        self.onus = {} #onus served by this vpon, attached by its id
 
 #This class represents a Digital Unit that deploys baseband processing or other functions
 class Digital_Unit(object):
-    def __init__(self, env, du_id, processing_capacity):
+    def __init__(self, env, du_id, cp_cap, up_cap):
         self.env = env
         self.du_id = du_id
         #self.du_wavelength = wavelength #initial wavelength of the DU - i.e., when it is first established to a VPON
         self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations
         self.enabled = False
-        self.VPONs = [] #VPONs attached to this DU
+        self.VPONs = {} #VPONs attached to this DU indexed by its wavelength
         self.processing_queue = []
+        self.cp_capacity = cp_cap
+        self.up_capacity = up_cap
 
     #Adds a VPON to the DU
     def addVPON(self, vpon):
@@ -183,15 +209,17 @@ class Digital_Unit(object):
 #This class represents a Processing Node
 #available wavelengths is the global wavelengths available for use, used is the ones allocated to this node
 class Processing_Node(object):
-    def __init__(self, env, node_id, node_type, du_amount, available_wavelengths, used_wavelengths):
+    def __init__(self, env, node_id, du_amount):
         self.env = env
         self.node_id = node_id
-        self.node_type = node_type
+        #self.node_type = node_type
         self.du_amount = du_amount
-        self.available_wavelengths = available_wavelengths
-        self.used_wavelengths = used_wavelengths
-        self.DUs = []
+        #self.available_wavelengths = available_wavelengths
+        #self.used_wavelengths = used_wavelengths
+        self.DUs = {} #dus instantiated on this node, indexed by its id
+        self.VPONs = {} #vpons prsent in this node, indexed by its wavelength
         self.enabled = False
+        self.load_power_ratio = 0 #ratio between load and power to the heuristic?
 
     #Main method
     def run(self):
@@ -208,11 +236,26 @@ class Processing_Node(object):
 #This class represents the CF-RAN control plane entity that process the requests and activate nodes and VPONs
 #It is placed on the cloud
 class Control_Plane(object):
-    def __init__(self, env, list_of_requests, list_of_nodes, available_wavelengths):
+    def __init__(self, env):
         self.env = env
-        self.list_of_requests = list_of_requests
-        self.list_of_nodes = list_of_nodes
-        self.available_wavelengths = available_wavelengths
+
+    #allocate a ONU request with first fit policy to the node and the dus and vpon - Put cp and up only on the same du
+    def firstFitAllocation(self, onu):
+    	global nodes
+    	request = onu.hold.get()
+    	#search the nodes and put the request on the first available
+    	for i in range(len(nodes)):
+    		p = nodes[i]
+    		#search the DUs
+    		for j in range(len(nodes[i].DUs)):
+    			d = nodes[i].DUs[j]
+    			#verify the cp and up processing availability
+    			if request.cp <= d.cp_capacity and request.up <= d.up_capacity:
+    				#verify the vpons availability
+    				for z in range (len(nodes[i].VPONs[z])):
+    					#verify if 
+
+
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
     #and establish or remove VPONs
@@ -285,19 +328,24 @@ foo_delay = 0.0036
 env = simpy.Environment()
 #distribution time
 distribution = lambda x: random.expovariate(10)
-#distribution = lambda x: 1
 #number of total requests to be generated
 global total_requests
 total_requests = 100000
 global id_generated_packet
 id_generated_packet = 1
+number_onus = 100
+number_nodes = 10
 rs = []
 onus = []
+nodes = []
 traffic_pattern = 30720
 cpri_line_rate = 614.4
-#tg = Traffic_Generator(env, 1, distribution, 614.4, total_requests)
-#tg2 = Traffic_Generator(env, 2, distribution, 614.4)
-rrh = RRH(env, 1, distribution,cpri_line_rate)
+num_du = 10
+wavelengths = [1,2,3,4,5,6,7,8,9,10]
+global general_power_consumption
+general_power_consumption = 0
+
+
 #rrh2 = RRH(env, 2, distribution,cpri_line_rate)
 #onu = ONU(env, "C3PO", rrh, True)
 #env.process(rrh.run())
@@ -309,6 +357,16 @@ rrh = RRH(env, 1, distribution,cpri_line_rate)
 
 #load = Load_Distribution(env, 61440, onus)
 #simulation = Simulation(env, onus, traffic_pattern, cpri_line_rate)
+
+#creates the RRHs 
+for i in range(number_onus):
+	r = ONU(env,i,distribution, cpri_line_rate)
+	onus.append(r)
+
+#create the nodes
+for i in range(number_nodes):
+	p = Processing_Node(env, i, num_du)
+	nodes.append(p)
 
 print("\tBegin at " + str(env.now))
 env.run(until=3600)
