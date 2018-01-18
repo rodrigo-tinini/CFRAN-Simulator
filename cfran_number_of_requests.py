@@ -254,6 +254,7 @@ class Control_Plane(object):
     	global nodes
     	global wavelengths
     	global cpri_line_rate
+    	global lambda_bit_rate
     	o = onu
     	#request = yield o.hold.get()
     	request = o.reqs.pop()
@@ -294,12 +295,37 @@ class Control_Plane(object):
 		    							d.up_capacity -= 15
 		    							allocated = True
 		    							break
+		    						else:
+		    							print("No room on VPON "+str(v.vpon_id)+" for request "+str(request.id))
+		    							print("Creating a new VPON on node "+str(p.node_id))
+		    							#create a new vpon if there is wavelength available
+		    							if wavelengths:
+				    						print("Creating a new VPON")
+				    						w = wavelengths.pop()
+				    						vpon = VPON(self.env, str(w), w, lambda_bitrate, d)
+				    						#put the onu on the vpon
+				    						vpon.onus[str(onu.rrh_id)] = request
+				    						#assign vpon to the node
+				    						p.VPONs[str(w)] = vpon
+				    						print("Request "+str(request.id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id)+" at Node "+str(p.node_id))
+				    						d.VPONs[str(vpon.vpon_id)] = vpon
+				    						d.ONUS[str(request.id)] = request
+				    						#add the du to eh vpon du's list
+				    						vpon.additional_dus[str(d.du_id)] = d
+				    						vpon.vpon_capacity -= cpri_line_rate
+				    						d.cp_capacity -= 3
+				    						d.up_capacity -= 15
+				    						allocated = True
+				    						break
+				    					else:
+				    						#there is no available wavelengths to be assigned
+				    						print("No wavelength available to new VPON")
 		    				else:
 		    					#create a new VPON if there is available wavelengths in general 
-		    					if len(wavelengths) > 0:
+		    					if wavelengths:
 		    						print("Creating a new VPON")
 		    						w = wavelengths.pop()
-		    						vpon = VPON(self.env, str(w), w, 10000.0, d)
+		    						vpon = VPON(self.env, str(w), w, lambda_bitrate, d)
 		    						#put the onu on the vpon
 		    						vpon.onus[str(onu.rrh_id)] = request
 		    						#assign vpon to the node
@@ -408,9 +434,12 @@ rs = []
 onus = []
 nodes = []
 traffic_pattern = 30720
+global lambda_bitrate
+lambda_bitrate = 5000.0
+global cpri_line_rate
 cpri_line_rate = 614.4
 num_du = 2
-wavelengths = [1]
+wavelengths = [1,2]
 global general_power_consumption
 general_power_consumption = 0
 
