@@ -56,7 +56,7 @@ class Packet(object):
  
 #Packets generation example
 class ONU(object):
-    def __init__(self, env, rrh_id, dist, line_rate):
+    def __init__(self, env, rrh_id, dist, line_rate, control_plane):
         self.env = env
         self.dist = dist
         self.rrh_id = rrh_id
@@ -65,28 +65,32 @@ class ONU(object):
         self.hold = simpy.Store(self.env) #to store the packet received and pass it to the ONU
         self.action = self.env.process(self.run())
         self.packet_taken = False
+        self.cp = control_plane #reference to control plane
+        self.reqs = []
         global onus
         global nodes
     #run and generate packets
     def run(self):
         while True:                
             if self.packet_taken == False:
-                packet = yield self.traffic_generator.hold.get()
-                print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
-                self.hold.put(packet)
-                #self.stopGeneration()
-                print("Packet Taken")
-                self.stopGeneration()
-                #time to send the request to the cloud
-                print("Propagating...")
-                yield self.env.timeout(20000/300000000)
-                self.allocate(packet, nodes)
-                yield self.env.timeout(self.dist(self))
-                self.deallocate(packet)
+            	self.cp.test(self)
+            	packet = yield self.traffic_generator.hold.get()
+            	print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
+            	#self.hold.put(packet)
+            	self.reqs.append(packet)
+            	print("Packet Taken")
+            	self.stopGeneration()
+            	print("Propagating...")#time to send the request to the cloud
+            	yield self.env.timeout(20000/300000000)
+            	self.cp.firstFitAllocation(self)
+            	yield self.env.timeout(self.dist(self))
+            	self.deallocate(packet)
             yield self.env.timeout(foo_delay)
             #eu poderia criar um evento pra processar a alocação e quando esse evento terminasse, setava
             #a packet_taken como false pro rrh gerar de novo
             #print("No loop do yield")
+
+
 
 
     #tell traffic generator to not generate
@@ -178,8 +182,9 @@ class VPON(object):
         self.vpon_id = vpon_id
         self.vpon_wavelength = wavelength #operating wavelength of this VPON
         self.vpon_capacity = vpon_capacity
-        self.vpon_du = vpon_du #DU attached to this vpon
+        self.vpon_du = vpon_du # original DU attached to this vpon
         self.onus = {} #onus served by this vpon, attached by its id
+        self.additional_dus = {} #all dus assigned to the vpon
 
 #This class represents a Digital Unit that deploys baseband processing or other functions
 class Digital_Unit(object):
@@ -187,9 +192,10 @@ class Digital_Unit(object):
         self.env = env
         self.du_id = du_id
         #self.du_wavelength = wavelength #initial wavelength of the DU - i.e., when it is first established to a VPON
-        self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations
+        #self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations
         self.enabled = False
         self.VPONs = {} #VPONs attached to this DU indexed by its wavelength
+        self.ONUS = {} #onus on this du
         self.processing_queue = []
         self.cp_capacity = cp_cap
         self.up_capacity = up_cap
@@ -220,6 +226,9 @@ class Processing_Node(object):
         self.VPONs = {} #vpons prsent in this node, indexed by its wavelength
         self.enabled = False
         self.load_power_ratio = 0 #ratio between load and power to the heuristic?
+        for i in range(self.du_amount):
+        	d = Digital_Unit(self.env, i, 27, 135)
+        	self.DUs[i] = d
 
     #Main method
     def run(self):
@@ -238,33 +247,69 @@ class Processing_Node(object):
 class Control_Plane(object):
     def __init__(self, env):
         self.env = env
+        self.id = "CP 1"
 
     #allocate a ONU request with first fit policy to the node and the dus and vpon - Put cp and up only on the same du
     def firstFitAllocation(self, onu):
     	global nodes
     	global wavelengths
-    	request = onu.hold.get()
+    	o = onu
+    	#request = yield o.hold.get()
+    	request = o.reqs.pop()
+    	print("Allocating request "+str(request.id))
     	#search the nodes and put the request on the first available
     	for i in range(len(nodes)):
+    		print("to aqui")
     		p = nodes[i]
     		#search the DUs
-    		for j in range(len(nodes[i].DUs)):
-    			d = nodes[i].DUs[j]
+    		for j in range(len(p.DUs)):
+    			print("aqui tb")
+    			d = p.DUs[j]
     			#verify the cp and up processing availability
     			if request.cp <= d.cp_capacity and request.up <= d.up_capacity:
     				#verify the vpons availability
     				#first verify if there are active vpons to use them first - if not, create a new one
-    				if VPONs:
-    					for z in range (len(nodes[i].VPONs[z])):
-    						pass
+    				if  bool(p.VPONs) == True:
+    					print("There active VPONs in this node")
+    					for z in range(len(p.VPONs)):
+    						v = nodes[i].VPONs[z]
+    						#verify if vpon has capacity
+    						if request.size <= v.capacity:
+    							#allocate the request in this vpon
+    							v.onus[str(onu.rrh_id)] = request
+    							print("ONU "+str(onu.rrh_id)+" Assigned to VPON "+str(v.vpon_id)+" in DU "+str(d.du_id))
+    							#allocate the request to this DU
+    							d.VPONs[str(v.vpon_id)] = v
+    							d.ONUS[str(request.id)] = request
+    							#add the du to eh vpon du's list
+    							v.additional_dus[str(d.du_id)] = d
+    							break
     				else:
     					#create a new VPON if there is available wavelengths in general 
     					if len(wavelengths) > 0:
-    						#take the first one and create the vpon
-    						pass
+    						print("Creating a new VPON")
+    						w = wavelengths.pop()
+    						vpon = VPON(self.env, str(w), w, 10000.0, d)
+    						#put the onu on the vpon
+    						vpon.onus[str(onu.rrh_id)] = request
+    						#assign vpon to the node
+    						p.VPONs[str(w)] = vpon
+    						print("ONU "+str(onu.rrh_id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id))
+    						d.VPONs[str(vpon.vpon_id)] = vpon
+    						d.ONUS[str(request.id)] = request
+    						#add the du to eh vpon du's list
+    						vpon.additional_dus[str(d.du_id)] = d
+    						break
     					else:
     						#there is no available wavelengths to be assigned
-    						pass
+    						print("No wavelength available to new VPON")
+    			else:
+    				print("No capacity on this DU "+str(d.du_id))
+
+    #test
+    def test(self, onu):
+    	o = onu
+    	print("I am ONU "+str(o.rrh_id)+" at "+str(self.id))
 
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
@@ -368,15 +413,20 @@ general_power_consumption = 0
 #load = Load_Distribution(env, 61440, onus)
 #simulation = Simulation(env, onus, traffic_pattern, cpri_line_rate)
 
+#create the control plane instance
+cp = Control_Plane(env)
+
 #creates the RRHs 
 for i in range(number_onus):
-	r = ONU(env,i,distribution, cpri_line_rate)
+	r = ONU(env,i,distribution, cpri_line_rate, cp)
 	onus.append(r)
 
 #create the nodes
 for i in range(number_nodes):
 	p = Processing_Node(env, i, num_du)
+	#print(p.VPONs)
 	nodes.append(p)
+
 
 print("\tBegin at " + str(env.now))
 env.run(until=100)
