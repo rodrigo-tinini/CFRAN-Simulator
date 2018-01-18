@@ -294,7 +294,7 @@ class Control_Plane(object):
     						vpon.onus[str(onu.rrh_id)] = request
     						#assign vpon to the node
     						p.VPONs[str(w)] = vpon
-    						print("ONU "+str(onu.rrh_id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id))
+    						print("ONU "+str(onu.rrh_id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id)+" at Node "+str(p.node_id))
     						d.VPONs[str(vpon.vpon_id)] = vpon
     						d.ONUS[str(request.id)] = request
     						#add the du to eh vpon du's list
