@@ -56,10 +56,11 @@ class Packet(object):
  
 #Packets generation example
 class ONU(object):
-    def __init__(self, env, rrh_id, dist, line_rate, control_plane):
+    def __init__(self, env, rrh_id, dist, service_time, line_rate, control_plane):
         self.env = env
         self.dist = dist
         self.rrh_id = rrh_id
+        self.service = service_time
         self.line_rate = line_rate
         self.traffic_generator = Traffic_Generator(self.env, self.rrh_id, self.dist, self.line_rate)
         self.hold = simpy.Store(self.env) #to store the packet received and pass it to the ONU
@@ -67,25 +68,28 @@ class ONU(object):
         self.packet_taken = False
         self.cp = control_plane #reference to control plane
         self.reqs = []
+        self.node = None #processing node that allocated this onu
         global onus
         global nodes
     #run and generate packets
     def run(self):
-        while True:                
+    	global total_packets
+    	while True:                
             if self.packet_taken == False:
             	#self.cp.test(self)
             	packet = yield self.traffic_generator.hold.get()
-            	#print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
+            	print("RRH " +str(self.rrh_id)+ " Got packet " + str(packet.id) + " of Size "+str(packet.size)+ " At Time " + str(self.env.now))
             	#self.hold.put(packet)
             	self.reqs.append(packet)
+            	total_packets += 1
             	#print("Packet Taken")
             	self.stopGeneration()
             	#print("Propagating...")#time to send the request to the cloud
             	yield self.env.timeout(20000/300000000)
             	self.cp.firstFitAllocation(self)
-            	yield self.env.timeout(self.dist(self))
-            	#self.deallocate(packet)
-            yield self.env.timeout(foo_delay)
+            	yield self.env.timeout(self.service(self))
+            	self.deallocate(packet)
+            yield self.env.timeout(self.dist(self))
             #eu poderia criar um evento pra processar a alocação e quando esse evento terminasse, setava
             #a packet_taken como false pro rrh gerar de novo
             #print("No loop do yield")
@@ -251,107 +255,114 @@ class Control_Plane(object):
 
     #allocate a ONU request with first fit policy to the node and the dus and vpon - Put cp and up only on the same du
     def firstFitAllocation(self, onu):
-    	global nodes
-    	global wavelengths
-    	global cpri_line_rate
-    	global lambda_bit_rate
-    	o = onu
-    	#request = yield o.hold.get()
-    	request = o.reqs.pop()
-    	print("Allocating request "+str(request.id))
-    	allocated = False
-    	#search the nodes and put the request on the first available
-    	for i in range(len(nodes)):
-    		if not allocated:
-	    		print("to aqui")
-	    		p = nodes[i]
-	    		print("Checking node "+str(p.node_id))
-	    		#search the DUs
-	    		for j in p.DUs:
-	    			if not allocated:
-		    			print("aqui tb")
-		    			d = p.DUs[j]
-		    			#verify the cp and up processing availability
-		    			if request.cp <= d.cp_capacity and request.up <= d.up_capacity:
-		    				#verify the vpons availability
-		    				#first verify if there are active vpons to use them first - if not, create a new one
-		    				if  bool(p.VPONs) == True:
-		    					print("There active VPONs in this node")
-		    					#search for a vpon
-		    					for key in p.VPONs:
-		    						v = nodes[i].VPONs[key]
-		    						#verify if vpon has capacity
-		    						if request.size <= v.vpon_capacity:
-		    							#allocate the request in this vpon
-		    							v.onus[str(onu.rrh_id)] = request
-		    							print("Request "+str(request.id)+" Assigned to VPON "+str(v.vpon_id)+" in DU "+str(d.du_id)+" at node "+str(p.node_id))
-		    							#allocate the request to this DU
-		    							d.VPONs[str(v.vpon_id)] = v
-		    							d.ONUS[str(request.id)] = request
-		    							#add the du to eh vpon du's list
-		    							v.additional_dus[str(d.du_id)] = d
-		    							v.vpon_capacity -= cpri_line_rate
-		    							d.cp_capacity -= 3
-		    							d.up_capacity -= 15
-		    							allocated = True
-		    							break
-		    					if not allocated:
-		    						print("No room on existing VPONs at node "+str(p.node_id))
-		    						print("Creating a new VPON on node "+str(p.node_id))
-		    						#create a new vpon if there is wavelength available
-		    						if wavelengths:
-					    				print("Creating a new VPON")
-					    				w = wavelengths.pop()
-					    				vpon = VPON(self.env, str(w), w, lambda_bitrate, d)
-					    				#put the onu on the vpon
-					    				vpon.onus[str(onu.rrh_id)] = request
-					    				#assign vpon to the node
-					    				p.VPONs[str(w)] = vpon
-					    				print("Request "+str(request.id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id)+" at Node "+str(p.node_id)+" at time "+str(self.env.now))
-					    				d.VPONs[str(vpon.vpon_id)] = vpon
-					    				d.ONUS[str(request.id)] = request
-					    				#add the du to eh vpon du's list
-					    				vpon.additional_dus[str(d.du_id)] = d
-					    				vpon.vpon_capacity -= cpri_line_rate
-					    				d.cp_capacity -= 3
-					    				d.up_capacity -= 15
-					    				allocated = True
-					    				#break
-				    				else:
-				    					pass
-				    						#there is no available wavelengths to be assigned
-				    						#print("No wavelength available to new VPON")
-		    				else:
-		    					#create a new VPON if there is available wavelengths in general 
-		    					if wavelengths:
-		    						print("Creating a new VPON")
-		    						w = wavelengths.pop()
-		    						vpon = VPON(self.env, str(w), w, lambda_bitrate, d)
-		    						#put the onu on the vpon
-		    						vpon.onus[str(onu.rrh_id)] = request
-		    						#assign vpon to the node
-		    						p.VPONs[str(w)] = vpon
-		    						print("Request "+str(request.id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id)+" at Node "+str(p.node_id)+" at time "+str(self.env.now))
-		    						d.VPONs[str(vpon.vpon_id)] = vpon
-		    						d.ONUS[str(request.id)] = request
-		    						#add the du to eh vpon du's list
-		    						vpon.additional_dus[str(d.du_id)] = d
-		    						vpon.vpon_capacity -= cpri_line_rate
-		    						d.cp_capacity -= 3
-		    						d.up_capacity -= 15
-		    						allocated = True
-		    						break
-		    					else:
-		    						pass
-		    						#there is no available wavelengths to be assigned
-		    						#print("No wavelength available to new VPON")
-		    			else:
-		    				print("No capacity on this DU "+str(d.du_id)+ " at node "+str(p.node_id))
+        global nodes
+        global wavelengths
+        global cpri_line_rate
+        global lambda_bit_rate
+        global blocked
+        o = onu
+        #request = yield o.hold.get()
+        request = o.reqs.pop()
+        #print("Allocating request "+str(request.id))
+        allocated = False
+        #search the nodes and put the request on the first available
+        for i in range(len(nodes)):
+                if not allocated:
+                        p = nodes[i]#print("Checking node "+str(p.node_id))
+                        for j in p.DUs:
+                                if not allocated:
+                                        d = p.DUs[j]
+                                        #verify the cp and up processing availability
+                                        if request.cp <= d.cp_capacity and request.up <= d.up_capacity:
+                                                #verify the vpons availability
+                                                #first verify if there are active vpons to use them first - if not, create a new one
+                                                if  bool(p.VPONs) == True:
+                                                        #print("There active VPONs in this node")
+                                                        #search for a vpon
+                                                        for key in p.VPONs:
+                                                                v = nodes[i].VPONs[key]
+                                                                #verify if vpon has capacity
+                                                                if request.size <= v.vpon_capacity:
+                                                                        #allocate the request in this vpon
+                                                                        v.onus[str(onu.rrh_id)] = request
+                                                                        #print("Request "+str(request.id)+" Assigned to VPON "+str(v.vpon_id)+" in DU "+str(d.du_id)+" at node "+str(p.node_id))
+                                                                        #allocate the request to this DU
+                                                                        d.VPONs[str(v.vpon_id)] = v
+                                                                        d.ONUS[str(request.id)] = request
+                                                                        #add the du to eh vpon du's list
+                                                                        v.additional_dus[str(d.du_id)] = d
+                                                                        v.vpon_capacity -= cpri_line_rate
+                                                                        d.cp_capacity -= 3
+                                                                        d.up_capacity -= 15
+                                                                        allocated = True
+                                                                        print("Allocated "+str(request.id)+" !!!")
+                                                                        #break #eu tirei todos os breaks por conta da verificação do if not allocated já fazer sair do loop - parece estar funcionando corretamente
+                                                        if not allocated:
+                                                                #print("No room on existing VPONs at node "+str(p.node_id))
+                                                                #print("Creating a new VPON on node "+str(p.node_id))
+                                                                #create a new vpon if there is wavelength available
+                                                                if wavelengths:#print("Creating a new VPON")
+                                                                        w = wavelengths.pop()
+                                                                        vpon = VPON(self.env, str(w), w, lambda_bitrate, d)
+                                                                        #put the onu on the vpon
+                                                                        vpon.onus[str(onu.rrh_id)] = request
+                                                                        #assign vpon to the node
+                                                                        p.VPONs[str(w)] = vpon
+                                                                        #print("Request "+str(request.id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id)+" at Node "+str(p.node_id)+" at time "+str(self.env.now))
+                                                                        d.VPONs[str(vpon.vpon_id)] = vpon
+                                                                        d.ONUS[str(request.id)] = request
+                                                                        #add the du to eh vpon du's list
+                                                                        vpon.additional_dus[str(d.du_id)] = d
+                                                                        vpon.vpon_capacity -= cpri_line_rate
+                                                                        d.cp_capacity -= 3
+                                                                        d.up_capacity -= 15
+                                                                        allocated = True
+                                                                        print("Allocated "+str(request.id)+" !!!")
+                                                                        #break
+                                                                else:
+                                                                        pass
+                                                                                #there is no available wavelengths to be assigned
+                                                                                #print("No wavelength available to new VPON")
+                                                else:
+                                                        #create a new VPON if there is available wavelengths in general 
+                                                        if wavelengths:
+                                                                #print("Creating a new VPON")
+                                                                w = wavelengths.pop()
+                                                                vpon = VPON(self.env, str(w), w, lambda_bitrate, d)
+                                                                #put the onu on the vpon
+                                                                vpon.onus[str(onu.rrh_id)] = request
+                                                                #assign vpon to the node
+                                                                p.VPONs[str(w)] = vpon
+                                                                #print("Request "+str(request.id)+" Assigned to VPON "+str(vpon.vpon_id)+" in DU "+str(d.du_id)+" at Node "+str(p.node_id)+" at time "+str(self.env.now))
+                                                                d.VPONs[str(vpon.vpon_id)] = vpon
+                                                                d.ONUS[str(request.id)] = request
+                                                                #add the du to eh vpon du's list
+                                                                vpon.additional_dus[str(d.du_id)] = d
+                                                                vpon.vpon_capacity -= cpri_line_rate
+                                                                d.cp_capacity -= 3
+                                                                d.up_capacity -= 15
+                                                                allocated = True
+                                                                print("Allocated "+str(request.id)+" !!!")
+                                                                #break
+                                                        else:
+                                                                #there is no available wavelengths to be assigned
+                                                                #print("No wavelength available to new VPON")
+                                                                pass
+                                        else:
+                                                pass
+                                                #print("No capacity on this DU "+str(d.du_id)+ " at node "+str(p.node_id))
+        if not allocated:
+            print("No possible to allocate request "+str(request.id))
+            blocked += 1
 
-	#test
+        #test
     def test(self, onu):
-    	o = onu
-    	print("I am ONU "+str(o.rrh_id)+" at "+str(self.id))
+        o = onu
+        print("I am ONU "+str(o.rrh_id)+" at "+str(self.id))
+
+    #deallocate ONU from nodes, vpons and du
+    def deallocate(self, onu):
+    	pass
 
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
@@ -421,15 +432,18 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
 
 #Main loop
 # environment
-foo_delay = 0.0036
+foo_delay = 0.05
 env = simpy.Environment()
 #distribution time
-distribution = lambda x: random.expovariate(10)
+distribution = lambda x: random.expovariate(100)
+srv_time = lambda x: random.expovariate(1)
 #number of total requests to be generated
 global total_requests
 total_requests = 100000
 global id_generated_packet
 id_generated_packet = 1
+global blocked
+blocked = 0
 number_onus = 100
 number_nodes = 10
 rs = []
@@ -444,6 +458,8 @@ num_du = 2
 wavelengths = [1,2,3,4,5,6,7,8,9,10]
 global general_power_consumption
 general_power_consumption = 0
+global total_packets
+total_packets = 0
 
 
 #rrh2 = RRH(env, 2, distribution,cpri_line_rate)
@@ -463,7 +479,7 @@ cp = Control_Plane(env)
 
 #creates the RRHs 
 for i in range(number_onus):
-	r = ONU(env,i,distribution, cpri_line_rate, cp)
+	r = ONU(env,i,distribution, srv_time, cpri_line_rate, cp)
 	onus.append(r)
 
 #create the nodes
@@ -478,3 +494,6 @@ env.run(until=100)
 #print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
 #print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
+print("Total packets generated: "+str(total_packets))
+print("Total of Blocked Requests: "+str(blocked))
+print("Blocking probability: "+str(blocked/total_packets))
