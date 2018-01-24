@@ -366,7 +366,9 @@ class Control_Plane(object):
                                                                 pass
                                         else:
                                                 pass
-                                                #print("No capacity on this DU "+str(d.du_id)+ " at node "+str(p.node_id))
+
+                else:
+                    break                                    #print("No capacity on this DU "+str(d.du_id)+ " at node "+str(p.node_id))
         if not allocated:
             print("No possible to allocate request "+str(request.id))
             blocked += 1
