@@ -299,6 +299,8 @@ class Control_Plane(object):
                                                                         d.cp_capacity -= 3
                                                                         d.up_capacity -= 15
                                                                         o.node = p
+                                                                        o.vpon[v.vpon_id] = v
+                                                                        o.du[d.du_id] = d
                                                                         allocated = True
                                                                         o.alloc = True
                                                                         print("Allocated "+str(request.id)+" !!!")
@@ -323,6 +325,8 @@ class Control_Plane(object):
                                                                         d.cp_capacity -= 3
                                                                         d.up_capacity -= 15
                                                                         o.node = p
+                                                                        o.vpon[vpon.vpon_id] = vpon
+                                                                        o.du[d.du_id] = d
                                                                         o.alloc = True
                                                                         allocated = True
                                                                         print("Allocated "+str(request.id)+" !!!")
@@ -350,6 +354,8 @@ class Control_Plane(object):
                                                                 d.cp_capacity -= 3
                                                                 d.up_capacity -= 15
                                                                 o.node= p
+                                                                o.vpon[vpon.vpon_id] = vpon
+                                                                o.du[d.du_id] = d
                                                                 o.alloc = True
                                                                 allocated = True
                                                                 print("Allocated "+str(request.id)+" !!!")
