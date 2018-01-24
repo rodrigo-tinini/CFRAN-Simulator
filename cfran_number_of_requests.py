@@ -70,6 +70,8 @@ class ONU(object):
         self.reqs = []
         self.node = None #processing node that allocated this onu
         self.alloc = False
+        self.vpon = {} #vpon that transmits this onu
+        self.du = {} #du that process this onu
         global onus
         global nodes
     #run and generate packets
