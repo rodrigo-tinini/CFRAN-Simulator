@@ -69,6 +69,7 @@ class ONU(object):
         self.cp = control_plane #reference to control plane
         self.reqs = []
         self.node = None #processing node that allocated this onu
+        self.alloc = False
         global onus
         global nodes
     #run and generate packets
@@ -263,6 +264,7 @@ class Control_Plane(object):
         o = onu
         #request = yield o.hold.get()
         request = o.reqs.pop()
+        o.reqs.append(request)
         #print("Allocating request "+str(request.id))
         allocated = False
         #search the nodes and put the request on the first available
@@ -294,7 +296,9 @@ class Control_Plane(object):
                                                                         v.vpon_capacity -= cpri_line_rate
                                                                         d.cp_capacity -= 3
                                                                         d.up_capacity -= 15
+                                                                        o.node = p
                                                                         allocated = True
+                                                                        o.alloc = True
                                                                         print("Allocated "+str(request.id)+" !!!")
                                                                         #break #eu tirei todos os breaks por conta da verificação do if not allocated já fazer sair do loop - parece estar funcionando corretamente
                                                         if not allocated:
@@ -316,6 +320,8 @@ class Control_Plane(object):
                                                                         vpon.vpon_capacity -= cpri_line_rate
                                                                         d.cp_capacity -= 3
                                                                         d.up_capacity -= 15
+                                                                        o.node = p
+                                                                        o.alloc = True
                                                                         allocated = True
                                                                         print("Allocated "+str(request.id)+" !!!")
                                                                         #break
@@ -341,6 +347,8 @@ class Control_Plane(object):
                                                                 vpon.vpon_capacity -= cpri_line_rate
                                                                 d.cp_capacity -= 3
                                                                 d.up_capacity -= 15
+                                                                o.node= p
+                                                                o.alloc = True
                                                                 allocated = True
                                                                 print("Allocated "+str(request.id)+" !!!")
                                                                 #break
@@ -362,7 +370,11 @@ class Control_Plane(object):
 
     #deallocate ONU from nodes, vpons and du
     def deallocate(self, onu):
-    	pass
+        o = onu
+        #retrieve the node that this onu is allocated
+        node = o.node
+        r = o.reqs.pop()
+        #remove the request and onu from vpon and du of the node
 
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
@@ -490,10 +502,12 @@ for i in range(number_nodes):
 
 
 print("\tBegin at " + str(env.now))
-env.run(until=100)
+env.run(until=10)
 #print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
 #print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
 print("Total packets generated: "+str(total_packets))
 print("Total of Blocked Requests: "+str(blocked))
 print("Blocking probability: "+str(blocked/total_packets))
+for i in range(len(onus)):
+    print("ONU "+str(onus[i].rrh_id)+" is "+str(onus[i].alloc))
