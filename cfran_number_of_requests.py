@@ -86,12 +86,13 @@ class ONU(object):
             	self.reqs.append(packet)
             	total_packets += 1
             	#print("Packet Taken")
-            	self.stopGeneration()
+            	#self.stopGeneration()
             	#print("Propagating...")#time to send the request to the cloud
             	yield self.env.timeout(20000/300000000)
             	self.cp.firstFitAllocation(self)
-            	yield self.env.timeout(self.service(self))
-            	#self.deallocate(packet)
+            	if self.alloc == True:
+            		yield self.env.timeout(self.service(self))
+            		self.cp.deallocate(self)
             yield self.env.timeout(self.dist(self))
             #eu poderia criar um evento pra processar a alocação e quando esse evento terminasse, setava
             #a packet_taken como false pro rrh gerar de novo
@@ -306,7 +307,7 @@ class Control_Plane(object):
                                                                         allocated = True
                                                                         o.alloc = True
                                                                         print("Allocated "+str(request.id)+" !!!")
-                                                                        #break #eu tirei todos os breaks por conta da verificação do if not allocated já fazer sair do loop - parece estar funcionando corretamente
+                                                                        break #eu tirei todos os breaks por conta da verificação do if not allocated já fazer sair do loop - parece estar funcionando corretamente
                                                         if not allocated:
                                                                 #print("No room on existing VPONs at node "+str(p.node_id))
                                                                 #print("Creating a new VPON on node "+str(p.node_id)+" to DU "+str(d.du_id))
@@ -334,7 +335,7 @@ class Control_Plane(object):
                                                                         o.alloc = True
                                                                         allocated = True
                                                                         print("Allocated "+str(request.id)+" !!!")
-                                                                        #break
+                                                                        break
                                                                 else:
                                                                         pass
                                                                                 #there is no available wavelengths to be assigned
@@ -365,7 +366,7 @@ class Control_Plane(object):
                                                                 o.alloc = True
                                                                 allocated = True
                                                                 print("Allocated "+str(request.id)+" !!!")
-                                                                #break
+                                                                break
                                                         else:
                                                                 #there is no available wavelengths to be assigned
                                                                 #print("No wavelength available to new VPON")
@@ -386,11 +387,26 @@ class Control_Plane(object):
 
     #deallocate ONU from nodes, vpons and du
     def deallocate(self, onu):
+        print("Starting deallocating ONU "+str(onu.rrh_id)+" from VPON "+str(onu.vpon.vpon_id))
+        global wavelengths
+        global cpri_line_rate
         o = onu
         #retrieve the node that this onu is allocated
         node = o.node
         r = o.reqs.pop()
         #remove the request and onu from vpon and du of the node
+        v = o.vpon
+        del v.onus[str(o.rrh_id)]
+        v.vpon_capacity += cpri_line_rate
+        d = o.du
+        del d.ONUS[str(r.id)]
+        d.cp_capacity += 3
+        d.up_capacity += 15
+        o.node = None
+        o.vpon = None
+        o.du = None
+        o.alloc = False
+        print("Removed ONU "+str(o.rrh_id)+" and Request "+str(r.id)+"From VPON "+str(v.vpon_id)+" and DU "+str(d.du_id))
 
 
 
@@ -464,7 +480,7 @@ class Load_Distribution(object): #modify to create the ONU, not only the rrh
 foo_delay = 0.005
 env = simpy.Environment()
 #distribution time
-distribution = lambda x: random.expovariate(100)
+distribution = lambda x: random.expovariate(10)
 srv_time = lambda x: random.expovariate(1)
 #number of total requests to be generated
 global total_requests
@@ -522,7 +538,7 @@ for i in range(number_nodes):
 
 
 print("\tBegin at " + str(env.now))
-env.run(until=10)
+env.run(until=3600)
 #print("Total of packets generated on RRH " +str(rrh.rrh_id)+" : " +str(rrh.traffic_generator.packet_generated))
 #print("Total of packets generated on RRH " +str(rrh2.rrh_id)+" : " +str(rrh2.traffic_generator.packet_generated))
 print("\tEnd at " + str(env.now))
