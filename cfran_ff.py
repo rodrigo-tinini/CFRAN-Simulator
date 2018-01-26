@@ -140,20 +140,13 @@ class Digital_Unit(object):
     def __init__(self, env, du_id, cp_cap, up_cap):
         self.env = env
         self.du_id = du_id
-        #self.du_wavelength = wavelength #initial wavelength of the DU - i.e., when it is first established to a VPON
-        #self.processing_capacity = processing_capacity #here in terms of number of RRHs (in a spliut scenarion, can be in numbers of CP and UP operations
         self.enabled = False
-        self.VPONs = {} #VPONs attached to this DU indexed by its wavelength
-        self.ONUS = {} #onus on this du
         self.processing_queue = []
         self.cp_capacity = cp_cap
         self.up_capacity = up_cap
-        self.allocated_ups = []
-        self.allocated_cps = []
+        self.allocated_ups = {} #list of ups allocated indexed by its onu
+        self.allocated_cps = {} #list of cps allocated indexed by its onu
 
-    #Adds a VPON to the DU
-    def addVPON(self, vpon):
-        self.VPONs.append(vpon)
 
     #Starts the DU
     def startDU(self):
@@ -299,6 +292,9 @@ class Control_Plane(object):
                 #index the du to the vpon
                 vpon.vpon_du = d
                 vpon.onus[str(onu.rrh_id)] = onu
+                #put the cps and ups on the du respective list(dictionaries, actually)
+                vpond.vpon_du.allocated_cps[str(onu.rrh_id)] = request.cp_functions
+                vpond.vpon_du.allocated_ups[str(onu.rrh_id)] = request.up_functions
                 #update the vpon and du capacities
                 vpon.vpon_capacity -= cpri_line_rate
                 vpon.vpon_du.cp_capacity -= 3
@@ -312,8 +308,6 @@ class Control_Plane(object):
                 p.VPONs.append(vpon)
                 #put the du to the lsit of active
                 p.active_dus[str(vpon.vpon_du.du_id)] = vpon.vpon_du
-                #update the number of available dus on the node
-                p.du_amount -= 1
                 #remove the node from the list of deactivated nodes
                 del deactivated_nodes[p.node_id]
                 print("ONU "+str(onu.rrh_id)+" Allocated on Node "+str(p.node_id)+" "+str(p.type)+" on VPON "+str(vpon.vpon_id)+ " in DU "+str(vpon.vpon_du.du_id))
