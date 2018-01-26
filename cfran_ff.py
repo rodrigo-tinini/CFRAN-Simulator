@@ -4,7 +4,7 @@ import random
 import time
 from enum import Enum
  
-
+ 
 class Traffic_Generator(object):
     #constructor
     def __init__(self, env, id, distribution_type, packet_size):
