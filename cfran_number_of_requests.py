@@ -89,7 +89,7 @@ class ONU(object):
             	#self.stopGeneration()
             	#print("Propagating...")#time to send the request to the cloud
             	yield self.env.timeout(20000/300000000)
-            	self.cp.firstFitAllocation(self)
+            	self.cp.ffAllocate(self)
             	if self.alloc == True:
             		yield self.env.timeout(self.service(self))
             		self.cp.deallocate(self)
@@ -226,6 +226,10 @@ class Processing_Node(object):
     def __init__(self, env, node_id, du_amount):
         self.env = env
         self.node_id = node_id
+        if node_id == 0:
+        	self.type = "Cloud"
+        else:
+        	self.type = "Fog"
         #self.node_type = node_type
         self.du_amount = du_amount
         #self.available_wavelengths = available_wavelengths
@@ -409,6 +413,56 @@ class Control_Plane(object):
         print("Removed ONU "+str(o.rrh_id)+" and Request "+str(r.id)+"From VPON "+str(v.vpon_id)+" and DU "+str(d.du_id))
 
 
+    #first fit with one specific du per vpon
+    def ffAllocate(self, onu):
+        global deactivated_nodes
+        global activated_nodes
+        global wavelengths
+        global cpri_line_rate
+        global lambda_bitrate
+        global blocked
+        global cp_capacity
+        global up_capacity
+        request = onu.reqs.pop()
+        onu.reqs.append(request)
+        #search the activated nodes
+        if activated_nodes:
+    	    #search the nodes and tries to allocate - if not possible, activates another node - taking the node from the list of deactivated and activatin it - if thsi lsit is empty, there are no more nodes to be activated
+    	    print("Tem no")
+	    #activate the cloud node
+        else:
+            p = nodes[0]
+            p.startNode
+            activated_nodes[str(p.node_id)] = p
+            #creates a vpon and put the request into it and on the DU on the cloud
+            if wavelengths:
+                w = wavelengths.pop()
+                vpon = VPON(self.env, str(w), w, lambda_bitrate, None)
+                #create the DU for the VPON and index by the wavelength
+                d = Digital_Unit(self.env, str(w), cp_capacity, up_capacity)
+                #index the du to the vpon
+                vpon.vpon_du = d
+                vpon.onus[str(onu.rrh_id)] = onu
+                #update the vpon and du capacities
+                vpon.vpon_capacity -= cpri_line_rate
+                vpon.vpon_du.cp_capacity -= 3
+                vpon.vpon_du.up_capacity -= 15
+                #update information on onu
+                onu.node = p
+                onu.vpon = vpon
+                onu.du = vpon.vpon_du
+                onu.alloc = True
+                #put the vpon on the node
+                p.VPONs[str(w)] = vpon
+                #update the number of available dus on the node
+                p.du_amount -= 1
+                #remove the node from the list of deactivated nodes
+                del deactivated_nodes[str(p.node_id)]
+                print("ONU "+str(onu.rrh_id)+" Allocated on Node "+str(p.node_id)+" "+str(p.type)+" on VPON "+str(vpon.vpon_id)+ " in DU "+str(vpon.vpon_du.du_id))
+                for k in deactivated_nodes:
+                	print(str(deactivated_nodes[k].type))
+
+
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
     #and establish or remove VPONs
@@ -483,6 +537,12 @@ env = simpy.Environment()
 distribution = lambda x: random.expovariate(10)
 srv_time = lambda x: random.expovariate(1)
 #number of total requests to be generated
+global cp_capacity
+cp_capacity = 27
+global up_capacity
+up_capacity = 135
+global activated_nodes
+activated_nodes = {}
 global total_requests
 total_requests = 100000
 global id_generated_packet
@@ -494,6 +554,7 @@ number_nodes = 10
 rs = []
 onus = []
 nodes = []
+deactivated_nodes = {}
 traffic_pattern = 30720
 global lambda_bitrate
 lambda_bitrate = 10000.0
@@ -535,6 +596,7 @@ for i in range(number_nodes):
 	p = Processing_Node(env, i, num_du)
 	#print(p.VPONs)
 	nodes.append(p)
+	deactivated_nodes[str(p.node_id)] = p
 
 
 print("\tBegin at " + str(env.now))
