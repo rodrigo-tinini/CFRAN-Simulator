@@ -435,7 +435,7 @@ class Control_Plane(object):
         else:
             p = nodes[0]
             p.startNode
-            activated_nodes[str(p.node_id)] = p
+            activated_nodes.insert(p.node_id, p)
             #creates a vpon and put the request into it and on the DU on the cloud
             if wavelengths:
                 w = wavelengths.pop()
@@ -552,7 +552,7 @@ cp_capacity = 27
 global up_capacity
 up_capacity = 135
 global activated_nodes
-activated_nodes = {}
+activated_nodes = []
 global total_requests
 total_requests = 100000
 global id_generated_packet
