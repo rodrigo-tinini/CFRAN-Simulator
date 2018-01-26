@@ -232,6 +232,7 @@ class Processing_Node(object):
         	self.type = "Fog"
         #self.node_type = node_type
         self.du_amount = du_amount
+        self.active_dus = {} #list of active DUs on this node, attached to a vpon tha can be used as additional vpons for functions redirection when du of vpon is exhausted in capacity
         #self.available_wavelengths = available_wavelengths
         #self.used_wavelengths = used_wavelengths
         self.DUs = {} #dus instantiated on this node, indexed by its id
@@ -413,7 +414,7 @@ class Control_Plane(object):
         print("Removed ONU "+str(o.rrh_id)+" and Request "+str(r.id)+"From VPON "+str(v.vpon_id)+" and DU "+str(d.du_id))
 
 
-    #first fit with one specific du per vpon
+    #first fit with one specific du per vpon (additional du if necesary) - as the majority of papers does
     def ffAllocate(self, onu):
         global deactivated_nodes
         global activated_nodes
@@ -428,7 +429,8 @@ class Control_Plane(object):
         #search the activated nodes
         if activated_nodes:
     	    #search the nodes and tries to allocate - if not possible, activates another node - taking the node from the list of deactivated and activatin it - if thsi lsit is empty, there are no more nodes to be activated
-    	    print("Tem no")
+    	    print("Tem nó")
+    	    #implementar a alocação para quando há nó ativado e ativar nó quando não há capacidade nos disponíveis - sempre criar primeiro o vpon e então colocar o du pra ele - se não tiver du disponível, passa pra outro nó
 	    #activate the cloud node
         else:
             p = nodes[0]
@@ -454,6 +456,8 @@ class Control_Plane(object):
                 onu.alloc = True
                 #put the vpon on the node
                 p.VPONs[str(w)] = vpon
+                #put the du to the lsit of active
+                p.active_dus[str(vpon.vpon_du.du_id)] = vpon.vpon_du
                 #update the number of available dus on the node
                 p.du_amount -= 1
                 #remove the node from the list of deactivated nodes
@@ -462,6 +466,12 @@ class Control_Plane(object):
                 for k in deactivated_nodes:
                 	print(str(deactivated_nodes[k].type))
 
+    #activates the cloud
+    def activateCloud(self):
+        p = nodes[0]
+        p.startNode
+        activated_nodes[str(p.node_id)] = p
+        del deactivated_nodes[str(p.node_id)]
 
 
     #Heuristic method that receives the traffic load from the RRHs and activate or deactivate nodes
