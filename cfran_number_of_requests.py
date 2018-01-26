@@ -30,7 +30,7 @@ class Traffic_Generator(object):
         #while total_requests >  id_generated_packet: #It was while True
             #Wait for the time to generate the packet
             yield self.env.timeout(self.distribution_type(self))
-            packet = Packet(env, id_generated_packet, self.packet_size, self.env.now)
+            packet = Packet(env, id_generated_packet, self.packet_size, self.env.now, self.id)
                 #store the generated packet to be retrieved by the RRH
             self.hold.put(packet)
             self.packet_generated += 1
@@ -46,13 +46,18 @@ class Traffic_Generator(object):
  
 #Packet Class
 class Packet(object):
-    def __init__(self, env, packet_id, packet_size, packet_time_of_generation):
+    def __init__(self, env, packet_id, packet_size, packet_time_of_generation, onu_id):
         self.env = env
         self.id = packet_id
         self.size = packet_size
         self.time_of_generation = packet_time_of_generation
-        self.cp = 3
-        self.up = 3
+        self.onu = onu_id
+        for i in range(3):
+        	cp = CP_Processing(self.env, i, self.onu)
+        	self.cp_functions.insert(i, cp)
+        for i in range(3):
+        	up = UP_Processing(self.env, i, self.onu)
+        	self.up_functions.insert(i, up)
  
 #Packets generation example
 class ONU(object):
@@ -171,17 +176,6 @@ class ONU(object):
     #def ends(self):
     #    self.enabled = False
 
-#This class represents a VPON request
-class Request(object):
-    def __init__(self, env, src, dst, packet, bandwidth):
-        self.env = env
-        self.src = src
-        self.dst = dst
-        self.packet = packet
-        self.id =  self.packet.id
-        self.bandwidth = bandwidth
-        self.cp = 3
-        self.up = 15
 
 #This class represents a VPON
 class VPON(object):
@@ -207,6 +201,8 @@ class Digital_Unit(object):
         self.processing_queue = []
         self.cp_capacity = cp_cap
         self.up_capacity = up_cap
+        self.allocated_ups = []
+        self.allocated_cps = []
 
     #Adds a VPON to the DU
     def addVPON(self, vpon):
@@ -219,6 +215,20 @@ class Digital_Unit(object):
     #Turn the DU off
     def endDU(self):
         self.enabled = False
+
+#this class represents a single up processing function
+class UP_Processing(object):
+	def __init__(self, env, up_id, onu):
+		self.env = env
+		self.id = up_id
+		self.onu = onu
+
+#this class represents a single up processing function
+class CP_Processing(object):
+	def __init__(self, env, cp_id, onu):
+		self.env = env
+		self.id = up_id
+		self.onu = onu
 
 #This class represents a Processing Node
 #available wavelengths is the global wavelengths available for use, used is the ones allocated to this node
@@ -444,7 +454,17 @@ class Control_Plane(object):
 	                		vpon = p.VPONs[i]
 	                		if vpon.vpon_capacity >= request.size:
 	                			#tries to allocate on the vpons du
-	                			if vpon.vpon_du.cp_capacity >= request.cp and vpon.vpon_du.up_capacity >= request.up:
+	                			if vpon.vpon_du.cp_capacity >= request.cp:
+	                				if vpon.vpon_du.up_capacity >= len(request.up):
+	                					#put each cp and up function on the du
+	                					for i in range(len(request.cp)):
+
+	                					vpon.vpon_du.cp_capacity -= 3
+                                    	vpon.vpon_du.up_capacity -= 15
+
+
+
+
 	                				#the vpon du fits the cp and up, put the request on this du and confirms the allocation to the vpon
 	                				vpon.onus[str(onu.rrh_id)] = onu
 	                				vpon.vpon_du.cp_capacity -= 3
@@ -460,7 +480,8 @@ class Control_Plane(object):
 					                p.active_dus[str(vpon.vpon_du.du_id)] = vpon.vpon_du
 					                allocated = True
 					                break
-					            else:
+					            else: #try to put the cp on the original du or in other if is the case - same with du
+					            	
                 else:
                 #no vpons
                 pass	
