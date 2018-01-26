@@ -236,7 +236,7 @@ class Processing_Node(object):
         #self.available_wavelengths = available_wavelengths
         #self.used_wavelengths = used_wavelengths
         self.DUs = {} #dus instantiated on this node, indexed by its id
-        self.VPONs = {} #vpons prsent in this node, indexed by its wavelength
+        self.VPONs = [] #vpons prsent in this node, indexed by its wavelength
         self.enabled = False
         self.load_power_ratio = 0 #ratio between load and power to the heuristic?
         for i in range(self.du_amount):
@@ -424,14 +424,47 @@ class Control_Plane(object):
         global blocked
         global cp_capacity
         global up_capacity
+        allocated = False
         request = onu.reqs.pop()
         onu.reqs.append(request)
         #search the activated nodes
         if activated_nodes:
-    	    #search the nodes and tries to allocate - if not possible, activates another node - taking the node from the list of deactivated and activatin it - if thsi lsit is empty, there are no more nodes to be activated
-    	    print("Tem nó")
-    	    #implementar a alocação para quando há nó ativado e ativar nó quando não há capacidade nos disponíveis - sempre criar primeiro o vpon e então colocar o du pra ele - se não tiver du disponível, passa pra outro nó
-	    #activate the cloud node
+            #search the nodes and tries to allocate - if not possible, activates another node - taking the node from the list of deactivated and activating it - if thsi lsit is empty, there are no more nodes to be activated
+            print("Tem nó")
+            #implementar a alocação para quando há nó ativado e ativar nó quando não há capacidade nos disponíveis - sempre criar primeiro o vpon e então colocar o du pra ele - se não tiver du disponível, passa pra outro nó
+            #activate the cloud node
+            for i in range(len(activated_nodes)):
+                p = activated_nodes[i]
+                #tries to allocate on this node
+                #first check the vpons
+                if p.VPONs:
+                	#check all vpons and allocates on the first possible
+                	if not allocated:
+	                	for i in range(len(p.VPONs)):
+	                		vpon = p.VPONs[i]
+	                		if vpon.vpon_capacity >= request.size:
+	                			#tries to allocate on the vpons du
+	                			if vpon.vpon_du.cp_capacity >= request.cp and vpon.vpon_du.up_capacity >= request.up:
+	                				#the vpon du fits the cp and up, put the request on this du and confirms the allocation to the vpon
+	                				vpon.onus[str(onu.rrh_id)] = onu
+	                				vpon.vpon_du.cp_capacity -= 3
+                                    vpon.vpon_du.up_capacity -= 15
+                                    #update information on onu
+					                onu.node = p
+					                onu.vpon = vpon
+					                onu.du = vpon.vpon_du
+					                onu.alloc = True
+					                #put the vpon on the node
+					                p.VPONs.append(vpon)
+					                #put the du to the lsit of active
+					                p.active_dus[str(vpon.vpon_du.du_id)] = vpon.vpon_du
+					                allocated = True
+					                break
+					            else:
+                else:
+                #no vpons
+                pass	
+
         else:
             p = nodes[0]
             p.startNode
@@ -441,7 +474,11 @@ class Control_Plane(object):
                 w = wavelengths.pop()
                 vpon = VPON(self.env, str(w), w, lambda_bitrate, None)
                 #create the DU for the VPON and index by the wavelength
-                d = Digital_Unit(self.env, str(w), cp_capacity, up_capacity)
+                #d = Digital_Unit(self.env, str(w), cp_capacity, up_capacity)
+                #take the du corresponding to the wavelength - in this case the cardinality of vpons and DUs is equal
+                d = p.DUs[w]
+                #activate du
+                d.startDU()
                 #index the du to the vpon
                 vpon.vpon_du = d
                 vpon.onus[str(onu.rrh_id)] = onu
@@ -455,13 +492,13 @@ class Control_Plane(object):
                 onu.du = vpon.vpon_du
                 onu.alloc = True
                 #put the vpon on the node
-                p.VPONs[str(w)] = vpon
+                p.VPONs.append(vpon)
                 #put the du to the lsit of active
                 p.active_dus[str(vpon.vpon_du.du_id)] = vpon.vpon_du
                 #update the number of available dus on the node
                 p.du_amount -= 1
                 #remove the node from the list of deactivated nodes
-                del deactivated_nodes[str(p.node_id)]
+                del deactivated_nodes[p.node_id]
                 print("ONU "+str(onu.rrh_id)+" Allocated on Node "+str(p.node_id)+" "+str(p.type)+" on VPON "+str(vpon.vpon_id)+ " in DU "+str(vpon.vpon_du.du_id))
                 for k in deactivated_nodes:
                 	print(str(deactivated_nodes[k].type))
@@ -606,7 +643,7 @@ for i in range(number_nodes):
 	p = Processing_Node(env, i, num_du)
 	#print(p.VPONs)
 	nodes.append(p)
-	deactivated_nodes[str(p.node_id)] = p
+	deactivated_nodes[p.node_id] = p
 
 
 print("\tBegin at " + str(env.now))
