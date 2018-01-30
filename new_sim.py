@@ -4,6 +4,12 @@ import random
 import time
 from enum import Enum
 
+#du consumption
+du_consumption = 5
+#up capacity
+up_capacity = 135
+#cp_capacity
+cp_capacity = 27
 #number of onus
 onus_amount = 10
 #number of wavelengths and creation of available wavelengths
@@ -13,6 +19,12 @@ for i in range(lambdas):
 	wavelengths.append(i)
 #list of network onus
 onus = []
+#number of nodes
+nodes_amount = 10
+#list of nodes
+nodes = []
+#number of dus
+du_amount = 10
 #generated requests counter
 reqs_gen = 0
 #ups number of functions
@@ -68,8 +80,10 @@ class ONU(object):
 			req = Request(self.env, reqs_gen, self.onu_id, up_chain, cpri_rate, self.service_time, None, self.cp)
 			print("ONU "+str(self.onu_id)+" Generated Requisition "+str(req.id)+" at "+str(self.env.now))
 			reqs_gen += 1
+			yield self.env.timeout(20000/300000000)
+			self.cp.requests.put(req)
 			#put request to run
-			self.env.process(req.run())
+			#self.env.process(req.run())
 
 
 #Processing Node
@@ -138,9 +152,35 @@ class CP_Processing(object):
 #control plane that allocates and deallocates requests
 class ControlPlane(object):
 	def __init__(self, env, cp_id, onus, nodes, wavelengths):
+		self.env = env
+		self.id = cp_id
+		self.onus = onus
+		self.nodes = nodes
+		self.wavelengths = wavelengths
+		self.requests = simpy.Store(self.env)
+		self.action = self.env.process(self.run())
+
+	#function that took a request and calls the allocate function
+	def run(self):
+		while True:
+			#get a request sent by the ONU
+			r = yield self.requests.get()
+			print("Took "+str(r.id)+" at "+str(self.env.now))
+			#calls the allocate function
+
+	#allocate a request
+	def allocate(self, request):
 		pass
 
+cp = ControlPlane(env, 1, onus, nodes, wavelengths)
+
 for i in range(onus_amount):
-	o = ONU(env, i, distribution, None, 0, service_time, None)
+	o = ONU(env, i, distribution, None, 0, service_time, cp)
 	onus.insert(o.onu_id, o)
-env.run()
+
+for i in range(nodes_amount):
+	p = Processing_Node(env, i, 0)
+	nodes.append(p)
+
+
+env.run(until = 10)
