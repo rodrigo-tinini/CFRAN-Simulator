@@ -4,9 +4,13 @@ import random
 import time
 from enum import Enum
 from scipy.stats import norm
-
+#time for dinamicity
+foo_delay = 0.05
 traffic_time_change = 0.5
-actual_traffic = 0.0
+#maximum traffic at the moment
+actual_traffic = 0
+#current generated traffic
+current_traffic = 0
 #du consumption
 du_consumption = 5
 #up capacity
@@ -37,7 +41,7 @@ cpri_rate = 614.4
 #service time of the requisition
 service_time = lambda x: random.expovariate(1)
 #distribution for arrival of packets
-distribution = lambda x: random.expovariate(1/0.5)
+distribution = lambda x: random.expovariate(1/0.05)
 #environment
 env = simpy.Environment()
 
@@ -77,17 +81,21 @@ class ONU(object):
 
 	#always running - waits for the distribution time interval and generates a request that demands allocation to the control plane
 	def run(self):
+		global current_traffic
 		global reqs_gen
 		while True:
+			#print("ONU "+str(self.onu_id)+"aquiiiiii at"+str(self.env.now))
 			yield self.env.timeout(self.distribution(self)) #interarrival waiting time
-			req = Request(self.env, reqs_gen, self.onu_id, up_chain, cpri_rate, self.service_time, None, self.cp)
-			#print("ONU "+str(self.onu_id)+" Generated Requisition "+str(req.id)+" at "+str(self.env.now))
-			reqs_gen += 1
-			yield self.env.timeout(20000/300000000)
-			self.cp.requests.put(req)
-			#put request to run
-			self.env.process(req.run())
-
+			if current_traffic < actual_traffic and actual_traffic >= 1:
+				req = Request(self.env, reqs_gen, self.onu_id, up_chain, cpri_rate, self.service_time, None, self.cp)
+				current_traffic += 1
+				print("ONU "+str(self.onu_id)+" Generated Requisition "+str(req.id)+" at "+str(self.env.now))
+				reqs_gen += 1
+				#yield self.env.timeout(20000/300000000)
+				self.cp.requests.put(req)
+				#put request to run
+				self.env.process(req.run())
+			yield self.env.timeout(foo_delay)
 
 #Processing Node
 class Processing_Node(object):
@@ -163,6 +171,7 @@ class ControlPlane(object):
 		self.requests = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		self.action2 = self.env.process(self.traffic_variation())
+		self.action3 = self.env.process(self.run2())
 
 	#function that took a request and calls the allocate function
 	def run(self):
@@ -178,7 +187,14 @@ class ControlPlane(object):
 			global actual_traffic
 			yield self.env.timeout(traffic_time_change)
 			actual_traffic = norm.pdf(self.env.now, 12, 2)*500
-			print("Actual traffic "+str(actual_traffic)+" at "+str(self.env.now))
+			actual_traffic = round(actual_traffic, 4)
+			print("Current is "+str(current_traffic)+ " and Max traffic "+str(actual_traffic)+" at "+str(self.env.now))
+
+	def run2(self):
+		while True:
+			yield self.env.timeout(0.0005)
+			if current_traffic > actual_traffic:
+				print("Current Traffic must be LESS THAN the Maximum Load!!!!!!!!!!!!!!")
 
 	#allocate a request
 	def allocate(self, request):
@@ -195,4 +211,8 @@ for i in range(nodes_amount):
 	nodes.append(p)
 
 
-env.run(until = 24)
+env.run(until = 100)
+if 1 < 0.001:
+	print("errrro")
+else:
+	print("é menor")
