@@ -3,7 +3,10 @@ import functools
 import random
 import time
 from enum import Enum
+from scipy.stats import norm
 
+traffic_time_change = 0.5
+actual_traffic = 0.0
 #du consumption
 du_consumption = 5
 #up capacity
@@ -34,7 +37,7 @@ cpri_rate = 614.4
 #service time of the requisition
 service_time = lambda x: random.expovariate(1)
 #distribution for arrival of packets
-distribution = lambda x: random.expovariate(10)
+distribution = lambda x: random.expovariate(1/0.5)
 #environment
 env = simpy.Environment()
 
@@ -58,7 +61,7 @@ class Request(object):
 	#run method - initiates the requisition and after a certain time, starts the deallocation of it - this method is called when the requisition is succesfull allocated
 	def run(self):
 		yield self.env.timeout(self.service_time(self))
-		print("Starts deallocation of "+str(self.id)+" from ONU "+str(self.onu_id)+" at "+str(self.env.now))
+		#print("Starts deallocation of "+str(self.id)+" from ONU "+str(self.onu_id)+" at "+str(self.env.now))
 
 #ONU that generates a request
 class ONU(object):
@@ -78,12 +81,12 @@ class ONU(object):
 		while True:
 			yield self.env.timeout(self.distribution(self)) #interarrival waiting time
 			req = Request(self.env, reqs_gen, self.onu_id, up_chain, cpri_rate, self.service_time, None, self.cp)
-			print("ONU "+str(self.onu_id)+" Generated Requisition "+str(req.id)+" at "+str(self.env.now))
+			#print("ONU "+str(self.onu_id)+" Generated Requisition "+str(req.id)+" at "+str(self.env.now))
 			reqs_gen += 1
 			yield self.env.timeout(20000/300000000)
 			self.cp.requests.put(req)
 			#put request to run
-			#self.env.process(req.run())
+			self.env.process(req.run())
 
 
 #Processing Node
@@ -159,14 +162,23 @@ class ControlPlane(object):
 		self.wavelengths = wavelengths
 		self.requests = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
+		self.action2 = self.env.process(self.traffic_variation())
 
 	#function that took a request and calls the allocate function
 	def run(self):
 		while True:
 			#get a request sent by the ONU
 			r = yield self.requests.get()
-			print("Took "+str(r.id)+" at "+str(self.env.now))
+			#print("Took "+str(r.id)+" at "+str(self.env.now))
 			#calls the allocate function
+
+	#method that changes the traffic of the network
+	def traffic_variation(self):
+		while True:
+			global actual_traffic
+			yield self.env.timeout(traffic_time_change)
+			actual_traffic = norm.pdf(self.env.now, 12, 2)*500
+			print("Actual traffic "+str(actual_traffic)+" at "+str(self.env.now))
 
 	#allocate a request
 	def allocate(self, request):
@@ -183,4 +195,4 @@ for i in range(nodes_amount):
 	nodes.append(p)
 
 
-env.run(until = 10)
+env.run(until = 24)
