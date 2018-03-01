@@ -6,7 +6,7 @@ from enum import Enum
 from scipy.stats import norm
 #time for dinamicity
 foo_delay = 0.05
-traffic_time_change = 0.5
+traffic_time_change = 0.0001
 #maximum traffic at the moment
 actual_traffic = 0
 #current generated traffic
@@ -41,7 +41,7 @@ cpri_rate = 614.4
 #service time of the requisition
 service_time = lambda x: random.expovariate(1)
 #distribution for arrival of packets
-distribution = lambda x: random.expovariate(1/0.05)
+distribution = lambda x: random.expovariate(1/0.005)
 #environment
 env = simpy.Environment()
 
@@ -171,7 +171,7 @@ class ControlPlane(object):
 		self.requests = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		self.action2 = self.env.process(self.traffic_variation())
-		self.action3 = self.env.process(self.run2())
+		#self.action3 = self.env.process(self.run2())
 
 	#function that took a request and calls the allocate function
 	def run(self):
@@ -186,7 +186,7 @@ class ControlPlane(object):
 		while True:
 			global actual_traffic
 			yield self.env.timeout(traffic_time_change)
-			actual_traffic = norm.pdf(self.env.now, 12, 2)*500
+			actual_traffic = norm.pdf(self.env.now, 2, 1)*500
 			actual_traffic = round(actual_traffic, 4)
 			print("Current is "+str(current_traffic)+ " and Max traffic "+str(actual_traffic)+" at "+str(self.env.now))
 
@@ -211,7 +211,7 @@ for i in range(nodes_amount):
 	nodes.append(p)
 
 
-env.run(until = 100)
+env.run(until = 24)
 if 1 < 0.001:
 	print("errrro")
 else:
