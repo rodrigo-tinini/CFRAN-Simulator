@@ -50,7 +50,7 @@ class Traffic_Generator(object):
 			self.req_count += 1
 			total_period_requests +=1
 			r = Request(self.env, self.req_count, self.service, self.cp)
-			#print("Generated {} at {}".format(r.id, self.env.now))
+			print("Generated {} at {}".format(r.id, self.env.now))
 			self.cp.requests.put(r)
 
 	#changing of load
@@ -64,7 +64,7 @@ class Traffic_Generator(object):
 			yield self.env.timeout(change_time)
 			traffics.append(total_period_requests)
 			arrival_rate = change_time/loads.pop()
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
 #user request
@@ -79,7 +79,7 @@ class Request(object):
 	#executes this request and send it to deallocation after its service time
 	def run(self):
 		yield self.env.timeout(self.service_time(self))
-		print("Request {} departing".format(self.id))
+		#print("Request {} departing".format(self.id))
 		self.cp.departs.put(self)
 
 #control plane that controls the allocations and deallocations
@@ -88,8 +88,8 @@ class Control_Plane(object):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
-		#self.action = self.env.process(self.run())
-		#self.deallocation = self.env.process(self.depart_request())
+		self.action = self.env.process(self.run())
+		self.deallocation = self.env.process(self.depart_request())
 
 	#take requests and tries to allocate
 	def run(self):
@@ -109,6 +109,6 @@ env = simpy.Environment()
 cp = Control_Plane(env)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 86401)
+env.run(until = 7201)
 print("Total generated requests {}".format(t.req_count))
 print("\End at "+str(env.now))
