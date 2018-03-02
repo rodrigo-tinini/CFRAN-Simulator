@@ -14,7 +14,22 @@ service_time = lambda x: np.randint(1, 600)
 #total generated requests per timestamp
 total_period_requests = 0
 #timestamp to change the load
-change_time = 30
+change_time = 3600
+#to generate the traffic load of each timestamp
+loads = []
+#number of timestamps of load changing
+stamps = 24
+for i in range(stamps):
+	x = norm.pdf(i, 12, 2)
+	x *= 5000000
+	#x= round(x,4)
+	#if x != 0:
+	#	loads.append(x)
+	loads.append(x)
+loads.reverse()
+print(loads)
+stamps = len(loads)
+traffics = []
 
 #traffic generator - generates requests considering the distribution
 class Traffic_Generator(object):
@@ -35,16 +50,20 @@ class Traffic_Generator(object):
 			self.req_count += 1
 			total_period_requests +=1
 			r = Request(self.env, self.req_count, self.service, self.cp)
+			#print("Generated {} at {}".format(r.id, self.env.now))
 			self.cp.requests.put(r)
 
 	#changing of load
 	def change_load(self):
 		while True:
+			global traffics
+			#global loads
 			global arrival_rate
 			global total_period_requests
 			yield self.env.timeout(change_time)
-			arrival_rate -= 0.005
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now, total_period_requests))
+			traffics.append(total_period_requests)
+			arrival_rate = change_time/loads.pop()
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
 #user request
@@ -68,7 +87,8 @@ class Control_Plane(object):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
-		self.action = self.env.process(self.run())
+		#self.action = self.env.process(self.run())
+		#self.deallocation = self.env.process(self.depart_request())
 
 	#take requests and tries to allocate
 	def run(self):
@@ -88,6 +108,6 @@ env = simpy.Environment()
 cp = Control_Plane(env)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 3600)
+env.run(until = 86401)
 print("Total generated requests {}".format(t.req_count))
 print("\End at "+str(env.now))
