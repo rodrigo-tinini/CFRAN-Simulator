@@ -6,7 +6,7 @@ from enum import Enum
 from scipy.stats import norm
 
 #inter arrival rate of the users requests
-arrival_rate = 1
+arrival_rate = 3600
 #distribution for arrival of packets
 distribution = lambda x: np.expovariate(1/arrival_rate)
 #service time of a request
@@ -20,8 +20,8 @@ loads = []
 #number of timestamps of load changing
 stamps = 24
 for i in range(stamps):
-	x = norm.pdf(i, 12, 2)
-	x *= 5000000
+	x = norm.pdf(i, 10, 2)
+	x *= 500000
 	#x= round(x,4)
 	#if x != 0:
 	#	loads.append(x)
@@ -60,6 +60,7 @@ class Traffic_Generator(object):
 			#global loads
 			global arrival_rate
 			global total_period_requests
+			self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			traffics.append(total_period_requests)
 			arrival_rate = change_time/loads.pop()
