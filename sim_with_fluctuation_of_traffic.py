@@ -91,8 +91,10 @@ class Control_Plane(object):
 		self.departs = simpy.Store(self.env)
 		#self.action = self.env.process(self.run())
 		#self.deallocation = self.env.process(self.depart_request())
+		self.audit = self.env.process(self.checkNetwork())
 
-	#take requests and tries to allocate
+
+	#take requests and tries to allocate on a RRH
 	def run(self):
 		while True:
 			r = yield self.requests.get()
@@ -104,6 +106,24 @@ class Control_Plane(object):
 		while True:
 			r = yield self.departs.get()
 			print("Deallocating request {}".format(r.id))
+
+	#allocates the ONUs turned on into a VPON in a processing node
+	def allocateONU(self):
+		pass
+
+	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
+	def checkNetwork(self):
+		while True:
+			yield self.env.timeout(1800)
+			print("Taking network status at {}".format(self.env.now))
+
+#RRH that allocates the user requests according to its availability
+class RRH(object):
+	def __init__(self, env, aId, capacity):
+		self.env = env
+		self.id = aId
+		self.capacity = capacity
+		self.requests = {}
 
 
 env = simpy.Environment()
