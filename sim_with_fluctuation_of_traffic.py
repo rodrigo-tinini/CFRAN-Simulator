@@ -4,6 +4,7 @@ import random as np
 import time
 from enum import Enum
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 
 #inter arrival rate of the users requests
 arrival_rate = 3600
@@ -29,7 +30,23 @@ for i in range(stamps):
 loads.reverse()
 print(loads)
 stamps = len(loads)
+#record the requests arrived at each stamp
 traffics = []
+#amount of rrhs
+rrhs_amount = 100
+#list of rrhs of the network
+rrhs = []
+#amount of processing nodes
+nodes_amount = 10
+#list of processing nodes
+nodes = []
+#capacity of each rrh
+rrh_capacity = 5000
+#keeps the non allocated requests
+no_allocated = []
+total_aloc = 0
+total_nonaloc = 0
+
 
 #traffic generator - generates requests considering the distribution
 class Traffic_Generator(object):
@@ -65,7 +82,7 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = change_time/loads.pop()
 			self.action = self.action = self.env.process(self.run())
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
 #user request
@@ -89,17 +106,43 @@ class Control_Plane(object):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
-		#self.action = self.env.process(self.run())
+		self.action = self.env.process(self.run())
 		#self.deallocation = self.env.process(self.depart_request())
-		self.audit = self.env.process(self.checkNetwork())
+		#self.audit = self.env.process(self.checkNetwork())
 
 
 	#take requests and tries to allocate on a RRH
 	def run(self):
+		global total_aloc
+		global total_nonaloc
 		while True:
 			r = yield self.requests.get()
-			print("Allocating request {}".format(r.id))
-			self.env.process(r.run())
+			#print("Allocating request {}".format(r.id))
+			#as soon as it gets the request, allocates it into a RRH
+			aloc = self.allocateRRH(r)
+			if aloc:
+				total_aloc += 1
+				self.env.process(r.run())
+				print("Allocated {} !!!".format(r.id))
+			else:
+				print("CANT Allocate {} :(".format(r.id))
+				total_nonaloc +=1
+
+	#allocate the request into the RRH
+	def allocateRRH(self, r):
+		global rrhs
+		global no_allocated
+		aloc = False
+		for i in range(len(rrhs)):
+			rrh = rrhs[i]
+			if rrh.capacity > 0:
+				rrh.requests.insert(rrh.id, rrh)
+				rrh.capacity -= 1
+				aloc = True
+		if aloc:
+			return True
+		else:
+			return False
 
 	#starts the deallocation of a request
 	def depart_request(self):
@@ -118,18 +161,45 @@ class Control_Plane(object):
 			print("Taking network status at {}".format(self.env.now))
 
 #RRH that allocates the user requests according to its availability
+#each rrh is connected to both a cloud node and a fog node
+#each rrh can connect to a single fog node - a fog node can be connected to multiple rrhs
 class RRH(object):
-	def __init__(self, env, aId, capacity):
+	def __init__(self, env, aId, capacity, control_plane):
 		self.env = env
 		self.id = aId
 		self.capacity = capacity
-		self.requests = {}
+		self.requests = []
+		self.allocated = False
+		self.enabled = False
+		#processing nodes connected to this rrh
+		self.pns = {}
+		self.cp = cp
+
 
 
 env = simpy.Environment()
 cp = Control_Plane(env)
+
+#creates the rrhs
+for i in range(rrhs_amount):
+	r = RRH(env, i, rrh_capacity, cp)
+	rrhs.append(r)
+	print("Created RRH {}".format(r.id))
+
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
 print("Total generated requests {}".format(t.req_count))
+print("Allocated {}".format(total_aloc))
+print("Non allocated {}".format(total_nonaloc))
+print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
+
+#points = []
+#a = 0
+#for i in range(24):
+#	a +=3600	
+#	points.append(a)
+#plt.plot(loads)
+#plt.ylabel('some numbers')
+#plt.show()

@@ -77,7 +77,9 @@ class ONU(object):
 		self.power_consumption = power_consumption
 		self.service_time = service_time
 		self.cp = control_plane
-		self.action = self.env.process(self.run())
+		#self.action = self.env.process(self.run())
+		self.action = None
+		self.generate = False
 
 	#always running - waits for the distribution time interval and generates a request that demands allocation to the control plane
 	def run(self):
@@ -86,9 +88,10 @@ class ONU(object):
 		while True:
 			#print("ONU "+str(self.onu_id)+"aquiiiiii at"+str(self.env.now))
 			yield self.env.timeout(self.distribution(self)) #interarrival waiting time
-			if current_traffic < actual_traffic and actual_traffic >= 1:
+			if current_traffic < actual_traffic and actual_traffic >= 1 and self.generate = True:
 				req = Request(self.env, reqs_gen, self.onu_id, up_chain, cpri_rate, self.service_time, None, self.cp)
 				current_traffic += 1
+				self.generate = False
 				print("ONU "+str(self.onu_id)+" Generated Requisition "+str(req.id)+" at "+str(self.env.now))
 				reqs_gen += 1
 				#yield self.env.timeout(20000/300000000)
@@ -171,6 +174,7 @@ class ControlPlane(object):
 		self.requests = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		self.action2 = self.env.process(self.traffic_variation())
+		self.onus_on = None
 		#self.action3 = self.env.process(self.run2())
 
 	#function that took a request and calls the allocate function
@@ -189,6 +193,19 @@ class ControlPlane(object):
 			actual_traffic = norm.pdf(self.env.now, 2, 1)*500
 			actual_traffic = round(actual_traffic, 4)
 			print("Current is "+str(current_traffic)+ " and Max traffic "+str(actual_traffic)+" at "+str(self.env.now))
+			#verify if the new traffic is greater or less than the current traffic on the network
+			if actual_traffic >= current_traffic:
+				#calculates the difference between the current and actual traffic in termos of onus
+				self.onus_on = actual_traffic - current_traffic
+				#posso colocar um laço while que vai chamar as onus uma por uma enquanto o load for menor que o maximo
+				#eu tb tenho que verificar se o onu que foi selecionado está liberado para gerar
+				#requisição (campo generated true)
+			#if the actual is lower than the current
+			elif actual_traffic < current_traffic:
+				#set the number of onus to depart the network
+				self.onus_on = current_traffic - actual_traffic
+				#laço while para desligar rrhs até deixar o trafego atual igual ao trafego maximo permitido
+			
 
 	def run2(self):
 		while True:
