@@ -115,6 +115,7 @@ class Control_Plane(object):
 	def run(self):
 		global total_aloc
 		global total_nonaloc
+		global no_allocated
 		while True:
 			r = yield self.requests.get()
 			#print("Allocating request {}".format(r.id))
@@ -127,6 +128,7 @@ class Control_Plane(object):
 			else:
 				print("CANT Allocate {} :(".format(r.id))
 				total_nonaloc +=1
+				no_allocated.append(r)
 
 	#allocate the request into the RRH
 	def allocateRRH(self, r):
@@ -139,6 +141,7 @@ class Control_Plane(object):
 				rrh.requests.insert(rrh.id, rrh)
 				rrh.capacity -= 1
 				aloc = True
+				break
 		if aloc:
 			return True
 		else:
