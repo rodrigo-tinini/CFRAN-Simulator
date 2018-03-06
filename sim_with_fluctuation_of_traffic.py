@@ -11,7 +11,7 @@ arrival_rate = 3600
 #distribution for arrival of packets
 distribution = lambda x: np.expovariate(1/arrival_rate)
 #service time of a request
-service_time = lambda x: np.randint(1, 600)
+service_time = lambda x: np.uniform(1, 1000)
 #total generated requests per timestamp
 total_period_requests = 0
 #timestamp to change the load
@@ -92,6 +92,7 @@ class Request(object):
 		self.id = aId
 		self.service_time = service
 		self.cp = cp
+		self.rrh = None
 		#self.action = self.env.process(self.run())
 
 	#executes this request and send it to deallocation after its service time
@@ -107,7 +108,7 @@ class Control_Plane(object):
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
-		#self.deallocation = self.env.process(self.depart_request())
+		self.deallocation = self.env.process(self.depart_request())
 		#self.audit = self.env.process(self.checkNetwork())
 
 
@@ -138,20 +139,28 @@ class Control_Plane(object):
 		for i in range(len(rrhs)):
 			rrh = rrhs[i]
 			if rrh.capacity > 0:
-				rrh.requests.insert(rrh.id, rrh)
+				rrh.requests.insert(r.id, r)
+				if rrh.enabled == False:
+					rrh.turnOn()
 				rrh.capacity -= 1
+				r.rrh = rrh
 				aloc = True
 				break
-		if aloc:
-			return True
-		else:
-			return False
+		return aloc
 
 	#starts the deallocation of a request
 	def depart_request(self):
 		while True:
 			r = yield self.departs.get()
 			print("Deallocating request {}".format(r.id))
+			#deallocate the request from its RRH
+			#take the rrh that holds the request
+			rrh = r.rrh
+			#remove the request from the rrh
+			rrh.requests.remove(r)
+			rrh.capacity += 1
+
+
 
 	#allocates the ONUs turned on into a VPON in a processing node
 	def allocateONU(self):
@@ -178,6 +187,14 @@ class RRH(object):
 		self.pns = {}
 		self.cp = cp
 
+	#turn the RRH on
+	def turnOn(self):
+		self.enabled = True
+
+	#turn the RRH off
+	def turnOff(self):
+		self.enabled = False
+
 
 
 env = simpy.Environment()
@@ -191,12 +208,14 @@ for i in range(rrhs_amount):
 
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 86401)
+env.run(until = 50000)
 print("Total generated requests {}".format(t.req_count))
 print("Allocated {}".format(total_aloc))
 print("Non allocated {}".format(total_nonaloc))
 print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
+for i in rrhs:
+	print("RRH {} with {} requests".format(i.id, len(i.requests)))
 
 #points = []
 #a = 0
