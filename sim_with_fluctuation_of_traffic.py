@@ -109,7 +109,7 @@ class Control_Plane(object):
 		self.departs = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		self.deallocation = self.env.process(self.depart_request())
-		#self.audit = self.env.process(self.checkNetwork())
+		self.audit = self.env.process(self.checkNetwork())
 
 
 	#take requests and tries to allocate on a RRH
@@ -125,9 +125,9 @@ class Control_Plane(object):
 			if aloc:
 				total_aloc += 1
 				self.env.process(r.run())
-				print("Allocated {} !!!".format(r.id))
+				#print("Allocated {} !!!".format(r.id))
 			else:
-				print("CANT Allocate {} :(".format(r.id))
+				#print("CANT Allocate {} :(".format(r.id))
 				total_nonaloc +=1
 				no_allocated.append(r)
 
@@ -152,7 +152,7 @@ class Control_Plane(object):
 	def depart_request(self):
 		while True:
 			r = yield self.departs.get()
-			print("Deallocating request {}".format(r.id))
+			#print("Deallocating request {}".format(r.id))
 			#deallocate the request from its RRH
 			#take the rrh that holds the request
 			rrh = r.rrh
@@ -171,6 +171,8 @@ class Control_Plane(object):
 		while True:
 			yield self.env.timeout(1800)
 			print("Taking network status at {}".format(self.env.now))
+			for i in rrhs:
+				print("RRH {} with {} requests".format(i.id, len(i.requests)))
 
 #RRH that allocates the user requests according to its availability
 #each rrh is connected to both a cloud node and a fog node
@@ -208,14 +210,14 @@ for i in range(rrhs_amount):
 
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 50000)
+env.run(until = 86401)
 print("Total generated requests {}".format(t.req_count))
 print("Allocated {}".format(total_aloc))
 print("Non allocated {}".format(total_nonaloc))
 print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
-for i in rrhs:
-	print("RRH {} with {} requests".format(i.id, len(i.requests)))
+#for i in rrhs:
+#	print("RRH {} with {} requests".format(i.id, len(i.requests)))
 
 #points = []
 #a = 0
