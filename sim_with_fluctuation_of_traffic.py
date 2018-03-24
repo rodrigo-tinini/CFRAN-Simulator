@@ -82,7 +82,7 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = change_time/loads.pop()
 			self.action = self.action = self.env.process(self.run())
-			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
 #user request
@@ -108,7 +108,7 @@ class Control_Plane(object):
 		self.departs = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		#self.deallocation = self.env.process(self.depart_request())
-		#self.audit = self.env.process(self.checkNetwork())
+		self.audit = self.env.process(self.checkNetwork())
 
 
 	#take requests and tries to allocate on a RRH
@@ -124,9 +124,9 @@ class Control_Plane(object):
 			if aloc:
 				total_aloc += 1
 				self.env.process(r.run())
-				print("Allocated {} !!!".format(r.id))
+				#print("Allocated {} !!!".format(r.id))
 			else:
-				print("CANT Allocate {} :(".format(r.id))
+				#print("CANT Allocate {} :(".format(r.id))
 				total_nonaloc +=1
 				no_allocated.append(r)
 
@@ -187,7 +187,7 @@ cp = Control_Plane(env)
 for i in range(rrhs_amount):
 	r = RRH(env, i, rrh_capacity, cp)
 	rrhs.append(r)
-	print("Created RRH {}".format(r.id))
+	#print("Created RRH {}".format(r.id))
 
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
