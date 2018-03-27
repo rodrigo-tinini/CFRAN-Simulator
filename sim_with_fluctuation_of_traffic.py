@@ -210,7 +210,7 @@ for i in range(rrhs_amount):
 
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 86401)
+env.run(until = 88701)
 print("Total generated requests {}".format(t.req_count))
 print("Allocated {}".format(total_aloc))
 print("Non allocated {}".format(total_nonaloc))
