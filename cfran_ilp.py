@@ -1,7 +1,7 @@
 from docplex.mp.model import Model
 
 #instantiate the model
-mdl = Model()
+mdl = Model("RRHs Scheduling")
 
 #Input variables
 
@@ -64,25 +64,25 @@ idx_j = [(j) for j in nodes]
  
 #Decision variables
 #x[rrhs][lambdas][nodes];
-x = mdl.binary_var_dict(idx_ijw)
+x = mdl.binary_var_dict(idx_ijw, name = 'RRH/Node/Lambda')
 #u[rrhs][lambdas][nodes];
-u = mdl.binary_var_dict(idx_ijw)
+u = mdl.binary_var_dict(idx_ijw, name = 'RRH/Node/DU')
 #y[rrhs][nodes];
-y = mdl.binary_var_dict(idx_ij)
+y = mdl.binary_var_dict(idx_ij, name = 'RRH/Node')
 #k[rrhs][nodes];
-k = mdl.binary_var_dict(idx_ij)
+k = mdl.binary_var_dict(idx_ij, name = 'Redirection of RRH in Node')
 #rd[lambdas][nodes];
-rd = mdl.binary_var_dict(idx_wj)
+rd = mdl.binary_var_dict(idx_wj, name = 'DU in Node used for redirection')
 #s[lambdas][nodes];
-s = mdl.binary_var_dict(idx_wj)
+s = mdl.binary_var_dict(idx_wj, name = 'DU activated in node')
 #e[nodes];
-e = mdl.binary_var_dict(idx_j)
+e = mdl.binary_var_dict(idx_j, name = "Switch/Node")
 #g[rrhs][lambdas][nodes];
-g = mdl.binary_var_dict(idx_ijw)
+g = mdl.binary_var_dict(idx_ijw, name = 'Redirection of RRH in Node in DU')
 #xn[nodes];
-xn = mdl.binary_var_dict(idx_j)
+xn = mdl.binary_var_dict(idx_j, name = 'Node activated')
 #z[lambdas][nodes];
-z = mdl.binary_var_dict(idx_wj)
+z = mdl.binary_var_dict(idx_wj, name = 'Lambda in Node')
 
 #constraints - modify for my constraints
 #mdl.add_constraints(mdl.sum(self.assign_user_to_server_vars[u, s] * u.running for u in all_users) <= max_proc_per_server for s in all_servers)
@@ -149,4 +149,21 @@ forall(i in rrhs, j in nodes) B*y[i][j] >= sum(w in lambdas) u[i][w][j];//29
 forall(i in rrhs, j in nodes) y[i][j] <= sum(w in lambdas) u[i][w][j];//30
 forall(j in nodes, w in lambdas) sum(i in rrhs) u[i][w][j] >= 0;
 """
+
+#objective function
+
 mdl.print_information()
+mdl.solve()
+mdl.print_solution()
+for i in x:
+	if x[i].solution_value >= 1:
+		print("{} is {}".format(x[i], x[i].solution_value))
+
+for i in y:
+	if y[i].solution_value >= 1:
+		print("{} is {}".format(y[i], y[i].solution_value))
+
+for i in z:
+	if z[i].solution_value >= 1:
+		print("{} is {}".format(z[i], z[i].solution_value))
+print(len(z))
