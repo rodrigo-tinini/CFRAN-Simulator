@@ -6,7 +6,7 @@ mdl = Model("RRHs Scheduling")
 #Input variables
 
 #number of rrhs
-rrhs = range(0,10)
+rrhs = range(0,150)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
@@ -32,15 +32,15 @@ du_processing = [
 
 nodeCost = [
 600.0,
-600.0,
-600.0,
-600.0,
-600.0,
-600.0,
-600.0,
-600.0,
-600.0,
-600.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
 ]
 
 du_cost = [
@@ -151,10 +151,12 @@ forall(j in nodes, w in lambdas) sum(i in rrhs) u[i][w][j] >= 0;
 """
 
 #objective function
+mdl.minimize(mdl.sum(xn[j] * nodeCost[j] for j in nodes) + mdl.sum(z[w,j] * lc_cost for w in lambdas for j in nodes) + (mdl.sum(k[i,j] for i in rrhs for j in nodes) + mdl.sum(g[i,w,j] for i in rrhs for w in lambdas for j in nodes)) + (mdl.sum(s[w,j] * 100 for w in lambdas for j in nodes) + mdl.sum(rd[w,j] * 100 for w in lambdas for j in nodes)) + mdl.sum(e[j] * 100 for j in nodes))
 
-mdl.print_information()
-mdl.solve()
-mdl.print_solution()
+
+#mdl.print_information()
+sol = mdl.solve()
+#mdl.print_solution()
 for i in x:
 	if x[i].solution_value >= 1:
 		print("{} is {}".format(x[i], x[i].solution_value))
@@ -166,4 +168,6 @@ for i in y:
 for i in z:
 	if z[i].solution_value >= 1:
 		print("{} is {}".format(z[i], z[i].solution_value))
-print(len(z))
+#print(len(z))
+optimal_solution = sol.objective_value
+print("The optimal solution is {} ".format(optimal_solution))
