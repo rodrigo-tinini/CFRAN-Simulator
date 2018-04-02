@@ -87,7 +87,13 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
-		self.mdl.minimize(self.mdl.sum(self.xn[j] * self.nodeCost[j] for j in self.nodes) + self.mdl.sum(self.z[w,j] * self.lc_cost for w in self.lambdas for j in self.nodes) + (self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + self.mdl.sum(self.g[i,w,j] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + (self.mdl.sum(self.s[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes) + self.mdl.sum(self.rd[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes)) + self.mdl.sum(self.e[j] * 50.0 for j in self.nodes))
+		self.mdl.minimize(self.mdl.sum(self.xn[j] * self.nodeCost[j] for j in self.nodes) + 
+		self.mdl.sum(self.z[w,j] * self.lc_cost for w in self.lambdas for j in self.nodes) + 
+		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
+		self.mdl.sum(self.g[i,w,j] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
+		(self.mdl.sum(self.s[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
+		self.mdl.sum(self.rd[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
+		self.mdl.sum(self.e[j] * 50.0 for j in self.nodes))
 
 	#solves the model
 	def solveILP(self):
@@ -134,7 +140,7 @@ du_cost = [
 ]
 
 #number of rrhs
-rrhs = range(0,10)
+rrhs = range(0,2)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
@@ -146,7 +152,9 @@ lc_cost = 20
 B = 1000000
 
 #test
-ilp = ILP(rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost)
+ilp = ILP(rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+	nodeCost, du_cost)
 s = ilp.run()
 print(ilp.mdl.print_information())
 print(s.objective_value)
+print(len(rrhs))
