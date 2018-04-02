@@ -2,7 +2,7 @@ from docplex.mp.model import Model
 
 #create the ilp class
 class ILP(object):
-	def __init__(self, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B):
+	def __init__(self, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost):
 		self.rrhs = rrhs
 		self.nodes = nodes
 		self.lambdas = lambdas
@@ -11,9 +11,17 @@ class ILP(object):
 		self.wavelength_capacity = wavelength_capacity
 		self.lc_cost = lc_cost
 		self.B = B
-		self.du_processing = []
-		self.nodeCost = []
-		self.du_cost = []
+		self.du_processing = du_processing
+		self.nodeCost = nodeCost
+		self.du_cost = du_cost
+
+	#run the formulation
+	def run(self):
+		self.setModel()
+		self.setConstraints()
+		self.setObjective()
+		sol = self.solveILP()
+		return sol
 
 	#creates the model and the decision variables
 	def setModel(self):
@@ -79,9 +87,66 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
-		self.mdl.minimize(mdl.sum(xn[j] * nodeCost[j] for j in nodes) + mdl.sum(z[w,j] * lc_cost for w in lambdas for j in nodes) + (mdl.sum(k[i,j] for i in rrhs for j in nodes) + mdl.sum(g[i,w,j] * 15.0 for i in rrhs for w in lambdas for j in nodes)) + (mdl.sum(s[w,j] * du_cost[j][w] for w in lambdas for j in nodes) + mdl.sum(rd[w,j] * du_cost[j][w] for w in lambdas for j in nodes)) + mdl.sum(e[j] * 50.0 for j in nodes))
+		self.mdl.minimize(self.mdl.sum(self.xn[j] * self.nodeCost[j] for j in self.nodes) + self.mdl.sum(self.z[w,j] * self.lc_cost for w in self.lambdas for j in self.nodes) + (self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + self.mdl.sum(self.g[i,w,j] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + (self.mdl.sum(self.s[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes) + self.mdl.sum(self.rd[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes)) + self.mdl.sum(self.e[j] * 50.0 for j in self.nodes))
 
 	#solves the model
 	def solveILP(self):
 		self.sol = self.mdl.solve()
 		return self.sol
+
+du_processing = [
+[9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+]
+
+nodeCost = [
+600.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+]
+
+du_cost = [
+[100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+]
+
+#number of rrhs
+rrhs = range(0,10)
+#number of nodes
+nodes = range(0, 10)
+#number of lambdas
+lambdas = range(0, 10)
+switchBandwidth = 10000.0
+RRHband = 614.4;
+wavelength_capacity = 10000.0;
+lc_cost = 20
+B = 1000000
+
+#test
+ilp = ILP(rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost)
+s = ilp.run()
+print(ilp.mdl.print_information())
+print(s.objective_value)
