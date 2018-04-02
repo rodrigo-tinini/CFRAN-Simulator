@@ -178,6 +178,18 @@ class RRH(object):
 		self.pns = {}
 		self.cp = cp
 
+#processing node
+class ProcessingNode(object):
+	def __init__(self, id, nodeCost, du_capacity, du_costs):
+		self.id = id
+		if self.id == 0:
+			self.nodeCost = 600.0
+			self.du_capacity = [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
+			self.du_costs = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+		else:
+			self.nodeCost = 500.0
+			self.du_capacity = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+			self.du_costs = [50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0]
 
 
 env = simpy.Environment()
