@@ -56,8 +56,8 @@ class Traffic_Generator(object):
 		self.service = service
 		self.cp = cp
 		self.req_count = 0
-		self.action = self.env.process(self.run())
-		self.load_variation = self.env.process(self.change_load())
+		#self.action = self.env.process(self.run())
+		#self.load_variation = self.env.process(self.change_load())
 
 	#generation of requests
 	def run(self):
@@ -108,7 +108,7 @@ class Control_Plane(object):
 		self.departs = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		#self.deallocation = self.env.process(self.depart_request())
-		self.audit = self.env.process(self.checkNetwork())
+		#self.audit = self.env.process(self.checkNetwork())
 
 
 	#take requests and tries to allocate on a RRH
@@ -180,20 +180,49 @@ class RRH(object):
 
 #processing node
 class ProcessingNode(object):
-	def __init__(self, id, nodeCost, du_capacity, du_costs):
+	def __init__(self, id):
 		self.id = id
 		if self.id == 0:
 			self.nodeCost = 600.0
 			self.du_capacity = [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
 			self.du_costs = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+			self.type = "Cloud"
 		else:
 			self.nodeCost = 500.0
 			self.du_capacity = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 			self.du_costs = [50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0]
+			self.type = "Fog"
 
+#class that encapsulates the node's du's capacity and costs
+class NodeDU(object):
+	def __init__(self, capacity, cost):
+		self.capacities = capacity
+		self.costs = cost
+
+#utility class that prepare the data to be passed to the ILP
+class Util(object):
+	def __init__(self):
+		self.type = "Utility class"
+
+	#creates the nodes and du costs to be passed to the ILP
+	def createNodeDUInfo(self, nodes_list, fog_index):
+		n = []
+		n.append(NodeDU(nodes_list[0].du_capacity, nodes_list[0].du_costs))
+		n.append(NodeDU(nodes_list[fog_index].du_capacity, nodes_list[fog_index].du_costs))
+		return n
 
 env = simpy.Environment()
 cp = Control_Plane(env)
+nodes = range(0	,10)
+processing_nodes = []
+#create the processing nodes
+for i in nodes:
+	p = ProcessingNode(i)
+	processing_nodes.append(p)
+	print("Created node {} of type {}".format(p.id, p.type))
+	print(p.nodeCost)
+	print(p.du_capacity)
+	print(p.du_costs)
 
 #creates the rrhs
 for i in range(rrhs_amount):
