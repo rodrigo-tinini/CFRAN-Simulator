@@ -201,8 +201,8 @@ class NodeDU(object):
 
 #utility class that prepare the data to be passed to the ILP
 class Util(object):
-	def __init__(self):
-		self.type = "Utility class"
+	#def __init__(self):
+	#	self.type = "Utility class"
 
 	#creates the nodes and du costs to be passed to the ILP
 	def createNodeDUInfo(self, nodes_list, fog_index):
