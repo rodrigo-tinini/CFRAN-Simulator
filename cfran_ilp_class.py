@@ -100,6 +100,48 @@ class ILP(object):
 		self.sol = self.mdl.solve()
 		return self.sol
 
+	#print variables values
+	def print_var_values(self):
+		for i in self.x:
+			if self.x[i].solution_value >= 1:
+				print("{} is {}".format(self.x[i], self.x[i].solution_value))
+
+		for i in self.u:
+			if self.u[i].solution_value >= 1:
+				print("{} is {}".format(self.u[i], self.u[i].solution_value))
+
+		for i in self.k:
+			if self.k[i].solution_value >= 1:
+				print("{} is {}".format(self.k[i], self.k[i].solution_value))
+
+		for i in self.rd:
+			if self.rd[i].solution_value >= 1:
+				print("{} is {}".format(self.rd[i], self.rd[i].solution_value))
+
+		for i in self.s:
+			if self.s[i].solution_value >= 1:
+				print("{} is {}".format(self.s[i], self.s[i].solution_value))
+
+		for i in self.e:
+			if self.e[i].solution_value >= 1:
+				print("{} is {}".format(self.e[i], self.e[i].solution_value))
+
+		for i in self.y:
+			if self.y[i].solution_value >= 1:
+				print("{} is {}".format(self.y[i], self.y[i].solution_value))
+
+		for i in self.g:
+			if self.g[i].solution_value >= 1:
+				print("{} is {}".format(self.g[i], self.g[i].solution_value))
+
+		for i in self.xn:
+			if self.xn[i].solution_value >= 1:
+				print("{} is {}".format(self.xn[i], self.xn[i].solution_value))
+
+		for i in self.z:
+			if self.z[i].solution_value >= 1:
+				print("{} is {}".format(self.z[i], self.z[i].solution_value))
+
 du_processing = [
 [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0],
 [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -140,7 +182,7 @@ du_cost = [
 ]
 
 #number of rrhs
-rrhs = range(0,2)
+rrhs = range(0,10)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
@@ -155,6 +197,6 @@ B = 1000000
 ilp = ILP(rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 	nodeCost, du_cost)
 s = ilp.run()
-print(ilp.mdl.print_information())
-print(s.objective_value)
-print(len(rrhs))
+ilp.mdl.print_information()
+print("Optimal solution is {} ".format(s.objective_value))
+ilp.print_var_values()
