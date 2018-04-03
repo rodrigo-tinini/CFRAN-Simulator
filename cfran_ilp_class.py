@@ -27,32 +27,32 @@ class ILP(object):
 	def setModel(self):
 		self.mdl = Model("RRHs Scheduling")
 		#indexes for the decision variables x[i,j,w]
-		idx_ijw = [(i,j,w) for i in self.rrhs for j in self.nodes for w in self.lambdas]
-		idx_ij = [(i,j) for i in self.rrhs for j in self.nodes]
-		idx_wj = [(w, j) for w in self.lambdas for j in self.nodes]
-		idx_j = [(j) for j in self.nodes]
+		self.idx_ijw = [(i,j,w) for i in self.rrhs for j in self.nodes for w in self.lambdas]
+		self.idx_ij = [(i,j) for i in self.rrhs for j in self.nodes]
+		self.idx_wj = [(w, j) for w in self.lambdas for j in self.nodes]
+		self.idx_j = [(j) for j in self.nodes]
 		 
 		#Decision variables
 		#x[rrhs][lambdas][nodes];
-		self.x = self.mdl.binary_var_dict(idx_ijw, name = 'RRH/Node/Lambda')
+		self.x = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/Lambda', key_format = "")
 		#u[rrhs][lambdas][nodes];
-		self.u = self.mdl.binary_var_dict(idx_ijw, name = 'RRH/Node/DU')
+		self.u = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/DU')
 		#y[rrhs][nodes];
-		self.y = self.mdl.binary_var_dict(idx_ij, name = 'RRH/Node')
+		self.y = self.mdl.binary_var_dict(self.idx_ij, name = 'RRH/Node')
 		#k[rrhs][nodes];
-		self.k = self.mdl.binary_var_dict(idx_ij, name = 'Redirection of RRH in Node')
+		self.k = self.mdl.binary_var_dict(self.idx_ij, name = 'Redirection of RRH in Node')
 		#rd[lambdas][nodes];
-		self.rd = self.mdl.binary_var_dict(idx_wj, name = 'DU in Node used for redirection')
+		self.rd = self.mdl.binary_var_dict(self.idx_wj, name = 'DU in Node used for redirection')
 		#s[lambdas][nodes];
-		self.s = self.mdl.binary_var_dict(idx_wj, name = 'DU activated in node')
+		self.s = self.mdl.binary_var_dict(self.idx_wj, name = 'DU activated in node')
 		#e[nodes];
-		self.e = self.mdl.binary_var_dict(idx_j, name = "Switch/Node")
+		self.e = self.mdl.binary_var_dict(self.idx_j, name = "Switch/Node")
 		#g[rrhs][lambdas][nodes];
-		self.g = self.mdl.binary_var_dict(idx_ijw, name = 'Redirection of RRH in Node in DU')
+		self.g = self.mdl.binary_var_dict(self.idx_ijw, name = 'Redirection of RRH in Node in DU')
 		#xn[nodes];
-		self.xn = self.mdl.binary_var_dict(idx_j, name = 'Node activated')
+		self.xn = self.mdl.binary_var_dict(self.idx_j, name = 'Node activated')
 		#z[lambdas][nodes];
-		self.z = self.mdl.binary_var_dict(idx_wj, name = 'Lambda in Node')
+		self.z = self.mdl.binary_var_dict(self.idx_wj, name = 'Lambda in Node')
 
 	#create constraints
 	def setConstraints(self):
@@ -142,6 +142,77 @@ class ILP(object):
 			if self.z[i].solution_value >= 1:
 				print("{} is {}".format(self.z[i], self.z[i].solution_value))
 
+	#return the variables values
+	def return_solution_values(self):
+		self.var_x = {}
+		self.var_u = {}
+		self.var_k = {}
+		self.var_rd = {}
+		self.var_s = {}
+		self.var_e = {}
+		self.var_y = {}
+		self.var_g = {}
+		self.var_xn = {}
+		self.var_z = {}
+		for i in self.x:
+			if self.x[i].solution_value >= 1:
+				self.var_x[i] = self.x[i].solution_value
+
+		for i in self.u:
+			if self.u[i].solution_value >= 1:
+				self.var_u[i] = self.u[i].solution_value
+
+		for i in self.k:
+			if self.k[i].solution_value >= 1:
+				self.var_k[i] = self.k[i].solution_value
+
+		for i in self.rd:
+			if self.rd[i].solution_value >= 1:
+				self.var_rd[i] = self.rd[i].solution_value
+
+		for i in self.s:
+			if self.s[i].solution_value >= 1:
+				self.var_s[i] = self.s[i].solution_value
+
+		for i in self.e:
+			if self.e[i].solution_value >= 1:
+				self.var_e[i] = self.e[i].solution_value
+
+		for i in self.y:
+			if self.y[i].solution_value >= 1:
+				self.var_y[i] = self.y[i].solution_value
+
+		for i in self.g:
+			if self.g[i].solution_value >= 1:
+				self.var_g[i] = self.g[i].solution_value
+
+		for i in self.xn:
+			if self.xn[i].solution_value >= 1:
+				self.var_xn[i] = self.xn[i].solution_value
+
+		for i in self.z:
+			if self.z[i].solution_value >= 1:
+				self.var_z[i] = self.z[i].solution_value
+
+		solution = Solution(self.var_x, self.var_u, self.var_k, self.var_rd, 
+			self.var_s, self.var_e, self.var_y, self.var_g, self.var_xn, self.var_z)
+
+		return solution
+
+#encapsulates the solution values
+class Solution(object):
+	def __init__(self, var_x, var_u, var_k, var_rd, var_s, var_e, var_y, var_g, var_xn, var_z):
+		self.var_x = var_x
+		self.var_u = var_u
+		self.var_k = var_k
+		self.var_rd = var_rd
+		self.var_s = var_s
+		self.var_e = var_e
+		self.var_y = var_y
+		self.var_g = var_g
+		self.var_xn = var_xn
+		self.var_z = var_z
+
 du_processing = [
 [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0],
 [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -182,7 +253,7 @@ du_cost = [
 ]
 
 #number of rrhs
-rrhs = range(0,10)
+rrhs = range(0,89)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
@@ -199,4 +270,7 @@ ilp = ILP(rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, l
 s = ilp.run()
 ilp.mdl.print_information()
 print("Optimal solution is {} ".format(s.objective_value))
-ilp.print_var_values()
+print("The decision variables values are:")
+solu = ilp.return_solution_values()
+print(solu.var_x)
+
