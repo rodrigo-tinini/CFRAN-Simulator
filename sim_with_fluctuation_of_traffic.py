@@ -33,7 +33,7 @@ stamps = len(loads)
 #record the requests arrived at each stamp
 traffics = []
 #amount of rrhs
-rrhs_amount = 100
+rrhs_amount = 2
 #list of rrhs of the network
 rrhs = []
 #amount of processing nodes
@@ -167,7 +167,7 @@ class Control_Plane(object):
 #each rrh is connected to both a cloud node and a fog node
 #each rrh can connect to a single fog node - a fog node can be connected to multiple rrhs
 class RRH(object):
-	def __init__(self, env, aId, capacity, control_plane):
+	def __init__(self, env, aId, capacity, control_plane,cloud, fog):
 		self.env = env
 		self.id = aId
 		self.capacity = capacity
@@ -175,8 +175,10 @@ class RRH(object):
 		self.allocated = False
 		self.enabled = False
 		#processing nodes connected to this rrh
-		self.pns = {}
+		self.pns = []
 		self.cp = cp
+		self.pns.append(cloud)
+		self.pns.append(fog)
 
 #processing node
 class ProcessingNode(object):
@@ -194,10 +196,11 @@ class ProcessingNode(object):
 			self.type = "Fog"
 
 #class that encapsulates the node's du's capacity and costs
-class NodeDU(object):
-	def __init__(self, capacity, cost):
+class NodeCosts(object):
+	def __init__(self, capacity, cost, nCost):
 		self.capacities = capacity
 		self.costs = cost
+		self.nCost = nCost
 
 #utility class that prepare the data to be passed to the ILP
 class Util(object):
@@ -207,8 +210,8 @@ class Util(object):
 	#creates the nodes and du costs to be passed to the ILP
 	def createNodeDUInfo(self, nodes_list, fog_index):
 		n = []
-		n.append(NodeDU(nodes_list[0].du_capacity, nodes_list[0].du_costs))
-		n.append(NodeDU(nodes_list[fog_index].du_capacity, nodes_list[fog_index].du_costs))
+		n.append(NodeCosts(nodes_list[0].du_capacity, nodes_list[0].du_costs, nodes_list[0].nodeCost))
+		n.append(NodeCosts(nodes_list[fog_index].du_capacity, nodes_list[fog_index].du_costs,nodes_list[fog_index].nodeCost))
 		return n
 
 env = simpy.Environment()
@@ -219,16 +222,41 @@ processing_nodes = []
 for i in nodes:
 	p = ProcessingNode(i)
 	processing_nodes.append(p)
-	print("Created node {} of type {}".format(p.id, p.type))
-	print(p.nodeCost)
-	print(p.du_capacity)
-	print(p.du_costs)
+	#print("Created node {} of type {}".format(p.id, p.type))
+
 
 #creates the rrhs
 for i in range(rrhs_amount):
-	r = RRH(env, i, rrh_capacity, cp)
+	r = RRH(env, i, rrh_capacity, cp, processing_nodes[0], processing_nodes[1])
 	rrhs.append(r)
-	#print("Created RRH {}".format(r.id))
+	print("Created RRH {} with nodes {} {} and {} {}".format(r.id, r.pns[0].id,r.pns[0].type,r.pns[1].id,r.pns[1].type))
+
+for i in range(len(rrhs)):
+	for j in range(len(rrhs[i].pns)):
+		print(rrhs[i].pns[j].nodeCost)
+		print(rrhs[i].pns[j].du_capacity)
+		print(rrhs[i].pns[j].du_costs)
+
+#create the matrix of node costs to the ILP
+def createNodeCostsMatrix(rrh):
+	node_costs = []
+	for i in range(len(rrh.pns)):
+		node_costs.append(rrh.pns[i].nodeCost)
+	return node_costs
+
+#create the matrix of du cpacities to the ILP
+def createDUCapacitiesMatrix(rrh):
+	du_capacities = []
+	for i in range(len(rrh.pns)):
+		du_capacities.append(rrh.pns[i].du_capacity)
+	return du_capacities
+	
+#create the matrix of du costs
+def createDUCostsMatrix(rrh):
+	du_costs = []
+	for i in range(len(rrh.pns)):
+		du_costs.append(rrh.pns[i].du_costs)
+	return du_costs
 
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
@@ -238,6 +266,12 @@ print("Allocated {}".format(total_aloc))
 print("Non allocated {}".format(total_nonaloc))
 print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
+nc = createNodeCostsMatrix(rrhs[0])
+dc = createDUCapacitiesMatrix(rrhs[0])
+dcs = createDUCostsMatrix(rrhs[0])
+print(nc)
+print(dc)
+print(dcs)	
 
 #points = []
 #a = 0
