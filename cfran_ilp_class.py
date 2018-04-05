@@ -1,5 +1,6 @@
 from docplex.mp.model import Model
 
+
 #create the ilp class
 class ILP(object):
 	def __init__(self, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost):
@@ -90,7 +91,7 @@ class ILP(object):
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * self.nodeCost[j] for j in self.nodes) + 
 		self.mdl.sum(self.z[w,j] * self.lc_cost for w in self.lambdas for j in self.nodes) + 
 		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
-		self.mdl.sum(self.g[i,w,j] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
+		self.mdl.sum(self.g[i,j,w] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
 		(self.mdl.sum(self.s[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
 		self.mdl.sum(self.rd[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
 		self.mdl.sum(self.e[j] * 50.0 for j in self.nodes))
@@ -213,6 +214,8 @@ class Solution(object):
 		self.var_xn = var_xn
 		self.var_z = var_z
 
+#Test
+"""
 du_processing = [
 [9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0],
 [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -253,7 +256,7 @@ du_cost = [
 ]
 
 #number of rrhs
-rrhs = range(0,89)
+rrhs = range(0,10)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
@@ -271,6 +274,7 @@ s = ilp.run()
 ilp.mdl.print_information()
 print("Optimal solution is {} ".format(s.objective_value))
 print("The decision variables values are:")
+ilp.print_var_values()
 solu = ilp.return_solution_values()
-print(solu.var_x)
-
+#print(solu.var_x)
+"""
