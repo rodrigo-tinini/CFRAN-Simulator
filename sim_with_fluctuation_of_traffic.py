@@ -5,6 +5,7 @@ import time
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import cfran_ilp_class as lp
 
 #inter arrival rate of the users requests
 arrival_rate = 3600
@@ -28,7 +29,7 @@ for i in range(stamps):
 	#	loads.append(x)
 	loads.append(x)
 loads.reverse()
-print(loads)
+#print(loads)
 stamps = len(loads)
 #record the requests arrived at each stamp
 traffics = []
@@ -46,7 +47,11 @@ rrh_capacity = 5000
 no_allocated = []
 total_aloc = 0
 total_nonaloc = 0
-
+switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+lc_cost = 20
+B = 1000000
+op = 0
 
 #traffic generator - generates requests considering the distribution
 class Traffic_Generator(object):
@@ -56,8 +61,8 @@ class Traffic_Generator(object):
 		self.service = service
 		self.cp = cp
 		self.req_count = 0
-		#self.action = self.env.process(self.run())
-		#self.load_variation = self.env.process(self.change_load())
+		self.action = self.env.process(self.run())
+		self.load_variation = self.env.process(self.change_load())
 
 	#generation of requests
 	def run(self):
@@ -106,9 +111,11 @@ class Control_Plane(object):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
+		self.onus = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		#self.deallocation = self.env.process(self.depart_request())
-		#self.audit = self.env.process(self.checkNetwork())
+		self.audit = self.env.process(self.checkNetwork())
+		self.ilp = self.env.process(self.allocateONU())
 
 
 	#take requests and tries to allocate on a RRH
@@ -141,6 +148,7 @@ class Control_Plane(object):
 				rrh.requests.insert(rrh.id, rrh)
 				rrh.capacity -= 1
 				aloc = True
+				self.onus.put(rrh)
 				break
 		if aloc:
 			return True
@@ -153,9 +161,16 @@ class Control_Plane(object):
 			r = yield self.departs.get()
 			print("Deallocating request {}".format(r.id))
 
-	#allocates the ONUs turned on into a VPON in a processing node
+	#allocates the RRHs/ONU turned on into a VPON in a processing node
 	def allocateONU(self):
-		pass
+		global op
+		while True:
+			r = yield self.onus.get()
+			ilp = lp.ILP(range(0,1), range(0,2), range(0,10),switchBandwidth, 614.4, wavelength_capacity, lc_cost, B,
+			 r.createDUCapacitiesMatrix(), r.createNodeCostsMatrix(), r.createDUCostsMatrix())
+			s = ilp.run()
+			print("Optimal allocation is {}".format(s.objective_value))
+			op += 1
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
@@ -179,6 +194,27 @@ class RRH(object):
 		self.cp = cp
 		self.pns.append(cloud)
 		self.pns.append(fog)
+
+		#create the matrix of node costs to the ILP
+	def createNodeCostsMatrix(self):
+		node_costs = []
+		for i in range(len(self.pns)):
+			node_costs.append(self.pns[i].nodeCost)
+		return node_costs
+
+	#create the matrix of du cpacities to the ILP
+	def createDUCapacitiesMatrix(self):
+		du_capacities = []
+		for i in range(len(self.pns)):
+			du_capacities.append(self.pns[i].du_capacity)
+		return du_capacities
+		
+	#create the matrix of du costs
+	def createDUCostsMatrix(self):
+		du_costs = []
+		for i in range(len(self.pns)):
+			du_costs.append(self.pns[i].du_costs)
+		return du_costs
 
 #processing node
 class ProcessingNode(object):
@@ -237,35 +273,17 @@ for i in range(len(rrhs)):
 		print(rrhs[i].pns[j].du_capacity)
 		print(rrhs[i].pns[j].du_costs)
 
-#create the matrix of node costs to the ILP
-def createNodeCostsMatrix(rrh):
-	node_costs = []
-	for i in range(len(rrh.pns)):
-		node_costs.append(rrh.pns[i].nodeCost)
-	return node_costs
-
-#create the matrix of du cpacities to the ILP
-def createDUCapacitiesMatrix(rrh):
-	du_capacities = []
-	for i in range(len(rrh.pns)):
-		du_capacities.append(rrh.pns[i].du_capacity)
-	return du_capacities
-	
-#create the matrix of du costs
-def createDUCostsMatrix(rrh):
-	du_costs = []
-	for i in range(len(rrh.pns)):
-		du_costs.append(rrh.pns[i].du_costs)
-	return du_costs
 
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
 print("Total generated requests {}".format(t.req_count))
 print("Allocated {}".format(total_aloc))
+print("Optimal solution got: {}".format(op))
 print("Non allocated {}".format(total_nonaloc))
 print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
+"""
 nc = createNodeCostsMatrix(rrhs[0])
 dc = createDUCapacitiesMatrix(rrhs[0])
 dcs = createDUCostsMatrix(rrhs[0])
@@ -281,3 +299,17 @@ print(dcs)
 #plt.plot(loads)
 #plt.ylabel('some numbers')
 #plt.show()
+#number of rrhs
+
+rrhs = range(0,10)
+#number of nodes
+nodes = range(0, 10)
+#number of lambdas
+lambdas = range(0, 10)
+switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+RRHband = 614.4;
+lc_cost = 20
+B = 1000000
+
+i = lp.ILP(rrhs, nodes)"""
