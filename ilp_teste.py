@@ -3,14 +3,15 @@ from docplex.mp.model import Model
 
 #create the ilp class
 class ILP(object):
-	def __init__(self, rrhs, nodes, nodes2, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost):
+	def __init__(self, rrhs, nodes, nodes2, lambdas, switchBandwidth, RRHband, wavelength_capacity2, lc_cost, B, du_processing, nodeCost, du_cost):
 		self.rrhs = rrhs
 		self.nodes = nodes
 		self.nodes2 = nodes2
 		self.lambdas = lambdas
 		self.switchBandwidth = switchBandwidth
 		self.RRHband = RRHband
-		self.wavelength_capacity = wavelength_capacity
+		#self.wavelength_capacity = wavelength_capacity
+		self.wavelength_capacity2 = wavelength_capacity2
 		self.lc_cost = lc_cost
 		self.B = B
 		self.du_processing = du_processing
@@ -60,7 +61,7 @@ class ILP(object):
 	def setConstraints(self):
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes2[i] for w in self.lambdas) == 1 for i in self.rrhs)#1
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for j in self.nodes2[i] for w in self.lambdas) == 1 for i in self.rrhs)#2
-		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * self.RRHband for i in self.rrhs for j in self.nodes) <= self.wavelength_capacity[w] for w in self.lambdas)
+		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * self.RRHband for i in self.rrhs for j in self.nodes) <= self.wavelength_capacity2[j][w] for j in nodes for w in self.lambdas)
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= self.du_processing[i][j][w] for i in rrhs for j in self.nodes for w in self.lambdas)
 		self.mdl.add_constraints(self.mdl.sum(self.k[i,j] * self.RRHband for i in self.rrhs) <= self.switchBandwidth[j] for j in self.nodes)
 		self.mdl.add_constraints(self.B*self.xn[j] >= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
@@ -218,13 +219,13 @@ class Solution(object):
 #Test
 
 du_processing = [
-[[3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[[1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
 ],
-[[3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[[1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 ],
-[[3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[[1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 ]
 ]
@@ -242,6 +243,12 @@ du_cost = [
 
 nodes2 = [range(0,2),range(0,2), range(0,2)]
 
+wavelength_capacity2 = [
+[10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0],
+[10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0],
+[10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+]
+
 #number of rrhs
 rrhs = range(0,3)
 #number of nodes
@@ -255,7 +262,7 @@ lc_cost = 20
 B = 1000000
 
 #test
-ilp = ILP(rrhs, nodes, nodes2, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+ilp = ILP(rrhs, nodes, nodes2, lambdas, switchBandwidth, RRHband, wavelength_capacity2, lc_cost, B, du_processing, 
 	nodeCost, du_cost)
 s = ilp.run()
 ilp.mdl.print_information()
