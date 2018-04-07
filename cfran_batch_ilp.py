@@ -1,5 +1,6 @@
 from docplex.mp.model import Model
-
+#This ILP does the allocation of batches of RRHs to the processing nodes.
+#It considers that each RRH is connected to the cloud and to only one fog node
 
 #create the ilp class
 class ILP(object):
