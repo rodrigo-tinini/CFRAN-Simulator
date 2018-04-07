@@ -3,15 +3,14 @@ from docplex.mp.model import Model
 
 #create the ilp class
 class ILP(object):
-	def __init__(self, rrhs, nodes, nodes2, lambdas, switchBandwidth, RRHband, wavelength_capacity2, lc_cost, B, du_processing, nodeCost, du_cost):
+	def __init__(self, fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost):
+		self.fog = fog
 		self.rrhs = rrhs
 		self.nodes = nodes
-		self.nodes2 = nodes2
 		self.lambdas = lambdas
 		self.switchBandwidth = switchBandwidth
 		self.RRHband = RRHband
-		#self.wavelength_capacity = wavelength_capacity
-		self.wavelength_capacity2 = wavelength_capacity2
+		self.wavelength_capacity = wavelength_capacity
 		self.lc_cost = lc_cost
 		self.B = B
 		self.du_processing = du_processing
@@ -59,10 +58,10 @@ class ILP(object):
 
 	#create constraints
 	def setConstraints(self):
-		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes2[i] for w in self.lambdas) == 1 for i in self.rrhs)#1
-		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for j in self.nodes2[i] for w in self.lambdas) == 1 for i in self.rrhs)#2
-		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * self.RRHband for i in self.rrhs for j in self.nodes) <= self.wavelength_capacity2[j][w] for j in nodes for w in self.lambdas)
-		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= self.du_processing[i][j][w] for i in rrhs for j in self.nodes for w in self.lambdas)
+		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#1
+		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#2
+		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * self.RRHband for i in self.rrhs for j in self.nodes) <= self.wavelength_capacity[w] for w in self.lambdas)
+		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= self.du_processing[j][w] for j in self.nodes for w in self.lambdas)
 		self.mdl.add_constraints(self.mdl.sum(self.k[i,j] * self.RRHband for i in self.rrhs) <= self.switchBandwidth[j] for j in self.nodes)
 		self.mdl.add_constraints(self.B*self.xn[j] >= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
 		self.mdl.add_constraints(self.xn[j] <= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
@@ -87,6 +86,12 @@ class ILP(object):
 		self.mdl.add_constraints(self.B*self.y[i,j] >= self.mdl.sum(self.u[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.y[i,j] <= self.mdl.sum(self.u[i,j,w] for w in self.lambdas) for i in self.rrhs  for j in self.nodes)
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) >= 0 for j in self.nodes for w in self.lambdas)
+
+		#self.mdl.add_constraints(self.y[i,j] >= self.x[i,j,w] + self.fog[i][j] - 1 for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		#self.mdl.add_constraints(self.y[i,j] <= self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		#this constraints guarantees that each rrh can be allocated to either the cloud or a specific fog node
+		self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
+		
 
 	#set the objective function
 	def setObjective(self):
@@ -218,22 +223,23 @@ class Solution(object):
 
 #Test
 
-du_processing = [
-[[1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-],
-[[1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-],
-[[1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+#to test if the rrh can be allcoated to the node
+fog = [
+[1,1],
+[1,1],
+[1,1],
+[1,1],
+[1,1],
 ]
+
+du_processing = [
+[1.0, 2.0],
+[1.0, 1.0],
 ]
 
 nodeCost = [
 600.0,
 500.0,
-
 ]
 
 du_cost = [
@@ -241,34 +247,26 @@ du_cost = [
 [50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
 ]
 
-nodes2 = [range(0,2),range(0,2), range(0,2)]
-
-wavelength_capacity2 = [
-[10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0],
-[10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0],
-[10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
-]
-
 #number of rrhs
-rrhs = range(0,3)
+rrhs = range(0,5)
 #number of nodes
 nodes = range(0, 2)
 #number of lambdas
-lambdas = range(0, 10)
+lambdas = range(0, 2)
 switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0]
 RRHband = 614.4;
 lc_cost = 20
 B = 1000000
 
 #test
-ilp = ILP(rrhs, nodes, nodes2, lambdas, switchBandwidth, RRHband, wavelength_capacity2, lc_cost, B, du_processing, 
+ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 	nodeCost, du_cost)
 s = ilp.run()
 ilp.mdl.print_information()
-print("Optimal solution is {} ".format(s.objective_value))
 print("The decision variables values are:")
 ilp.print_var_values()
 solu = ilp.return_solution_values()
+print("Optimal solution is {} ".format(s.objective_value))
 print(solu.var_x)
 
