@@ -97,7 +97,7 @@ class ILP(object):
 	#set the objective function
 	def setObjective(self):
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * self.nodeCost[j] for j in self.nodes) + 
-		self.mdl.sum(self.z[w,j] * self.lc_cost for w in self.lambdas for j in self.nodes) + 
+		self.mdl.sum(self.z[w,j] * self.lc_cost[w] for w in self.lambdas for j in self.nodes) + 
 		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
 		self.mdl.sum(self.g[i,j,w] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
 		(self.mdl.sum(self.s[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
@@ -226,48 +226,138 @@ class Solution(object):
 
 #to test if the rrh can be allcoated to the node
 fog = [
-[1,1],
-[1,1],
-[1,1],
-[1,1],
-[1,1],
+[1,1,0,0,0,0,0,0,0,0]
 ]
 
 du_processing = [
-[1.0, 2.0],
-[1.0, 1.0],
+[9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0],
+[1.0, 1.0, 1.0, 1.0, 1.0,1.0, 1.0, 1.0, 1.0, 1.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 ]
 
 nodeCost = [
 600.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
 500.0,
 ]
 
 du_cost = [
 [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
 [50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+]
+
+lambda_cost = [
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
 ]
 
 #number of rrhs
-rrhs = range(0,5)
+rrhs = range(0,1)
 #number of nodes
-nodes = range(0, 2)
+nodes = range(0, 10)
 #number of lambdas
-lambdas = range(0, 2)
+lambdas = range(0, 10)
 switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 RRHband = 614.4;
-lc_cost = 20
+#lc_cost = 20
 B = 1000000
-
+cloud_du_capacity = 9.0
+fog_du_capacity = 1.0
 #test
-ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, du_processing, 
 	nodeCost, du_cost)
 s = ilp.run()
 ilp.mdl.print_information()
-print("The decision variables values are:")
-ilp.print_var_values()
+#print("The decision variables values are:")
+#ilp.print_var_values()
 solu = ilp.return_solution_values()
 print("Optimal solution is {} ".format(s.objective_value))
+print("Decision variables are: ")
 print(solu.var_x)
+print(solu.var_z)
+print(solu.var_u)
 
+class ProcessingNode(object):
+	def __init__(self, aId, du_amount):
+		self.id = aId
+		self.dus = []
+		self.state = 0
+		self.lambdas = []
+		for i in range(du_amount):
+			self.lambdas.append(0);
+		if(self.id == 0):
+			self.type = "Cloud"
+			self.cost = 600.0
+			for i in range(du_amount):
+				self.dus.append(cloud_du_capacity)
+		else:
+			self.type = "Fog"
+			self.cost = 500.0
+			for i in range(du_amount):
+				self.dus.append(fog_du_capacity)
+
+	def decreaseDUCapacity(self, index):
+		self.dus[index] -= 1
+
+	def increaseDUCapacity(self, index):
+		self.dus[index] += 1
+
+	def allocateNode(self):
+		self.cost = 0.0
+		self.state = 1
+
+	def deallocateNode(self):
+		self.cost = 600.0
+		self.state = 0
+
+class Util(object):
+	#this class updates the network state based on the result of the ILP solution
+	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
+	#and also updates the cost and capacity of the lambda used
+	#just remembering, when a lambda is allocated to its node, if this node is not being processed by the ilp, all lambdas allcoated
+	#to it receives capacity 0 to guarantee that they will not be used
+	#when both a node and one of its DUs are allocated, they costs are updated to 0 to guarantee that they are already activated 
+	#when they are passed to be either or not selected to a new RRH, thus guaranteeing that they are already turned on and no additional
+	#"turning on" cost will be computed
+	#Finally, the updated made by this method only acts upon the activated node (and its DUs) and the allocated lambda
+	def updateValues(self, var_x, var_u, var_z, var_y, var_xn, var_g, var_e, var_s, var_k, var_rd):
+		pass
+"""
+p = ProcessingNode(0, 10)
+p1 = ProcessingNode(1, 10)
+print(p.type)
+print(p.dus)
+print(p1.type)
+print(p1.dus)
+"""
