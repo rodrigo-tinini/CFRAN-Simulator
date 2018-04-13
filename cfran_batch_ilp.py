@@ -244,6 +244,7 @@ class ILP(object):
 					lambda_id = w[0]
 					if node.lambdas[lambda_id] == 0:
 						node.lambdas[lambda_id] = 1
+						self.lc_cost[lambda_id] = 0
 					self.wavelength_capacity[lambda_id] -= RRHband
 				if len(solution.var_e) > 0:
 					for e in solution.var_e:
@@ -317,9 +318,9 @@ class ProcessingNode(object):
 	def printNode(self):
 		print("Node Type: {} Id: {}: State: {} Cost: {}".format(self.type, self.id, self.state, self.cost))
 		print("Wavelengths:")
-		for w in self.lambdas:
+		for w in lambdas:
 			if self.lambdas[w] == 1:
-				print("Lambda: {} Capacity: {}".format(self.lambdas[w], wavelength_capacity[w]))
+				print("Lambda: {} Capacity: {} Cost: {}".format(self.lambdas[w], wavelength_capacity[w], lambda_cost[w]))
 		print("DUs: ")
 		for d in lambdas:
 			print("DU: {} Active: {} Cost: {} Capacity: {}".format(d, self.du_state[d], self.du_cost[d], self.dus[d]))
@@ -422,42 +423,36 @@ print("Decision variables are: ")
 #print(len(solu.var_e))
 pns[1].printNode()
 
-"""
-class Util(object):
-	#this class updates the network state based on the result of the ILP solution
-	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
-	#and also updates the cost and capacity of the lambda used
-	#just remembering, when a lambda is allocated to its node, if this node is not being processed by the ilp, all lambdas allcoated
-	#to it receives capacity 0 to guarantee that they will not be used
-	#when both a node and one of its DUs are allocated, they costs are updated to 0 to guarantee that they are already activated 
-	#when they are passed to be either or not selected to a new RRH, thus guaranteeing that they are already turned on and no additional
-	#"turning on" cost will be computed
-	#Finally, the updated made by this method only acts upon the activated node (and its DUs) and the allocated lambda
-	def updateValues(self, solution):
-		#search the node(s) returned from the solution
-		for key in solution.var_x:
-			node_id = key[1]
-			node = pns[key[1]]
-			if node.state == 0:
-				#not activated, updates costs
-				node.allocateNode
-				#updates the DUs capacity
-				for d in solution.var_u:
-					du_id = d[2]
-					node.decreaseDUCapacity(du_id)
-					if node.du_state[du_id] == 0:
-						#du was deactivated - activates it
-						node.du_state[du_id] = 1
-						node.du_cost[du_id] = 0.0
-				#updated the lambda allocated on the node
-				for w in solution.var_z:
-					lambda_id = w[0]
-					if node.lambdas[lambda_id] == 0:
-						node.lambda_id[lambda_id] = 1
-"""
+#this class represents the entry for the ILP model
+#it takes the rrh node and mounts the DUs lists (costs, capacities, states, etc)
+
+class RRH(object):
+	def __init__(self, aId, rrhs_matrix):
+		self.id = aId
+		self.rrhs_matrix = rrhs_matrix
 
 
-		
+class ilpInput(object):
+	def __init__(self, du_processing, du_cost, switchBandwidth):
+		self.du_processing = du_processing
+		self.du_cost = du_cost
+		self.switchBandwidth = switchBandwidth
+	def prepareData(self, rrh):
+		#take the nodes indicated by the rrh's connected nodes
+		for i in range(len(rrh.rrhs_matrix)):
+			if rrhs_matrix[i] == 1:
+			#retrieve the node and mount the data structures
+				node = pns[i]
+				self.du_processing.append(node.dus)
+				self.du_cost.append(node.du_cost)
+				self.switchBandwidth.append(node.switchBandwidth)
+		newInput = ilpInput(self.du_processing, self.du_cost, self.switchBandwidth)
+		return newInput
+
+
+
+
+
 """
 p = ProcessingNode(0, 10)
 p1 = ProcessingNode(1, 10)
