@@ -4,7 +4,8 @@ from docplex.mp.model import Model
 
 #create the ilp class
 class ILP(object):
-	def __init__(self, fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, nodeCost, du_cost):
+	def __init__(self, fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+		nodeCost, du_cost, switch_cost):
 		self.fog = fog
 		self.rrhs = rrhs
 		self.nodes = nodes
@@ -17,6 +18,7 @@ class ILP(object):
 		self.du_processing = du_processing
 		self.nodeCost = nodeCost
 		self.du_cost = du_cost
+		self.switch_cost = switch_cost
 
 	#run the formulation
 	def run(self):
@@ -99,10 +101,10 @@ class ILP(object):
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * self.nodeCost[j] for j in self.nodes) + 
 		self.mdl.sum(self.z[w,j] * self.lc_cost[w] for w in self.lambdas for j in self.nodes) + 
 		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
-		self.mdl.sum(self.g[i,j,w] * 15.0 for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
+		self.mdl.sum(self.g[i,j,w] * self.switch_cost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
 		(self.mdl.sum(self.s[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
 		self.mdl.sum(self.rd[w,j] * self.du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
-		self.mdl.sum(self.e[j] * 50.0 for j in self.nodes))
+		self.mdl.sum(self.e[j] * self.switch_cost[j] for j in self.nodes))
 
 	#solves the model
 	def solveILP(self):
@@ -208,6 +210,49 @@ class ILP(object):
 
 		return solution
 
+	#this class updates the network state based on the result of the ILP solution
+	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
+	#and also updates the cost and capacity of the lambda used
+	#just remembering, when a lambda is allocated to its node, if this node is not being processed by the ilp, all lambdas allcoated
+	#to it receives capacity 0 to guarantee that they will not be used
+	#when both a node and one of its DUs are allocated, they costs are updated to 0 to guarantee that they are already activated 
+	#when they are passed to be either or not selected to a new RRH, thus guaranteeing that they are already turned on and no additional
+	#"turning on" cost will be computed
+	#Finally, the updated made by this method only acts upon the activated node (and its DUs) and the allocated lambda
+	def updateValues(self, solution):
+		#search the node(s) returned from the solution
+		for key in solution.var_x:
+			node_id = key[1]
+			node = pns[node_id]
+			if node.state == 0:
+				#not activated, updates costs
+				node.allocateNode()	
+				#updates the DUs capacity
+				for d in solution.var_u:
+					du_id = d[2]
+					node.decreaseDUCapacity(du_id)
+					if node.du_state[du_id] == 0:
+						#du was deactivated - activates it
+						node.du_state[du_id] = 1
+						node.du_cost[du_id] = 0.0
+				#updated the lambda allocated on the node
+				for w in solution.var_z:
+					lambda_id = w[0]
+					if node.lambdas[lambda_id] == 0:
+						node.lambda_id[lambda_id] = 1
+					self.wavelength_capacity[lambda_id] -= RRHband
+				if solution.var_e > 0:
+					for e in solution.var_e:
+						for t in e:
+							if t == node_id:
+								if node.switch_state == 0:
+									node.switch_state = 1
+									node.switch_cost = 0.0
+				if solution.var_k > 0:
+					for k in solution.var_k:
+						if k[1] == node_id:
+							node.switchBandwidth -= RRHband
+
 #encapsulates the solution values
 class Solution(object):
 	def __init__(self, var_x, var_u, var_k, var_rd, var_s, var_e, var_y, var_g, var_xn, var_z):
@@ -280,13 +325,13 @@ lambda_cost = [
 20.0,
 20.0,
 ]
-
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
 lambdas = range(0, 10)
+switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0,]
 switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
 wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 RRHband = 614.4;
@@ -296,7 +341,7 @@ cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
 #test
 ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, du_processing, 
-	nodeCost, du_cost)
+	nodeCost, du_cost, switch_cost)
 s = ilp.run()
 ilp.mdl.print_information()
 #print("The decision variables values are:")
@@ -305,8 +350,13 @@ solu = ilp.return_solution_values()
 print("Optimal solution is {} ".format(s.objective_value))
 print("Decision variables are: ")
 print(solu.var_x)
+for k in solu.var_x:
+	for w in k:
+		print(w)
 print(solu.var_z)
 print(solu.var_u)
+print(solu.var_e)
+print(len(solu.var_e))
 
 class ProcessingNode(object):
 	def __init__(self, aId, du_amount):
@@ -314,18 +364,27 @@ class ProcessingNode(object):
 		self.dus = []
 		self.state = 0
 		self.lambdas = []
+		self.lambdas_capacity = []
+		self.du_state = []
+		self.du_cost = []
+		self.switch_state = 0
+		self.switch_cost = 15.0
+		self.switchBandwidth = 10000.0
 		for i in range(du_amount):
-			self.lambdas.append(0);
+			self.lambdas.append(0)
+			self.du_state.append(0)
 		if(self.id == 0):
 			self.type = "Cloud"
 			self.cost = 600.0
 			for i in range(du_amount):
 				self.dus.append(cloud_du_capacity)
+				self.du_cost.append(100.0)
 		else:
 			self.type = "Fog"
 			self.cost = 500.0
 			for i in range(du_amount):
 				self.dus.append(fog_du_capacity)
+				self.du_cost.append(50.0)
 
 	def decreaseDUCapacity(self, index):
 		self.dus[index] -= 1
@@ -340,7 +399,7 @@ class ProcessingNode(object):
 	def deallocateNode(self):
 		self.cost = 600.0
 		self.state = 0
-
+"""
 class Util(object):
 	#this class updates the network state based on the result of the ILP solution
 	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
@@ -351,8 +410,31 @@ class Util(object):
 	#when they are passed to be either or not selected to a new RRH, thus guaranteeing that they are already turned on and no additional
 	#"turning on" cost will be computed
 	#Finally, the updated made by this method only acts upon the activated node (and its DUs) and the allocated lambda
-	def updateValues(self, var_x, var_u, var_z, var_y, var_xn, var_g, var_e, var_s, var_k, var_rd):
-		pass
+	def updateValues(self, solution):
+		#search the node(s) returned from the solution
+		for key in solution.var_x:
+			node_id = key[1]
+			node = pns[key[1]]
+			if node.state == 0:
+				#not activated, updates costs
+				node.allocateNode
+				#updates the DUs capacity
+				for d in solution.var_u:
+					du_id = d[2]
+					node.decreaseDUCapacity(du_id)
+					if node.du_state[du_id] == 0:
+						#du was deactivated - activates it
+						node.du_state[du_id] = 1
+						node.du_cost[du_id] = 0.0
+				#updated the lambda allocated on the node
+				for w in solution.var_z:
+					lambda_id = w[0]
+					if node.lambdas[lambda_id] == 0:
+						node.lambda_id[lambda_id] = 1
+"""
+
+
+		
 """
 p = ProcessingNode(0, 10)
 p1 = ProcessingNode(1, 10)
