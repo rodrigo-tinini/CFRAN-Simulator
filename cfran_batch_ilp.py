@@ -267,6 +267,59 @@ class Solution(object):
 		self.var_xn = var_xn
 		self.var_z = var_z
 
+class ProcessingNode(object):
+	def __init__(self, aId, du_amount, cloud_du_capacity, fog_du_capacity):
+		self.id = aId
+		self.dus = []
+		self.state = 0
+		self.lambdas = []
+		self.lambdas_capacity = []
+		self.du_state = []
+		self.du_cost = []
+		self.switch_state = 0
+		self.switch_cost = 15.0
+		self.switchBandwidth = 10000.0
+		for i in range(du_amount):
+			self.lambdas.append(0)
+			self.du_state.append(0)
+		if(self.id == 0):
+			self.type = "Cloud"
+			self.cost = 600.0
+			for i in range(du_amount):
+				self.dus.append(cloud_du_capacity)
+				self.du_cost.append(100.0)
+		else:
+			self.type = "Fog"
+			self.cost = 500.0
+			for i in range(du_amount):
+				self.dus.append(fog_du_capacity)
+				self.du_cost.append(50.0)
+
+	def decreaseDUCapacity(self, index):
+		self.dus[index] -= 1
+
+	def increaseDUCapacity(self, index):
+		self.dus[index] += 1
+
+	def allocateNode(self):
+		self.cost = 0.0
+		self.state = 1
+
+	def deallocateNode(self):
+		self.cost = 600.0
+		self.state = 0
+
+	#print node states
+	def printNode(self):
+		print("Node Type: {} Id: {}: State: {} Cost:".format(self.type, self.id, self.state, self.cost))
+		print("Wavelengths:")
+		for w in lambdas:
+			print("Lambda: {} Capacity: {}".format(lambdas[w], wavelength_capacity[w]))
+		print("DUs: ")
+		for d in lambdas:
+			print("DU: {} Active: {} Cost: {} Capacity: {}".format(d, self.du_state[d], du_cost[w], dus[w]))
+		print("Switch: Active: {} Cost: {} Capacity: {}".format(self.switch_state, self.switch_cost, self.switchBandwidth))
+
 #Test
 
 #to test if the rrh can be allcoated to the node
@@ -339,6 +392,9 @@ RRHband = 614.4;
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
+pns = []
+for i in nodes:
+	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))
 #test
 ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, du_processing, 
 	nodeCost, du_cost, switch_cost)
@@ -358,47 +414,7 @@ print(solu.var_u)
 print(solu.var_e)
 print(len(solu.var_e))
 
-class ProcessingNode(object):
-	def __init__(self, aId, du_amount):
-		self.id = aId
-		self.dus = []
-		self.state = 0
-		self.lambdas = []
-		self.lambdas_capacity = []
-		self.du_state = []
-		self.du_cost = []
-		self.switch_state = 0
-		self.switch_cost = 15.0
-		self.switchBandwidth = 10000.0
-		for i in range(du_amount):
-			self.lambdas.append(0)
-			self.du_state.append(0)
-		if(self.id == 0):
-			self.type = "Cloud"
-			self.cost = 600.0
-			for i in range(du_amount):
-				self.dus.append(cloud_du_capacity)
-				self.du_cost.append(100.0)
-		else:
-			self.type = "Fog"
-			self.cost = 500.0
-			for i in range(du_amount):
-				self.dus.append(fog_du_capacity)
-				self.du_cost.append(50.0)
 
-	def decreaseDUCapacity(self, index):
-		self.dus[index] -= 1
-
-	def increaseDUCapacity(self, index):
-		self.dus[index] += 1
-
-	def allocateNode(self):
-		self.cost = 0.0
-		self.state = 1
-
-	def deallocateNode(self):
-		self.cost = 600.0
-		self.state = 0
 """
 class Util(object):
 	#this class updates the network state based on the result of the ILP solution
