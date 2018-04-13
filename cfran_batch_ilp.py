@@ -225,13 +225,17 @@ class ILP(object):
 			node_id = key[1]
 			node = pns[node_id]
 			if node.state == 0:
+				print('oi')
 				#not activated, updates costs
 				node.allocateNode()	
 				#updates the DUs capacity
 				for d in solution.var_u:
 					du_id = d[2]
-					node.decreaseDUCapacity(du_id)
+					du = node.dus[du_id]
+					node.dus[du_id] -= 1
+					print("passei aqui")
 					if node.du_state[du_id] == 0:
+						print("hihihi")
 						#du was deactivated - activates it
 						node.du_state[du_id] = 1
 						node.du_cost[du_id] = 0.0
@@ -239,16 +243,16 @@ class ILP(object):
 				for w in solution.var_z:
 					lambda_id = w[0]
 					if node.lambdas[lambda_id] == 0:
-						node.lambda_id[lambda_id] = 1
+						node.lambdas[lambda_id] = 1
 					self.wavelength_capacity[lambda_id] -= RRHband
-				if solution.var_e > 0:
+				if len(solution.var_e) > 0:
 					for e in solution.var_e:
 						for t in e:
 							if t == node_id:
 								if node.switch_state == 0:
 									node.switch_state = 1
 									node.switch_cost = 0.0
-				if solution.var_k > 0:
+				if len(solution.var_k) > 0:
 					for k in solution.var_k:
 						if k[1] == node_id:
 							node.switchBandwidth -= RRHband
@@ -311,13 +315,14 @@ class ProcessingNode(object):
 
 	#print node states
 	def printNode(self):
-		print("Node Type: {} Id: {}: State: {} Cost:".format(self.type, self.id, self.state, self.cost))
+		print("Node Type: {} Id: {}: State: {} Cost: {}".format(self.type, self.id, self.state, self.cost))
 		print("Wavelengths:")
-		for w in lambdas:
-			print("Lambda: {} Capacity: {}".format(lambdas[w], wavelength_capacity[w]))
+		for w in self.lambdas:
+			if self.lambdas[w] == 1:
+				print("Lambda: {} Capacity: {}".format(self.lambdas[w], wavelength_capacity[w]))
 		print("DUs: ")
 		for d in lambdas:
-			print("DU: {} Active: {} Cost: {} Capacity: {}".format(d, self.du_state[d], du_cost[w], dus[w]))
+			print("DU: {} Active: {} Cost: {} Capacity: {}".format(d, self.du_state[d], self.du_cost[d], self.dus[d]))
 		print("Switch: Active: {} Cost: {} Capacity: {}".format(self.switch_state, self.switch_cost, self.switchBandwidth))
 
 #Test
@@ -395,6 +400,7 @@ fog_du_capacity = 1.0
 pns = []
 for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))
+#	pns[i].printNode()
 #test
 ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, du_processing, 
 	nodeCost, du_cost, switch_cost)
@@ -403,17 +409,18 @@ ilp.mdl.print_information()
 #print("The decision variables values are:")
 #ilp.print_var_values()
 solu = ilp.return_solution_values()
+ilp.updateValues(solu)
 print("Optimal solution is {} ".format(s.objective_value))
 print("Decision variables are: ")
-print(solu.var_x)
-for k in solu.var_x:
-	for w in k:
-		print(w)
-print(solu.var_z)
-print(solu.var_u)
-print(solu.var_e)
-print(len(solu.var_e))
-
+#print(solu.var_x)
+#for k in solu.var_x:
+#	for w in k:
+#		print(w)
+#print(solu.var_z)
+#print(solu.var_u)
+#print(solu.var_e)
+#print(len(solu.var_e))
+pns[1].printNode()
 
 """
 class Util(object):
