@@ -1,4 +1,11 @@
 from docplex.mp.model import Model
+import simpy
+import functools
+import random as np
+import time
+from enum import Enum
+from scipy.stats import norm
+import matplotlib.pyplot as plt
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
@@ -357,6 +364,54 @@ class Util(object):
 			if i.state == 1:
 				i.printNode()
 
+	#create a list of RRHs with its own connected processing nodes
+	def createRRHs(self, amount):
+		rrhs = []
+		for i in amount:
+			rrhs_matrix = [1,0,0,0,0,0,0,0,0,0]
+			if i < 10:
+				rrhs_matrix[1] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 10 and i < 20:
+				rrhs_matrix[2] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 20 and i < 30:
+				rrhs_matrix[3] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 30 and i < 40:
+				rrhs_matrix[4] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 40 and i < 50:
+				rrhs_matrix[5] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 50 and i < 60:
+				rrhs_matrix[6] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 60 and i < 70:
+				rrhs_matrix[7] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 70 and i < 80:
+				rrhs_matrix[8] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 80 and i < 90:
+				rrhs_matrix[9] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+			if i >= 90 and i < 100:	
+				rrhs_matrix[9] = 1
+				r = RRH(i, rrhs_matrix)
+				rrhs.append(r)
+
+
+"""
 #Test
 util = Util()
 #to test if the rrh can be allcoated to the node
@@ -469,6 +524,7 @@ ilp.updateValues(solu)
 print("Optimal solution is {} ".format(s.objective_value))
 util.printActiveNodes()
 
+"""
 """
 p = ProcessingNode(0, 10)
 p1 = ProcessingNode(1, 10)
