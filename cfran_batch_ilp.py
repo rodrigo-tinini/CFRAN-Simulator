@@ -367,7 +367,7 @@ class Util(object):
 	#create a list of RRHs with its own connected processing nodes
 	def createRRHs(self, amount):
 		rrhs = []
-		for i in amount:
+		for i in range(amount):
 			rrhs_matrix = [1,0,0,0,0,0,0,0,0,0]
 			if i < 10:
 				rrhs_matrix[1] = 1
@@ -409,6 +409,7 @@ class Util(object):
 				rrhs_matrix[9] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
+		return rrhs
 
 
 """
@@ -533,3 +534,7 @@ print(p.dus)
 print(p1.type)
 print(p1.dus)
 """
+u = Util()
+r = u.createRRHs(15)
+for i in r:
+	print(i.rrhs_matrix)
