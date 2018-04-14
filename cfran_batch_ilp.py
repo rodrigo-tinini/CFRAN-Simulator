@@ -225,7 +225,6 @@ class ILP(object):
 			node_id = key[1]
 			node = pns[node_id]
 			if node.state == 0:
-				print('oi')
 				#not activated, updates costs
 				node.allocateNode()	
 				#updates the DUs capacity
@@ -233,9 +232,7 @@ class ILP(object):
 					du_id = d[2]
 					du = node.dus[du_id]
 					node.dus[du_id] -= 1
-					print("passei aqui")
 					if node.du_state[du_id] == 0:
-						print("hihihi")
 						#du was deactivated - activates it
 						node.du_state[du_id] = 1
 						node.du_cost[du_id] = 0.0
@@ -326,8 +323,42 @@ class ProcessingNode(object):
 			print("DU: {} Active: {} Cost: {} Capacity: {}".format(d, self.du_state[d], self.du_cost[d], self.dus[d]))
 		print("Switch: Active: {} Cost: {} Capacity: {}".format(self.switch_state, self.switch_cost, self.switchBandwidth))
 
-#Test
+#this class represents a RRH containing its possible processing nodes
+class RRH(object):
+	def __init__(self, aId, rrhs_matrix):
+		self.id = aId
+		self.rrhs_matrix = rrhs_matrix
 
+#this class represents the input object to be passed to the ILP
+class ilpInput(object):
+	def __init__(self, du_processing, du_cost, switchBandwidth, fog):
+		self.du_processing = du_processing
+		self.du_cost = du_cost
+		self.switchBandwidth = switchBandwidth
+		self.fog = fog
+	def prepareData(self, rrh):
+		self.fog.append(rrh.rrhs_matrix)
+		#take the nodes indicated by the rrh's connected nodes
+		for i in range(len(rrh.rrhs_matrix)):
+			if rrh.rrhs_matrix[i] == 1:
+			#retrieve the node and mount the data structures
+				node = pns[i]
+				self.du_processing.append(node.dus)
+				self.du_cost.append(node.du_cost)
+				self.switchBandwidth.append(node.switchBandwidth)
+		newInput = ilpInput(self.du_processing, self.du_cost, self.switchBandwidth, self.fog)
+		return newInput
+
+#Utility class
+class Util(object):
+	#print all active nodes
+	def printActiveNodes(self):
+		for i in pns:
+			if i.state == 1:
+				i.printNode()
+
+#Test
+util = Util()
 #to test if the rrh can be allcoated to the node
 fog = [
 [1,1,0,0,0,0,0,0,0,0]
@@ -387,7 +418,7 @@ lambda_cost = [
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
-nodes = range(0, 10)
+nodes = range(0, 2)
 #number of lambdas
 lambdas = range(0, 10)
 switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0,]
@@ -403,16 +434,16 @@ for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))
 #	pns[i].printNode()
 #test
-ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, du_processing, 
-	nodeCost, du_cost, switch_cost)
-s = ilp.run()
-ilp.mdl.print_information()
+#ilp = ILP(fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, du_processing, 
+#	nodeCost, du_cost, switch_cost)
+#s = ilp.run()
+#ilp.mdl.print_information()
 #print("The decision variables values are:")
 #ilp.print_var_values()
-solu = ilp.return_solution_values()
-ilp.updateValues(solu)
-print("Optimal solution is {} ".format(s.objective_value))
-print("Decision variables are: ")
+#solu = ilp.return_solution_values()
+#ilp.updateValues(solu)
+#print("Optimal solution is {} ".format(s.objective_value))
+#print("Decision variables are: ")
 #print(solu.var_x)
 #for k in solu.var_x:
 #	for w in k:
@@ -421,37 +452,22 @@ print("Decision variables are: ")
 #print(solu.var_u)
 #print(solu.var_e)
 #print(len(solu.var_e))
-pns[1].printNode()
+#pns[1].printNode()
 
-#this class represents the entry for the ILP model
-#it takes the rrh node and mounts the DUs lists (costs, capacities, states, etc)
-
-class RRH(object):
-	def __init__(self, aId, rrhs_matrix):
-		self.id = aId
-		self.rrhs_matrix = rrhs_matrix
-
-
-class ilpInput(object):
-	def __init__(self, du_processing, du_cost, switchBandwidth):
-		self.du_processing = du_processing
-		self.du_cost = du_cost
-		self.switchBandwidth = switchBandwidth
-	def prepareData(self, rrh):
-		#take the nodes indicated by the rrh's connected nodes
-		for i in range(len(rrh.rrhs_matrix)):
-			if rrhs_matrix[i] == 1:
-			#retrieve the node and mount the data structures
-				node = pns[i]
-				self.du_processing.append(node.dus)
-				self.du_cost.append(node.du_cost)
-				self.switchBandwidth.append(node.switchBandwidth)
-		newInput = ilpInput(self.du_processing, self.du_cost, self.switchBandwidth)
-		return newInput
-
-
-
-
+#test 2
+r = RRH(1,[1,1,0,0,0,0,0,0,0,0])
+ip = ilpInput([], [], [], [])
+nip = ip.prepareData(r)
+fog2 = []
+fog2.append(r.rrhs_matrix)
+ilp = ILP(nip.fog, rrhs, nodes, lambdas, nip.switchBandwidth, RRHband, wavelength_capacity, lambda_cost, B, nip.du_processing, 
+	nodeCost, nip.du_cost, switch_cost)
+s = ilp.run()
+ilp.mdl.print_information()
+solu = ilp.return_solution_values()
+ilp.updateValues(solu)
+print("Optimal solution is {} ".format(s.objective_value))
+util.printActiveNodes()
 
 """
 p = ProcessingNode(0, 10)
