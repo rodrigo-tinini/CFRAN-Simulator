@@ -43,18 +43,44 @@ rrhs = []
 nodes_amount = 10
 #list of processing nodes
 nodes = []
+rrh_nodes = range(0,2)
 #capacity of each rrh
 rrh_capacity = 5000
 #keeps the non allocated requests
 no_allocated = []
 total_aloc = 0
 total_nonaloc = 0
+lambdas = range(0,10)
 switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
 wavelength_capacity = [10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
 lc_cost = 20
 B = 1000000
 op = 0
 maximum_load = 100
+nodeCost = [
+600.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+500.0,
+]
+lambda_cost = [
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+]
 #rrhs = util.createRRHs(100, env, cp, service_time)
 
 #traffic generator - generates requests considering the distribution
@@ -126,7 +152,15 @@ class Control_Plane(object):
 			#print("Allocating request {}".format(r.id))
 			#as soon as it gets the request, allocates it into a RRH
 			#----------------------CALLS THE ILP-------------------------
+			aInput = lp.ilpInput([],[],[],[])
+			data = aInput.prepareData(r)
+			ilp = lp.ILP(data.fog, range(0,1), rrh_nodes, lambdas, data.switchBandwidth, lp.RRHband, wavelength_capacity, lambda_cost, B, data.du_processing, 
+	nodeCost, data.du_cost, lp.switch_cost)
 			print("Calling ILP")
+			s = ilp.run()
+			print("Optimal solution is: {}".format(s.objective_value))
+			sol = ilp.return_solution_values()
+			ilp.updateValues(sol)
 			self.env.process(r.run())
 			#after calling the ILP and and getting a solution
 			#starts the RRH by calling its running funciton
@@ -242,14 +276,20 @@ class Util(object):
 				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 		return rrhs
+
+
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env)
 nodes = range(0	,10)
 processing_nodes = []
+lp.pns = processing_nodes
+for i in nodes:
+	p = lp.ProcessingNode(i,10,9,1)
+	processing_nodes.append(p)
 
 rrhs = util.createRRHs(100, env, service_time, cp)
-
+lp.rrhs = rrhs
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
