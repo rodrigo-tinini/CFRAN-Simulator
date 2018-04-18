@@ -8,7 +8,10 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
-
+pns = []
+rrhs = []
+RRHband = 614.4;
+switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0,]
 #create the ilp class
 class ILP(object):
 	def __init__(self, fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
