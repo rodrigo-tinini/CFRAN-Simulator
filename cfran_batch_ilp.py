@@ -230,7 +230,14 @@ class ILP(object):
 		#search the node(s) returned from the solution
 		for key in solution.var_x:
 			node_id = key[1]
+			rrh_id = key[0] #RRH allocated on this solution variable
+			#update the information of the node allcoated on the RRH
+			for i in rrhs:
+				if i.id == rrh_id:
+					i.node = node_id
 			node = pns[node_id]
+			#put the rrh on the list of RRH processed on this node
+			node.rrhs.append(rrh_id)
 			if node.state == 0:
 				#not activated, updates costs
 				node.allocateNode()	
@@ -288,6 +295,7 @@ class ProcessingNode(object):
 		self.switch_state = 0
 		self.switch_cost = 15.0
 		self.switchBandwidth = 10000.0
+		self.rrhs = []#list of RRHs allcoated to this node
 		for i in range(du_amount):
 			self.lambdas.append(0)
 			self.du_state.append(0)
@@ -332,9 +340,18 @@ class ProcessingNode(object):
 
 #this class represents a RRH containing its possible processing nodes
 class RRH(object):
-	def __init__(self, aId, rrhs_matrix):
+	def __init__(self, aId, rrhs_matrix, env, service_time, cp):
 		self.id = aId
 		self.rrhs_matrix = rrhs_matrix
+		self.node = None
+		self.enabled = False
+		self.env = env
+		self.service_time = service_time
+		self.cp = cp
+
+	def run(self):
+		yield self.env.timeout(self.service_time(self))
+		self.cp.departs.put(self)
 
 #this class represents the input object to be passed to the ILP
 class ilpInput(object):
@@ -365,49 +382,49 @@ class Util(object):
 				i.printNode()
 
 	#create a list of RRHs with its own connected processing nodes
-	def createRRHs(self, amount):
+	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
 			rrhs_matrix = [1,0,0,0,0,0,0,0,0,0]
 			if i < 10:
 				rrhs_matrix[1] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 10 and i < 20:
 				rrhs_matrix[2] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 20 and i < 30:
 				rrhs_matrix[3] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 30 and i < 40:
 				rrhs_matrix[4] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 40 and i < 50:
 				rrhs_matrix[5] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 50 and i < 60:
 				rrhs_matrix[6] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 60 and i < 70:
 				rrhs_matrix[7] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 70 and i < 80:
 				rrhs_matrix[8] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 80 and i < 90:
 				rrhs_matrix[9] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 			if i >= 90 and i < 100:	
 				rrhs_matrix[9] = 1
-				r = RRH(i, rrhs_matrix)
+				r = RRH(i, rrhs_matrix, env, service_time, cp)
 				rrhs.append(r)
 		return rrhs
 
@@ -534,7 +551,11 @@ print(p.dus)
 print(p1.type)
 print(p1.dus)
 """
+"""
 u = Util()
-r = u.createRRHs(15)
+r = u.createRRHs(100)
+np.shuffle(r)
 for i in r:
-	print(i.rrhs_matrix)
+	#np.shuffle(i.rrhs_matrix)
+	print(i.id)
+	"""
