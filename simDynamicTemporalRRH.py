@@ -161,6 +161,9 @@ class Control_Plane(object):
 			print("Optimal solution is: {}".format(s.objective_value))
 			sol = ilp.return_solution_values()
 			ilp.updateValues(sol)
+			print(sol.var_z)
+			print(wavelength_capacity)
+			print(ilp.wavelength_capacity)
 			self.env.process(r.run())
 			#after calling the ILP and and getting a solution
 			#starts the RRH by calling its running funciton
@@ -285,7 +288,7 @@ nodes = range(0	,10)
 processing_nodes = []
 lp.pns = processing_nodes
 for i in nodes:
-	p = lp.ProcessingNode(i,10,9,1)
+	p = lp.ProcessingNode(i,10,3,1)
 	processing_nodes.append(p)
 
 rrhs = util.createRRHs(100, env, service_time, cp)
