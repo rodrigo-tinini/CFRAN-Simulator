@@ -234,7 +234,7 @@ class ILP(object):
 		for key in solution.var_x:
 			node_id = key[1]
 			rrh_id = key[0] #RRH allocated on this solution variable
-			#update the information of the node allcoated on the RRH
+			#update the information of the node allocated on the RRH
 			for i in rrhs:
 				if i.id == rrh_id:
 					i.node = node_id
@@ -356,6 +356,7 @@ class RRH(object):
 		yield self.env.timeout(self.service_time(self))
 		self.cp.departs.put(self)
 
+#------------TENHO QUE MONTAR O CUSTO DO NÓ AQUI! PQ SENAO O ILP VAI LER O CUSTO DE NÓS QUE NAO SAO DO RRH SE EU PASSAR O nodeCost para o ILP!!!!
 #this class represents the input object to be passed to the ILP
 class ilpInput(object):
 	def __init__(self, du_processing, du_cost, switchBandwidth, fog):
