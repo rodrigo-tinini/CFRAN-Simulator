@@ -338,10 +338,11 @@ class ILP(object):
 							switch_cost[i] = 0.0
 		else:
 			print("is empty")
-			#if len(solution.var_k) > 0:
-			#	for k in solution.var_k:
-			#		if k[1] == node_id:
-			#			node.switchBandwidth -= RRHband
+		if solution.var_k:
+			for k in solution.var_k:
+				for i in range(len(switchBandwidth)):
+					if k[1] == i:
+						switchBandwidth[i] -= RRHband
 
 	#put the solution values into the RRH
 	def updateRRH(self,solution):
@@ -554,7 +555,7 @@ du_state = [
 ]
 
 nodeCost = [
-6000000000000000.0,
+600000000000000.0,
 500.0,
 500.0,
 500.0,
@@ -622,6 +623,7 @@ ilp.updateValues(solu)
 ilp.print_var_values()
 print(switch_cost)
 print(switch_state)
+print(switchBandwidth)
 #print(lambda_node)
 #ilp = ILP(fog, range(0,1), nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 #	nodeCost, du_cost, switch_cost)
