@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 
 #create the ilp class
 class ILP(object):
-	def __init__(self, fog, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+	def __init__(self, rrh, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 		nodeCost, du_cost, switch_cost):
-		self.fog = fog
+		self.rrh = rrh
+		self.fog = self.rrh.rrhs_matrix
 		self.rrhs = rrhs
 		self.nodes = nodes
 		self.lambdas = lambdas
@@ -120,9 +121,11 @@ class ILP(object):
 
 	#print variables values
 	def print_var_values(self):
+		c=0
 		for i in self.x:
 			if self.x[i].solution_value >= 1:
-				print("{} is {}".format(self.x[i], self.x[i].solution_value))
+				print("{} {} is {}".format(c, self.x[i], self.x[i].solution_value))
+				c+=1
 
 		for i in self.u:
 			if self.u[i].solution_value >= 1:
@@ -160,8 +163,69 @@ class ILP(object):
 			if self.z[i].solution_value >= 1:
 				print("{} is {}".format(self.z[i], self.z[i].solution_value))
 
-	#return the variables values
+
+#return the variables values
 	def return_solution_values(self):
+		self.var_x = []
+		self.var_u = []
+		self.var_k = []
+		self.var_rd = []
+		self.var_s = []
+		self.var_e = []
+		self.var_y = []
+		self.var_g = []
+		self.var_xn = []
+		self.var_z = []
+		for i in self.x:
+			if self.x[i].solution_value >= 1:
+				self.var_x.append(i)
+
+		for i in self.u:
+			if self.u[i].solution_value >= 1:
+				self.var_u.append(i)
+
+		for i in self.k:
+			if self.k[i].solution_value >= 1:
+				self.var_k.append(i)
+
+		for i in self.rd:
+			if self.rd[i].solution_value >= 1:
+				self.var_rd.append(i)
+
+		for i in self.s:
+			if self.s[i].solution_value >= 1:
+				self.var_s.append(i)
+
+		for i in self.e:
+			if self.e[i].solution_value >= 1:
+				self.var_e.append(i)
+
+		for i in self.y:
+			if self.y[i].solution_value >= 1:
+				self.var_y.append(i)
+
+		for i in self.g:
+			if self.g[i].solution_value >= 1:
+				self.var_g.append(i)
+
+		for i in self.xn:
+			if self.xn[i].solution_value >= 1:
+				self.var_xn.append(i)
+
+		for i in self.z:
+			if self.z[i].solution_value >= 1:
+				self.var_z.append(i)
+
+		solution = Solution(self.var_x, self.var_u, self.var_k, self.var_rd, 
+			self.var_s, self.var_e, self.var_y, self.var_g, self.var_xn, self.var_z)
+
+		return solution
+
+
+
+
+	#return the variables values
+	def oldreturn_solution_values(self):
 		self.var_x = {}
 		self.var_u = {}
 		self.var_k = {}
@@ -226,7 +290,12 @@ class ILP(object):
 	#when they are passed to be either or not selected to a new RRH, thus guaranteeing that they are already turned on and no additional
 	#"turning on" cost will be computed
 	#Finally, the updated made by this method only acts upon the activated node (and its DUs) and the allocated lambda
+
+
+
+
 	def updateValues(self, solution):
+		self.updateRRH(solution)
 		#search the node(s) returned from the solution
 		for key in solution.var_x:
 			node_id = key[1]
@@ -259,17 +328,25 @@ class ILP(object):
 					else:
 						ln[i] = 0
 			wavelength_capacity[lambda_id] -= RRHband
-			#if len(solution.var_e) > 0:
-			#	for e in solution.var_e:
-			#		for t in e:
-			#			if t == node_id:
-			#				if node.switch_state == 0:
-			#					node.switch_state = 1
-			#					node.switch_cost = 0.0
+		if solution.var_e:
+			for e in solution.var_e:
+				print(e)
+				for i in range(len(switch_cost)):
+					if e == i:
+						if switch_state[i] == 0:
+							switch_state[i] = 1
+							switch_cost[i] = 0.0
+		else:
+			print("is empty")
 			#if len(solution.var_k) > 0:
 			#	for k in solution.var_k:
 			#		if k[1] == node_id:
 			#			node.switchBandwidth -= RRHband
+
+	#put the solution values into the RRH
+	def updateRRH(self,solution):
+			self.rrh.var_x = solution.var_x[0]
+			self.rrh.var_u = solution.var_u[0]
 
 #encapsulates the solution values
 class Solution(object):
@@ -344,6 +421,8 @@ class RRH(object):
 	def __init__(self, aId, rrhs_matrix):
 		self.id = aId
 		self.rrhs_matrix = rrhs_matrix
+		self.var_x = None
+		self.var_u = None
 
 #this class represents the input object to be passed to the ILP
 class ilpInput(object):
@@ -475,7 +554,7 @@ du_state = [
 ]
 
 nodeCost = [
-600.0,
+6000000000000000.0,
 500.0,
 500.0,
 500.0,
@@ -512,16 +591,16 @@ lc_cost = [
 ]
 
 lambda_state = [0,0,0,0,0,0,0,0,0,0]
-
+switch_state = [0,0,0,0,0,0,0,0,0,0]
 #number of rrhs
-rrhs = range(0,3)
+rrhs = range(0,2)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
 lambdas = range(0, 10)
 switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0,]
 switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+wavelength_capacity = [10000.0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000
@@ -532,21 +611,25 @@ for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))
 #	pns[i].printNode()
 #test
-
-ilp = ILP(fog, range(0,1), nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+r = RRH(1,[1,1,0,0,0,0,0,0,0,0])
+ilp = ILP(r, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 	nodeCost, du_cost, switch_cost)
 s = ilp.run()
 solu = ilp.return_solution_values()
+print(r.var_x)
+print(r.var_u)
 ilp.updateValues(solu)
 ilp.print_var_values()
-print(lambda_node)
-ilp = ILP(fog, range(0,1), nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
-	nodeCost, du_cost, switch_cost)
-s = ilp.run()
-solu = ilp.return_solution_values()
-ilp.updateValues(solu)
-print(nodeCost)
-ilp.print_var_values()
+print(switch_cost)
+print(switch_state)
+#print(lambda_node)
+#ilp = ILP(fog, range(0,1), nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+#	nodeCost, du_cost, switch_cost)
+#s = ilp.run()
+#solu = ilp.return_solution_values()
+#ilp.updateValues(solu)
+#print(nodeCost)
+#ilp.print_var_values()
 #ilp.mdl.print_information()
 #print("The decision variables values are:")
 #ilp.print_var_values()
@@ -562,8 +645,8 @@ ilp.print_var_values()
 #print(solu.var_e)
 #print(len(solu.var_e))
 #pns[1].printNode()
-print(wavelength_capacity)
-print(lambda_node)
+#print(wavelength_capacity)
+#print(lambda_node)
 #test 2
 #r = RRH(1,[1,1,0,0,0,0,0,0,0,0])
 #ip = ilpInput([], [], [], [])
