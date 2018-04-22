@@ -252,6 +252,12 @@ class ILP(object):
 			if lambda_state[lambda_id] == 0:
 				lambda_state[lambda_id] = 1
 				lc_cost[lambda_id] = 0
+				ln = lambda_node[lambda_id]
+				for i in range(len(ln)):
+					if i == node_id:
+						ln[i] = 1
+					else:
+						ln[i] = 0
 			wavelength_capacity[lambda_id] -= RRHband
 			#if len(solution.var_e) > 0:
 			#	for e in solution.var_e:
@@ -422,7 +428,7 @@ util = Util()
 #to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 #FAZER O MÉTODO UPDATE ATUALIZAR ESSA MATRIZ TB
 lambda_node = [
-[1,1,0,0,0,0,1,0,0,0],
+[1,1,1,1,1,1,1,1,1,1],
 [1,1,1,1,1,1,1,1,1,1],
 [1,1,1,1,1,1,1,1,1,1],
 [1,1,1,1,1,1,1,1,1,1],
@@ -533,6 +539,7 @@ s = ilp.run()
 solu = ilp.return_solution_values()
 ilp.updateValues(solu)
 ilp.print_var_values()
+print(lambda_node)
 ilp = ILP(fog, range(0,1), nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 	nodeCost, du_cost, switch_cost)
 s = ilp.run()
@@ -556,6 +563,7 @@ ilp.print_var_values()
 #print(len(solu.var_e))
 #pns[1].printNode()
 print(wavelength_capacity)
+print(lambda_node)
 #test 2
 #r = RRH(1,[1,1,0,0,0,0,0,0,0,0])
 #ip = ilpInput([], [], [], [])
