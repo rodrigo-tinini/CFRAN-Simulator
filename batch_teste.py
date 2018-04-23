@@ -299,9 +299,21 @@ class ILP(object):
 			rrhs_on_nodes[node_id] += 1
 			node = pns[node_id]
 			if nodeState[node_id] == 0:
+				print("AQUIII")
 				#not activated, updates costs
 				nodeCost[node_id] = 0
-				nodeState[node_id] = 1	
+				nodeState[node_id] = 1
+			lambda_id = key[2]
+			if lambda_state[lambda_id] == 0:
+				lambda_state[lambda_id] = 1
+				lc_cost[lambda_id] = 0
+				ln = lambda_node[lambda_id]
+				for i in range(len(ln)):
+					if i == node_id:
+						ln[i] = 1
+					else:
+						ln[i] = 0
+			wavelength_capacity[lambda_id] -= RRHband	
 			#updates the DUs capacity
 		for d in solution.var_u:
 			node_id = d[1]
@@ -314,19 +326,19 @@ class ILP(object):
 				du_state[node_id][du_id] = 1
 				du_cost[node_id][du_id] = 0.0
 			#updated the lambdas capacities
-		for w in solution.var_z:
-			node_id = w[1]
-			lambda_id = w[0]
-			if lambda_state[lambda_id] == 0:
-				lambda_state[lambda_id] = 1
-				lc_cost[lambda_id] = 0
-				ln = lambda_node[lambda_id]
-				for i in range(len(ln)):
-					if i == node_id:
-						ln[i] = 1
-					else:
-						ln[i] = 0
-			wavelength_capacity[lambda_id] -= RRHband
+		#for w in solution.var_z:
+		#	node_id = w[1]
+		#	lambda_id = w[0]
+		#	if lambda_state[lambda_id] == 0:
+		#		lambda_state[lambda_id] = 1
+		#		lc_cost[lambda_id] = 0
+		#		ln = lambda_node[lambda_id]
+		#		for i in range(len(ln)):
+		#			if i == node_id:
+		#				ln[i] = 1
+		#			else:
+		#				ln[i] = 0
+		#	wavelength_capacity[lambda_id] -= RRHband
 		if solution.var_e:
 			for e in solution.var_e:
 				print(e)
@@ -355,6 +367,7 @@ class ILP(object):
 		#take the decision variables on the rrh and release the resources
 		#take the node, lambda and DU
 		node_id = rrh.var_x[1]
+		rrhs_on_nodes[node_id] -= 1
 		lambda_id = rrh.var_x[2]
 		du = rrh.var_u[2]
 		#find the wavelength
@@ -381,7 +394,7 @@ class ILP(object):
 			lambda_state[lambda_id] = 0
 			lc_cost[lambda_id] = 20.0
 			for i in range(len(lambda_node[lambda_id])):
-				i += 1;
+				lambda_node[lambda_id][i] = 1
 		if switchBandwidth[node_id] == 10000.0 and switch_state[node_id] == 1:
 			switch_state[node_id] = 0
 			switch_cost[node_id] = 15.0
@@ -645,7 +658,7 @@ lc_cost = [
 lambda_state = [0,0,0,0,0,0,0,0,0,0]
 switch_state = [0,0,0,0,0,0,0,0,0,0]
 #number of rrhs
-rrhs = range(0,16)
+rrhs = range(0,1)
 #number of nodes
 nodes = range(0, 10)
 #number of lambdas
@@ -664,17 +677,49 @@ for i in nodes:
 #	pns[i].printNode()
 #test
 r = RRH(1,[1,1,0,0,0,0,0,0,0,0])
+r2 = RRH(2,[1,1,0,0,0,0,0,0,0,0])
+r3 = RRH(3,[1,1,0,0,0,0,0,0,0,0])
 ilp = ILP(r, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 	nodeCost, du_cost, switch_cost)
 s = ilp.run()
 solu = ilp.return_solution_values()
-print(r.var_x)
-print(r.var_u)
+#print(r.var_x)
+#print(r.var_u)
 ilp.updateValues(solu)
-ilp.print_var_values()
-print(switch_cost)
-print(switch_state)
-print(switchBandwidth)
+#ilp.print_var_values()
+#print(wavelength_capacity)
+#for i in lambda_node:
+#	print(i)
+#print(nodeCost)
+#print(wavelength_capacity)
+#for i in lambda_node:
+#	print(i)
+#print(nodeCost)
+ilp = ILP(r2, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+	nodeCost, du_cost, switch_cost)
+s = ilp.run()
+solu = ilp.return_solution_values()
+ilp.updateValues(solu)
+ilp = ILP(r3, rrhs, nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
+	nodeCost, du_cost, switch_cost)
+s = ilp.run()
+solu = ilp.return_solution_values()
+ilp.updateValues(solu)
+#for i in lambda_node:
+#	print(i)
+#print(nodeCost)
+print(wavelength_capacity)
+for i in lambda_node:
+	print(i)
+print(nodeCost)
+ilp.deallocateRRH(r)
+ilp.deallocateRRH(r2)
+ilp.deallocateRRH(r3)
+print(wavelength_capacity)
+for i in lambda_node:
+	print(i)
+print(nodeCost)
+
 #print(lambda_node)
 #ilp = ILP(fog, range(0,1), nodes, lambdas, switchBandwidth, RRHband, wavelength_capacity, lc_cost, B, du_processing, 
 #	nodeCost, du_cost, switch_cost)
