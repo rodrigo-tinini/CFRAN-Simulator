@@ -7,16 +7,22 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 import batch_teste as lp
 
+count = 0
+#timestamp to change the load
+change_time = 3600
+#the next time
+next_time = 3600
+#the actual hout time stamp
+actual_stamp = 0.0
 #inter arrival rate of the users requests
 arrival_rate = 3600
 #service time of a request
-service_time = lambda x: np.randint(10,100)
+service_time = lambda x: np.uniform(0,100)
 #total generated requests per timestamp
 total_period_requests = 0
-#timestamp to change the load
-change_time = 3600
 #to generate the traffic load of each timestamp
 loads = []
+actives = []
 #number of timestamps of load changing
 stamps = 24
 for i in range(stamps):
@@ -97,6 +103,8 @@ class Traffic_Generator(object):
 	#generation of requests
 	def run(self):
 		global total_period_requests
+		global rrhs
+		global actives
 		while True:
 			#print("To entrando aqui!!!!")
 			#if total_period_requests <= maximum_load:
@@ -120,16 +128,24 @@ class Traffic_Generator(object):
 	#changing of load
 	def change_load(self):
 		while True:
+			global actives
 			global traffics
 			#global loads
 			global arrival_rate
 			global total_period_requests
+			global next_time
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
+			actual_stamp = self.env.now
+			#print("next time {}".format(next_time))
+			next_time = actual_stamp + change_time
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
+			print("RRHS on {}".format(len(actives)))
+			print("RRHs off {}".format(len(rrhs)))
 			self.action = self.action = self.env.process(self.run())
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, 100-len(rrhs)))
+			actives = []
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, count))
 			total_period_requests = 0
 
 #control plane that controls the allocations and deallocations
@@ -140,7 +156,7 @@ class Control_Plane(object):
 		self.departs = simpy.Store(self.env)
 		self.action = self.env.process(self.run())
 		self.deallocation = self.env.process(self.depart_request())
-		self.audit = self.env.process(self.checkNetwork())
+		#self.audit = self.env.process(self.checkNetwork())
 		self.ilp = None
 
 	#take requests and tries to allocate on a RRH
@@ -148,13 +164,13 @@ class Control_Plane(object):
 		global total_aloc
 		global total_nonaloc
 		global no_allocated
+		global count
 		while True:
 			r = yield self.requests.get()
 			#print("Allocating request {}".format(r.id))
 			#as soon as it gets the request, allocates it into a RRH
 			#----------------------CALLS THE ILP-------------------------
-			self.ilp = lp.ILP(r, range(0,1), lp.nodes, lambdas, lp.switchBandwidth, lp.RRHband, lp.wavelength_capacity, lp.lc_cost, lp.B, lp.du_processing, 
-	lp.nodeCost, lp.du_cost, lp.switch_cost)
+			self.ilp = lp.ILP(r, range(0,1), lp.nodes, lp.lambdas)
 			#print("Calling ILP")
 			s = self.ilp.run()
 			if s != None:
@@ -162,19 +178,27 @@ class Control_Plane(object):
 				sol = self.ilp.return_solution_values()
 				self.ilp.updateValues(sol)
 				self.env.process(r.run())
+				actives.append(r)
+				count += 1
+				print("Allocated {}".format(len(rrhs)))
+				print("rrhs on node {}".format(lp.rrhs_on_nodes))
+				print(lp.du_processing)
 			else:
-				pass
-				#print("Can't find a solution!!")
+				print("Can't find a solution!! {}".format(len(rrhs)))
+				rrhs.append(r)
 			#after calling the ILP and and getting a solution
 			#starts the RRH by calling its running funciton
 
 
 	#starts the deallocation of a request
 	def depart_request(self):
+		global rrhs
+		global actives
 		while True:
 			r = yield self.departs.get()
 			self.ilp.deallocateRRH(r)
 			rrhs.append(r)
+			actives.pop()
 			#print("Deallocating RRH {}".format(r.id))
 
 	#allocates the RRHs/ONU turned on into a VPON in a processing node
@@ -224,7 +248,7 @@ class RRH(object):
 		self.cp = cp
 
 	def run(self):
-		yield self.env.timeout(self.service_time(self))
+		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
 		self.cp.departs.put(self)
 
 #Utility class
@@ -296,3 +320,5 @@ env.run(until = 86401)
 #print("Non allocated {}".format(total_nonaloc))
 #print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
+print(len(actives))
+print(lp.du_processing)
