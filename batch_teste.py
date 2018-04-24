@@ -297,9 +297,8 @@ class ILP(object):
 		for key in solution.var_x:
 			node_id = key[1]
 			rrhs_on_nodes[node_id] += 1
-			node = pns[node_id]
+			#node = pns[node_id]
 			if nodeState[node_id] == 0:
-				print("AQUIII")
 				#not activated, updates costs
 				nodeCost[node_id] = 0
 				nodeState[node_id] = 1
@@ -341,14 +340,11 @@ class ILP(object):
 		#	wavelength_capacity[lambda_id] -= RRHband
 		if solution.var_e:
 			for e in solution.var_e:
-				print(e)
 				for i in range(len(switch_cost)):
 					if e == i:
 						if switch_state[i] == 0:
 							switch_state[i] = 1
 							switch_cost[i] = 0.0
-		else:
-			print("is empty")
 		if solution.var_k:
 			for k in solution.var_k:
 				for i in range(len(switchBandwidth)):
@@ -405,6 +401,7 @@ class ILP(object):
 				nodeCost[node_id] = 600.0
 			else:
 				nodeCost[node_id] = 500.0
+		#print("RRH {} was deallocated".format(rrh.id))
 
 
 
@@ -655,14 +652,6 @@ lc_cost = [
 20.0,
 ]
 
-lambda_state = [0,0,0,0,0,0,0,0,0,0]
-switch_state = [0,0,0,0,0,0,0,0,0,0]
-#number of rrhs
-rrhs = range(0,1)
-#number of nodes
-nodes = range(0, 10)
-#number of lambdas
-lambdas = range(0, 10)
 switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0,]
 switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
 wavelength_capacity = [10000.0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -671,7 +660,16 @@ RRHband = 614.4;
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
-pns = []
+lambda_state = [0,0,0,0,0,0,0,0,0,0]
+switch_state = [0,0,0,0,0,0,0,0,0,0]
+#number of rrhs
+rrhs = range(0,1)
+#number of nodes
+nodes = range(0, 10)
+#number of lambdas
+lambdas = range(0, 10)
+
+"""
 for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))
 #	pns[i].printNode()
@@ -760,7 +758,7 @@ print(nodeCost)
 #print("Optimal solution is {} ".format(s.objective_value))
 #util.printActiveNodes()
 """
-
+"""
 p = ProcessingNode(0, 10)
 p1 = ProcessingNode(1, 10)
 print(p.type)
