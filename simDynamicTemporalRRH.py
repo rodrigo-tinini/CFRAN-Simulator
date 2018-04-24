@@ -5,12 +5,12 @@ import time
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-import cfran_batch_ilp as lp
+import batch_teste as lp
 
 #inter arrival rate of the users requests
 arrival_rate = 3600
 #service time of a request
-service_time = lambda x: np.randint(1, 600)
+service_time = lambda x: np.randint(10,100)
 #total generated requests per timestamp
 total_period_requests = 0
 #timestamp to change the load
@@ -20,8 +20,8 @@ loads = []
 #number of timestamps of load changing
 stamps = 24
 for i in range(stamps):
-	x = norm.pdf(i, 10, 4)
-	x *= 75
+	x = norm.pdf(i, 12, 4)
+	x *= 100
 	#x= round(x,4)
 	#if x != 0:
 	#	loads.append(x)
@@ -43,7 +43,7 @@ rrhs = []
 nodes_amount = 10
 #list of processing nodes
 nodes = []
-rrh_nodes = range(0,2)
+rrh_nodes = range(0,10)
 #capacity of each rrh
 rrh_capacity = 5000
 #keeps the non allocated requests
@@ -105,13 +105,14 @@ class Traffic_Generator(object):
 			#takes the first turned off RRH
 			if rrhs:
 				r = rrhs.pop()
-				print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
+				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
 				self.cp.requests.put(r)
 				r.enabled = True
 				total_period_requests +=1
-				np.shuffle(rrhs)
+				#np.shuffle(rrhs)
 			else:
-				print("All RRHs are active!")
+				pass
+				#print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
 			#yield self.env.timeout(0.05)
@@ -128,7 +129,7 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
 			self.action = self.action = self.env.process(self.run())
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, 100-len(rrhs)))
 			total_period_requests = 0
 
 #control plane that controls the allocations and deallocations
@@ -140,7 +141,7 @@ class Control_Plane(object):
 		self.action = self.env.process(self.run())
 		self.deallocation = self.env.process(self.depart_request())
 		self.audit = self.env.process(self.checkNetwork())
-
+		self.ilp = None
 
 	#take requests and tries to allocate on a RRH
 	def run(self):
@@ -152,19 +153,18 @@ class Control_Plane(object):
 			#print("Allocating request {}".format(r.id))
 			#as soon as it gets the request, allocates it into a RRH
 			#----------------------CALLS THE ILP-------------------------
-			aInput = lp.ilpInput([],[],[],[])
-			data = aInput.prepareData(r)
-			ilp = lp.ILP(data.fog, range(0,1), rrh_nodes, lambdas, data.switchBandwidth, lp.RRHband, wavelength_capacity, lambda_cost, B, data.du_processing, 
-	nodeCost, data.du_cost, lp.switch_cost)
-			print("Calling ILP")
-			s = ilp.run()
-			print("Optimal solution is: {}".format(s.objective_value))
-			sol = ilp.return_solution_values()
-			ilp.updateValues(sol)
-			print(sol.var_z)
-			print(wavelength_capacity)
-			print(ilp.wavelength_capacity)
-			self.env.process(r.run())
+			self.ilp = lp.ILP(r, range(0,1), lp.nodes, lambdas, lp.switchBandwidth, lp.RRHband, lp.wavelength_capacity, lp.lc_cost, lp.B, lp.du_processing, 
+	lp.nodeCost, lp.du_cost, lp.switch_cost)
+			#print("Calling ILP")
+			s = self.ilp.run()
+			if s != None:
+				#print("Optimal solution is: {}".format(s.objective_value))
+				sol = self.ilp.return_solution_values()
+				self.ilp.updateValues(sol)
+				self.env.process(r.run())
+			else:
+				pass
+				#print("Can't find a solution!!")
 			#after calling the ILP and and getting a solution
 			#starts the RRH by calling its running funciton
 
@@ -173,8 +173,9 @@ class Control_Plane(object):
 	def depart_request(self):
 		while True:
 			r = yield self.departs.get()
+			self.ilp.deallocateRRH(r)
 			rrhs.append(r)
-			print("Deallocating request {}".format(r.id))
+			#print("Deallocating RRH {}".format(r.id))
 
 	#allocates the RRHs/ONU turned on into a VPON in a processing node
 	def allocateRRH(self, rrh):
@@ -188,6 +189,7 @@ class Control_Plane(object):
 		while True:
 			yield self.env.timeout(1800)
 			print("Taking network status at {}".format(self.env.now))
+			print("Total generated requests is {}".format(total_period_requests))
 """
 #RRH that allocates the user requests according to its availability
 #each rrh is connected to both a cloud node and a fog node
@@ -215,8 +217,8 @@ class RRH(object):
 	def __init__(self, aId, rrhs_matrix, env, service_time, cp):
 		self.id = aId
 		self.rrhs_matrix = rrhs_matrix
-		self.node = None
-		self.enabled = False
+		self.var_x = None
+		self.var_u = None
 		self.env = env
 		self.service_time = service_time
 		self.cp = cp
@@ -284,15 +286,7 @@ class Util(object):
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env)
-nodes = range(0	,10)
-processing_nodes = []
-lp.pns = processing_nodes
-for i in nodes:
-	p = lp.ProcessingNode(i,10,3,1)
-	processing_nodes.append(p)
-
 rrhs = util.createRRHs(100, env, service_time, cp)
-lp.rrhs = rrhs
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
