@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 class ILP(object):
 	def __init__(self, rrh, rrhs, nodes, lambdas):
 		self.rrh = rrh
-		self.fog = self.rrh.rrhs_matrix
+		self.fog = []
+		for i in rrh:
+			self.fog.append(i.rrhs_matrix)
 		self.rrhs = rrhs
 		self.nodes = nodes
 		self.lambdas = lambdas
@@ -100,7 +102,7 @@ class ILP(object):
 		#self.mdl.add_constraints(self.y[i,j] >= self.x[i,j,w] + self.fog[i][j] - 1 for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#self.mdl.add_constraints(self.y[i,j] <= self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#this constraints guarantees that each rrh can be allocated to either the cloud or a specific fog node
-		self.mdl.add_constraints(self.y[i,j] <= self.fog[j] for i in self.rrhs for j in self.nodes)
+		self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.z[w,j] <= lambda_node[w][j] for w in self.lambdas for j in self.nodes)
 
 	#set the objective function
@@ -352,8 +354,9 @@ class ILP(object):
 
 	#put the solution values into the RRH
 	def updateRRH(self,solution):
-			self.rrh.var_x = solution.var_x[0]
-			self.rrh.var_u = solution.var_u[0]
+			for i in range(len(self.rrh)):
+				self.rrh[i].var_x = solution.var_x[i]
+				self.rrh[i].var_u = solution.var_u[i]
 
 	#deallocates the RRH
 	#This method takes the RRH to be deallocated and free the resources from the
@@ -667,6 +670,26 @@ rrhs = range(0,1)
 nodes = range(0, 10)
 #number of lambdas
 lambdas = range(0, 10)
+
+
+
+u = Util()
+antenas = u.createRRHs(3)
+for i in range(len(antenas)):
+	print(antenas[i].rrhs_matrix)
+ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
+s = ilp.run()
+sol = ilp.return_solution_values()
+ilp.updateValues(sol)
+for i in sol.var_u:
+	print(i)
+print(rrhs_on_nodes)
+for i in antenas:
+	print(i.var_u)
+print(wavelength_capacity)
+print(du_processing)
+
+
 """
 for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))

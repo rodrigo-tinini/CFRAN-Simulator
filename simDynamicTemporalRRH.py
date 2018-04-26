@@ -167,19 +167,23 @@ class Control_Plane(object):
 		global count
 		while True:
 			r = yield self.requests.get()
+			#create a list containing the rrhs
+			antenas = []
+			antenas.append(r)
 			#print("Allocating request {}".format(r.id))
 			#as soon as it gets the request, allocates it into a RRH
 			#----------------------CALLS THE ILP-------------------------
-			self.ilp = lp.ILP(r, range(0,1), lp.nodes, lp.lambdas)
+			self.ilp = lp.ILP(antenas, range(len(antenas)), lp.nodes, lp.lambdas)
 			#print("Calling ILP")
 			s = self.ilp.run()
 			if s != None:
 				#print("Optimal solution is: {}".format(s.objective_value))
 				sol = self.ilp.return_solution_values()
 				self.ilp.updateValues(sol)
-				self.env.process(r.run())
-				actives.append(r)
-				count += 1
+				for i in antenas:
+					self.env.process(i.run())
+					actives.append(i)
+					count += 1
 				print("Allocated {}".format(len(rrhs)))
 				print("rrhs on node {}".format(lp.rrhs_on_nodes))
 				print(lp.du_processing)
