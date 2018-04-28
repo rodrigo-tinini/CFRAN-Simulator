@@ -559,6 +559,31 @@ class Util(object):
 				rrhs.append(r)
 		return rrhs
 
+	#compute the power consumption at the moment
+	def getPowerConsumption(self):
+		netCost = 0.0
+		#compute all activated nodes
+		for i in range(len(nodeState)):
+			if nodeState[i] == 1:
+				if i == 0:
+					netCost += 600.0
+				else:
+					netCost += 500.0
+			#compute activated DUs
+			for j in range(len(du_state[i])):
+				if du_state[i][j] == 1:
+					if i == 0:
+						netCost += 100.0
+					else:
+						netCost += 50.0
+		#compute lambda and switch costs
+		for w in lambda_state:
+			if w == 1:
+				netCost += 20.0
+		for s in switch_state:
+			if s == 1:
+				netCost += 15.0
+		return netCost	
 
 
 #Test
@@ -672,24 +697,28 @@ nodes = range(0, 10)
 lambdas = range(0, 10)
 
 
-
+"""
 u = Util()
-antenas = u.createRRHs(3)
-for i in range(len(antenas)):
-	print(antenas[i].rrhs_matrix)
+antenas = u.createRRHs(100)
+#for i in range(len(antenas)):
+#	print(antenas[i].rrhs_matrix)
+np.shuffle(antenas)
 ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
 s = ilp.run()
 sol = ilp.return_solution_values()
 ilp.updateValues(sol)
-for i in sol.var_u:
-	print(i)
-print(rrhs_on_nodes)
-for i in antenas:
-	print(i.var_u)
-print(wavelength_capacity)
-print(du_processing)
-
-
+print("Solving time: {}".format(s.solve_details.time))
+#for i in sol.var_u:
+#	print(i)
+#print(rrhs_on_nodes)
+#for i in antenas:
+#	print(i.var_u)
+#print(wavelength_capacity)
+#print(du_processing)
+cost = 0.0
+cost = util.getPowerConsumption()
+print("Power consumption is {}".format(cost))
+"""
 """
 for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))

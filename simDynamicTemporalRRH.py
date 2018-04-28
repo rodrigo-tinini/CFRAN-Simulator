@@ -63,6 +63,7 @@ lc_cost = 20
 B = 1000000
 op = 0
 maximum_load = 100
+
 nodeCost = [
 600.0,
 500.0,
@@ -104,7 +105,7 @@ class Traffic_Generator(object):
 	def run(self):
 		global total_period_requests
 		global rrhs
-		global actives
+		#global actives
 		while True:
 			#print("To entrando aqui!!!!")
 			#if total_period_requests <= maximum_load:
@@ -128,7 +129,6 @@ class Traffic_Generator(object):
 	#changing of load
 	def change_load(self):
 		while True:
-			global actives
 			global traffics
 			#global loads
 			global arrival_rate
@@ -144,13 +144,12 @@ class Traffic_Generator(object):
 			print("RRHS on {}".format(len(actives)))
 			print("RRHs off {}".format(len(rrhs)))
 			self.action = self.action = self.env.process(self.run())
-			actives = []
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, count))
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, len(actives)))
 			total_period_requests = 0
 
 #control plane that controls the allocations and deallocations
 class Control_Plane(object):
-	def __init__(self, env):
+	def __init__(self, env, util):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
@@ -158,6 +157,7 @@ class Control_Plane(object):
 		self.deallocation = self.env.process(self.depart_request())
 		#self.audit = self.env.process(self.checkNetwork())
 		self.ilp = None
+		self.util = util
 
 	#take requests and tries to allocate on a RRH
 	def run(self):
@@ -165,6 +165,7 @@ class Control_Plane(object):
 		global total_nonaloc
 		global no_allocated
 		global count
+		global actives
 		while True:
 			r = yield self.requests.get()
 			#create a list containing the rrhs
@@ -183,10 +184,13 @@ class Control_Plane(object):
 				for i in antenas:
 					self.env.process(i.run())
 					actives.append(i)
+					print("ACTIVE IS {}".format(len(actives)))
+					antenas.pop()
 					count += 1
-				print("Allocated {}".format(len(rrhs)))
-				print("rrhs on node {}".format(lp.rrhs_on_nodes))
-				print(lp.du_processing)
+					print("Cost is {}".format(self.util.getPowerConsumption()))
+				#print("Allocated {}".format(len(rrhs)))
+				#print("rrhs on node {}".format(lp.rrhs_on_nodes))
+				#print(lp.du_processing)
 			else:
 				print("Can't find a solution!! {}".format(len(rrhs)))
 				rrhs.append(r)
@@ -197,7 +201,7 @@ class Control_Plane(object):
 	#starts the deallocation of a request
 	def depart_request(self):
 		global rrhs
-		global actives
+		#global actives
 		while True:
 			r = yield self.departs.get()
 			self.ilp.deallocateRRH(r)
@@ -311,20 +315,46 @@ class Util(object):
 				rrhs.append(r)
 		return rrhs
 
+	#compute the power consumption at the moment
+	def getPowerConsumption(self):
+		netCost = 0.0
+		#compute all activated nodes
+		for i in range(len(lp.nodeState)):
+			if lp.nodeState[i] == 1:
+				if i == 0:
+					netCost += 600.0
+				else:
+					netCost += 500.0
+			#compute activated DUs
+			for j in range(len(lp.du_state[i])):
+				if lp.du_state[i][j] == 1:
+					if i == 0:
+						netCost += 100.0
+					else:
+						netCost += 50.0
+		#compute lambda and switch costs
+		for w in lp.lambda_state:
+			if w == 1:
+				netCost += 20.0
+		for s in lp.switch_state:
+			if s == 1:
+				netCost += 15.0
+		return netCost
+
 
 util = Util()
 env = simpy.Environment()
-cp = Control_Plane(env)
+cp = Control_Plane(env, util)
 rrhs = util.createRRHs(100, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
-#print("Total generated requests {}".format(t.req_count))
-#print("Allocated {}".format(total_aloc))
-#print("Optimal solution got: {}".format(op))
-#print("Non allocated {}".format(total_nonaloc))
-#print("Size of Nonallocated {}".format(len(no_allocated)))
+print("Total generated requests {}".format(t.req_count))
+print("Allocated {}".format(total_aloc))
+print("Optimal solution got: {}".format(op))
+print("Non allocated {}".format(total_nonaloc))
+print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
 print(len(actives))
 print(lp.du_processing)
