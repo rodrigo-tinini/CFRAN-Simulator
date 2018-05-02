@@ -3,6 +3,7 @@ import functools
 import random as np
 import time
 from enum import Enum
+import numpy
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import batch_teste as lp
@@ -63,6 +64,10 @@ lc_cost = 20
 B = 1000000
 op = 0
 maximum_load = 100
+#to keep the consumption of each allcoated RRH
+power_consumption = []
+#average of power consumption of each hour of the dary
+average_power_consumption = []
 
 nodeCost = [
 600.0,
@@ -134,6 +139,7 @@ class Traffic_Generator(object):
 			global arrival_rate
 			global total_period_requests
 			global next_time
+			global power_consumption
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -141,10 +147,15 @@ class Traffic_Generator(object):
 			next_time = actual_stamp + change_time
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
-			print("RRHS on {}".format(len(actives)))
-			print("RRHs off {}".format(len(rrhs)))
+			#print("RRHS on {}".format(len(actives)))
+			#print("RRHs off {}".format(len(rrhs)))
+			if power_consumption:
+				average_power_consumption.append(round(numpy.mean(power_consumption),4))
+				power_consumption = []
+			else:
+				average_power_consumption.append(0.0)
 			self.action = self.action = self.env.process(self.run())
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, len(actives)))
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
 #control plane that controls the allocations and deallocations
@@ -184,15 +195,16 @@ class Control_Plane(object):
 				for i in antenas:
 					self.env.process(i.run())
 					actives.append(i)
-					print("ACTIVE IS {}".format(len(actives)))
+					#print("ACTIVE IS {}".format(len(actives)))
 					antenas.pop()
 					count += 1
-					print("Cost is {}".format(self.util.getPowerConsumption()))
+					power_consumption.append(self.util.getPowerConsumption())
+					#print("Cost is {}".format(power_consumption))
 				#print("Allocated {}".format(len(rrhs)))
 				#print("rrhs on node {}".format(lp.rrhs_on_nodes))
 				#print(lp.du_processing)
 			else:
-				print("Can't find a solution!! {}".format(len(rrhs)))
+				#print("Can't find a solution!! {}".format(len(rrhs)))
 				rrhs.append(r)
 			#after calling the ILP and and getting a solution
 			#starts the RRH by calling its running funciton
@@ -351,10 +363,15 @@ t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
 print("Total generated requests {}".format(t.req_count))
-print("Allocated {}".format(total_aloc))
-print("Optimal solution got: {}".format(op))
-print("Non allocated {}".format(total_nonaloc))
-print("Size of Nonallocated {}".format(len(no_allocated)))
+#print("Allocated {}".format(total_aloc))
+#print("Optimal solution got: {}".format(op))
+#print("Non allocated {}".format(total_nonaloc))
+#print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
 print(len(actives))
 print(lp.du_processing)
+print("Daily power consumption were: {}".format(average_power_consumption))
+plt.plot(average_power_consumption)
+plt.xlabel("Time of the day")
+plt.ylabel("Average Power Consumption")
+plt.show()
