@@ -7,6 +7,7 @@ import numpy
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import batch_teste as lp
+import pureBatchILP as plp
 
 count = 0
 #timestamp to change the load
@@ -68,6 +69,10 @@ maximum_load = 100
 power_consumption = []
 #average of power consumption of each hour of the dary
 average_power_consumption = []
+#to keep the power consumption of the batch allocation
+batch_power_consumption = []
+#to jeep the average consumption of each hour of the day for the batch case
+batch_average_consumption = []
 
 nodeCost = [
 600.0,
@@ -94,7 +99,7 @@ lambda_cost = [
 20.0,
 ]
 #rrhs = util.createRRHs(100, env, cp, service_time)
-
+batch_count = 0
 #traffic generator - generates requests considering the distribution
 class Traffic_Generator(object):
 	def __init__(self, env, distribution, service, cp):
@@ -140,6 +145,7 @@ class Traffic_Generator(object):
 			global total_period_requests
 			global next_time
 			global power_consumption
+			global batch_power_consumption
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -155,6 +161,11 @@ class Traffic_Generator(object):
 			else:
 				average_power_consumption.append(0.0)
 			self.action = self.action = self.env.process(self.run())
+			if batch_power_consumption:
+				batch_average_consumption.append(round(numpy.mean(batch_power_consumption), 4))
+				batch_power_consumption = []
+			else:
+				batch_average_consumption.append(0.0)
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
@@ -169,6 +180,7 @@ class Control_Plane(object):
 		#self.audit = self.env.process(self.checkNetwork())
 		self.ilp = None
 		self.util = util
+		self.ilpBatch = None
 
 	#take requests and tries to allocate on a RRH
 	def run(self):
@@ -177,16 +189,21 @@ class Control_Plane(object):
 		global no_allocated
 		global count
 		global actives
+		#create a list for the batch solution
+		batch_list = actives
 		while True:
 			r = yield self.requests.get()
 			#create a list containing the rrhs
 			antenas = []
 			antenas.append(r)
+			#put the rrh on the batch list for the batch scheduling
+			batch_list.append(r)
 			#print("Allocating request {}".format(r.id))
 			#as soon as it gets the request, allocates it into a RRH
 			#----------------------CALLS THE ILP-------------------------
 			self.ilp = lp.ILP(antenas, range(len(antenas)), lp.nodes, lp.lambdas)
 			#print("Calling ILP")
+			#calling the incremental ILP
 			s = self.ilp.run()
 			if s != None:
 				#print("Optimal solution is: {}".format(s.objective_value))
@@ -198,7 +215,7 @@ class Control_Plane(object):
 					#print("ACTIVE IS {}".format(len(actives)))
 					antenas.pop()
 					count += 1
-					power_consumption.append(self.util.getPowerConsumption())
+					power_consumption.append(self.util.getPowerConsumption(lp))
 					#print("Cost is {}".format(power_consumption))
 				#print("Allocated {}".format(len(rrhs)))
 				#print("rrhs on node {}".format(lp.rrhs_on_nodes))
@@ -206,8 +223,21 @@ class Control_Plane(object):
 			else:
 				#print("Can't find a solution!! {}".format(len(rrhs)))
 				rrhs.append(r)
-			#after calling the ILP and and getting a solution
-			#starts the RRH by calling its running funciton
+			#calls the batch ilp
+			self.ilpBatch = plp.ILP(batch_list, range(len(batch_list)), plp.nodes, plp.lambdas)
+			b_s = self.ilpBatch.run()
+			if b_s != None:
+				print("SOLVED")
+				#print("Optimal solution is: {}".format(s.objective_value))
+				b_sol = self.ilpBatch.return_solution_values()
+				self.ilpBatch.updateValues(b_sol)
+				batch_power_consumption.append(self.util.getPowerConsumption(plp))
+				self.ilpBatch.resetValues()
+			else:
+				print("Cant Batch allocate")
+				print(plp.lambda_node)
+				batch_count += 1
+
 
 
 	#starts the deallocation of a request
@@ -328,27 +358,27 @@ class Util(object):
 		return rrhs
 
 	#compute the power consumption at the moment
-	def getPowerConsumption(self):
+	def getPowerConsumption(self, ilp):
 		netCost = 0.0
 		#compute all activated nodes
-		for i in range(len(lp.nodeState)):
-			if lp.nodeState[i] == 1:
+		for i in range(len(ilp.nodeState)):
+			if ilp.nodeState[i] == 1:
 				if i == 0:
 					netCost += 600.0
 				else:
 					netCost += 500.0
 			#compute activated DUs
-			for j in range(len(lp.du_state[i])):
-				if lp.du_state[i][j] == 1:
+			for j in range(len(ilp.du_state[i])):
+				if ilp.du_state[i][j] == 1:
 					if i == 0:
 						netCost += 100.0
 					else:
 						netCost += 50.0
 		#compute lambda and switch costs
-		for w in lp.lambda_state:
+		for w in ilp.lambda_state:
 			if w == 1:
 				netCost += 20.0
-		for s in lp.switch_state:
+		for s in ilp.switch_state:
 			if s == 1:
 				netCost += 15.0
 		return netCost
@@ -361,7 +391,7 @@ rrhs = util.createRRHs(100, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 86401)
+env.run(until = 32401)
 print("Total generated requests {}".format(t.req_count))
 #print("Allocated {}".format(total_aloc))
 #print("Optimal solution got: {}".format(op))
@@ -370,8 +400,11 @@ print("Total generated requests {}".format(t.req_count))
 print("\End at "+str(env.now))
 print(len(actives))
 print(lp.du_processing)
-print("Daily power consumption were: {}".format(average_power_consumption))
-plt.plot(average_power_consumption)
+print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
+print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
+plt.plot(average_power_consumption, label = "incremental ilp")
+plt.plt(batch_average_consumption, label = "batch ilp")
 plt.xlabel("Time of the day")
 plt.ylabel("Average Power Consumption")
 plt.show()
+print("Batch failed {}".format(batch_count))
