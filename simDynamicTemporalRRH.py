@@ -73,6 +73,11 @@ average_power_consumption = []
 batch_power_consumption = []
 #to jeep the average consumption of each hour of the day for the batch case
 batch_average_consumption = []
+#counting the blocked RRHs
+incremental_blocking = 0
+batch_blocking = 0
+total_inc_blocking = []
+total_batch_blocking = []
 
 nodeCost = [
 600.0,
@@ -146,6 +151,8 @@ class Traffic_Generator(object):
 			global next_time
 			global power_consumption
 			global batch_power_consumption
+			global incremental_blocking
+			global batch_blocking
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -155,6 +162,10 @@ class Traffic_Generator(object):
 			arrival_rate = loads.pop()/change_time
 			#print("RRHS on {}".format(len(actives)))
 			#print("RRHs off {}".format(len(rrhs)))
+			total_inc_blocking.append(incremental_blocking)
+			total_batch_blocking.append(batch_blocking)
+			incremental_blocking = 0
+			batch_blocking = 0
 			if power_consumption:
 				average_power_consumption.append(round(numpy.mean(power_consumption),4))
 				power_consumption = []
@@ -189,6 +200,8 @@ class Control_Plane(object):
 		global no_allocated
 		global count
 		global actives
+		global incremental_blocking
+		global batch_blocking
 		#create a list for the batch solution
 		batch_list = actives
 		while True:
@@ -216,6 +229,8 @@ class Control_Plane(object):
 					antenas.pop()
 					count += 1
 					power_consumption.append(self.util.getPowerConsumption(lp))
+					print("SOLVED INC")
+					print("inc {}".format(lp.du_processing))
 					#print("Cost is {}".format(power_consumption))
 				#print("Allocated {}".format(len(rrhs)))
 				#print("rrhs on node {}".format(lp.rrhs_on_nodes))
@@ -223,20 +238,23 @@ class Control_Plane(object):
 			else:
 				#print("Can't find a solution!! {}".format(len(rrhs)))
 				rrhs.append(r)
+				antenas.pop()
+				incremental_blocking +=1
 			#calls the batch ilp
 			self.ilpBatch = plp.ILP(batch_list, range(len(batch_list)), plp.nodes, plp.lambdas)
 			b_s = self.ilpBatch.run()
 			if b_s != None:
-				print("SOLVED")
+				print("SOLVED BATCH")
 				#print("Optimal solution is: {}".format(s.objective_value))
 				b_sol = self.ilpBatch.return_solution_values()
 				self.ilpBatch.updateValues(b_sol)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				self.ilpBatch.resetValues()
+				print("batch {}".format(lp.du_processing))
 			else:
-				print("Cant Batch allocate")
-				print(plp.lambda_node)
-				batch_count += 1
+				#print("Cant Batch allocate")
+				#print(plp.lambda_node)
+				batch_blocking += 1
 
 
 
@@ -247,6 +265,8 @@ class Control_Plane(object):
 		while True:
 			r = yield self.departs.get()
 			self.ilp.deallocateRRH(r)
+			r.var_x = None
+			r.var_u = None
 			rrhs.append(r)
 			np.shuffle(rrhs)
 			actives.pop()
@@ -387,7 +407,7 @@ class Util(object):
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util)
-rrhs = util.createRRHs(100, env, service_time, cp)
+rrhs = util.createRRHs(50, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
@@ -400,11 +420,18 @@ print("Total generated requests {}".format(t.req_count))
 print("\End at "+str(env.now))
 print(len(actives))
 print(lp.du_processing)
+print(lp.wavelength_capacity)
+print(lp.rrhs_on_nodes)
 print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
 print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
 plt.plot(average_power_consumption, label = "incremental ilp")
-plt.plt(batch_average_consumption, label = "batch ilp")
+plt.plot(batch_average_consumption, label = "batch ilp")
 plt.xlabel("Time of the day")
 plt.ylabel("Average Power Consumption")
+plt.show()
+plt.plot(total_inc_blocking, label = "incremental blocking")
+plt.plot(total_batch_blocking, label = "batch blocking")
+plt.xlabel("Time of the day")
+plt.ylabel("Blocked Requests")
 plt.show()
 print("Batch failed {}".format(batch_count))
