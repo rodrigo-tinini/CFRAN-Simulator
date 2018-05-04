@@ -8,6 +8,7 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 import batch_teste as lp
 import pureBatchILP as plp
+import copy
 
 count = 0
 #timestamp to change the load
@@ -202,15 +203,15 @@ class Control_Plane(object):
 		global actives
 		global incremental_blocking
 		global batch_blocking
-		#create a list for the batch solution
-		batch_list = actives
 		while True:
+			#create a list for the batch solution
+			batch_list = []
 			r = yield self.requests.get()
 			#create a list containing the rrhs
 			antenas = []
 			antenas.append(r)
 			#put the rrh on the batch list for the batch scheduling
-			batch_list.append(r)
+			#batch_list.append(r)
 			#print("Allocating request {}".format(r.id))
 			#as soon as it gets the request, allocates it into a RRH
 			#----------------------CALLS THE ILP-------------------------
@@ -241,6 +242,12 @@ class Control_Plane(object):
 				antenas.pop()
 				incremental_blocking +=1
 			#calls the batch ilp
+			#creates the input rrhs taking all that are active
+			for i in actives:
+				copy_of_rrh = copy.copy(i)
+				batch_list.append(copy_of_rrh)
+			copy_of_r = copy.copy(r)
+			batch_list.append(copy_of_r)
 			self.ilpBatch = plp.ILP(batch_list, range(len(batch_list)), plp.nodes, plp.lambdas)
 			b_s = self.ilpBatch.run()
 			if b_s != None:
