@@ -79,6 +79,20 @@ incremental_blocking = 0
 batch_blocking = 0
 total_inc_blocking = []
 total_batch_blocking = []
+#to count the redirected rrhs
+redirected = []
+#to count the activated nodes
+activated_nodes = []
+average_act_nodes = []
+#to count the activated lambdas
+activated_lambdas = []
+average_act_lambdas = []
+#to count the activated DUs
+activated_dus = []
+average_act_dus = []
+#to count the activated switches
+activated_switchs = []
+average_act_switch = []
 
 nodeCost = [
 600.0,
@@ -154,6 +168,10 @@ class Traffic_Generator(object):
 			global batch_power_consumption
 			global incremental_blocking
 			global batch_blocking
+			global activated_nodes
+			global activated_dus
+			global activated_lambdas
+			global activated_switchs
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -167,17 +185,44 @@ class Traffic_Generator(object):
 			total_batch_blocking.append(batch_blocking)
 			incremental_blocking = 0
 			batch_blocking = 0
+			#calculates the averages of power consumption and active resources
+			#power consumption for the incremental case
 			if power_consumption:
 				average_power_consumption.append(round(numpy.mean(power_consumption),4))
 				power_consumption = []
 			else:
 				average_power_consumption.append(0.0)
-			self.action = self.action = self.env.process(self.run())
+			#power consumption for the batch case
 			if batch_power_consumption:
 				batch_average_consumption.append(round(numpy.mean(batch_power_consumption), 4))
 				batch_power_consumption = []
 			else:
 				batch_average_consumption.append(0.0)
+			#activated nodes for the incremental case
+			if activated_nodes:
+				average_act_nodes.append(max(activated_nodes))
+				activated_nodes = []
+			else:
+				average_act_nodes.append(0)
+			#activated lambdas for the incremental case
+			if activated_lambdas:
+				average_act_lambdas.append(max(activated_lambdas))
+				activated_lambdas = []
+			else:
+				average_act_lambdas.append(0)
+			#activated DUs for the incremental case
+			if activated_dus:
+				average_act_dus.append(max(activated_dus))
+				activated_dus = []
+			else:
+				average_act_dus.append(0)
+			#activated switches for the incremental case
+			if activated_switchs:
+				average_act_switch.append(max(activated_switchs))
+				activated_switchs = []
+			else:
+				average_act_switch.append(0)
+			self.action = self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
@@ -204,6 +249,10 @@ class Control_Plane(object):
 		global incremental_blocking
 		global batch_blocking
 		while True:
+			count_nodes = 0
+			count_lambdas = 0
+			count_dus = 0
+			count_switches = 0
 			#create a list for the batch solution
 			batch_list = []
 			r = yield self.requests.get()
@@ -230,12 +279,24 @@ class Control_Plane(object):
 					antenas.pop()
 					count += 1
 					power_consumption.append(self.util.getPowerConsumption(lp))
-					print("SOLVED INC")
-					print("inc {}".format(lp.du_processing))
-					#print("Cost is {}".format(power_consumption))
-				#print("Allocated {}".format(len(rrhs)))
-				#print("rrhs on node {}".format(lp.rrhs_on_nodes))
-				#print(lp.du_processing)
+				#counts the current activated nodes, lambdas, DUs and switches
+				for i in lp.nodeState:
+					if i == 1:
+						count_nodes += 1
+				activated_nodes.append(count_nodes)
+				for i in lp.lambda_state:
+					if i == 1:
+						count_lambdas += 1
+				activated_lambdas.append(count_lambdas)
+				for i in lp.du_state:
+					for j in i:
+						if j == 1:
+							count_dus += 1
+				activated_dus.append(count_dus)
+				for i in lp.switch_state:
+					if i == 1:
+						count_switches += 1
+				activated_switchs.append(count_switches)
 			else:
 				#print("Can't find a solution!! {}".format(len(rrhs)))
 				rrhs.append(r)
@@ -246,18 +307,22 @@ class Control_Plane(object):
 			for i in actives:
 				copy_of_rrh = copy.copy(i)
 				batch_list.append(copy_of_rrh)
-			copy_of_r = copy.copy(r)
-			batch_list.append(copy_of_r)
+			if s == None:
+				copy_of_r = copy.copy(r)
+				batch_list.append(copy_of_r)
 			self.ilpBatch = plp.ILP(batch_list, range(len(batch_list)), plp.nodes, plp.lambdas)
 			b_s = self.ilpBatch.run()
 			if b_s != None:
-				print("SOLVED BATCH")
+				#for i in batch_list:
+				#	print("Batch {}".format(i.id))
+				#for i in actives:
+				#	print("Inc {}".format(i.id))
 				#print("Optimal solution is: {}".format(s.objective_value))
 				b_sol = self.ilpBatch.return_solution_values()
 				self.ilpBatch.updateValues(b_sol)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				self.ilpBatch.resetValues()
-				print("batch {}".format(lp.du_processing))
+				#print("batch {}".format(lp.du_processing))
 			else:
 				#print("Cant Batch allocate")
 				#print(plp.lambda_node)
@@ -418,27 +483,66 @@ rrhs = util.createRRHs(50, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
-env.run(until = 32401)
+env.run(until = 86401)
 print("Total generated requests {}".format(t.req_count))
 #print("Allocated {}".format(total_aloc))
 #print("Optimal solution got: {}".format(op))
 #print("Non allocated {}".format(total_nonaloc))
 #print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
-print(len(actives))
-print(lp.du_processing)
-print(lp.wavelength_capacity)
-print(lp.rrhs_on_nodes)
+#print(len(actives))
+#print(lp.du_processing)
+#print(lp.wavelength_capacity)
+#print(lp.rrhs_on_nodes)
 print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
 print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
-plt.plot(average_power_consumption, label = "incremental ilp")
-plt.plot(batch_average_consumption, label = "batch ilp")
+
+#plt.plot(average_power_consumption, label = "incremental ilp")
+#plt.plot(batch_average_consumption, label = "batch ilp")
+#plt.xlabel("Time of the day")
+#plt.ylabel("Average Power Consumption")
+#plt.show()
+#plt.plot(total_inc_blocking, label = "incremental blocking")
+#plt.plot(total_batch_blocking, label = "batch blocking")
+#plt.xlabel("Time of the day")
+#plt.ylabel("Blocked Requests")
+#plt.show()
+#print("Batch failed {}".format(batch_count))
+'''
+print("---------------------------------RESULTS FROM INC-----------------------------")
+print("Lambda on Nodes:")
+for i in lp.lambda_node:
+	print(i)
+print("DU Allocated on Nodes")
+for i in lp.du_processing:
+	print(i)
+print("Lambdas Capacities")
+print(lp.wavelength_capacity)
+print("Switches capacities")
+print(lp.switchBandwidth)
+print("---------------------------------RESULTS FROM BATCH-----------------------------")
+print("Lambda on Nodes:")
+for i in plp.lambda_node:
+	print(i)
+print("DU Allocated on Nodes")
+for i in plp.du_processing:
+	print(i)
+print("Lambdas Capacities")
+print(plp.wavelength_capacity)
+print("Switches capacities")
+print(plp.switchBandwidth)
+'''
+print("Nodes {}".format(average_act_nodes))
+print("Lambdas {}".format(average_act_lambdas))
+print("DUs {}".format(average_act_dus))
+print("Switches {}".format(average_act_switch))
+#plots for the activated resources
+plt.plot(average_act_nodes, label = "Activated Nodes")
+plt.plot(average_act_lambdas, label = "Activated lambdas")
+plt.plot(average_act_dus, label = "Activated DUsp")
+plt.plot(average_act_switch, label = "Activated Switches")
 plt.xlabel("Time of the day")
-plt.ylabel("Average Power Consumption")
+plt.ylabel("Number of ActivatedResources")
+plt.legend()
 plt.show()
-plt.plot(total_inc_blocking, label = "incremental blocking")
-plt.plot(total_batch_blocking, label = "batch blocking")
-plt.xlabel("Time of the day")
-plt.ylabel("Blocked Requests")
-plt.show()
-print("Batch failed {}".format(batch_count))
+
