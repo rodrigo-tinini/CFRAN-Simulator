@@ -101,6 +101,11 @@ activated_switchs = []
 average_act_switch = []
 b_activated_switchs = []
 b_average_act_switch = []
+#to count the redirected RRHs
+redirected_rrhs = []
+average_redir_rrhs = []
+b_redirected_rrhs = []
+b_average_redir_rrhs = []
 
 nodeCost = [
 600.0,
@@ -184,6 +189,8 @@ class Traffic_Generator(object):
 			global b_activated_dus
 			global b_activated_lambdas
 			global b_activated_switchs
+			global redirected_rrhs
+			global b_redirected_rrhs
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -198,6 +205,17 @@ class Traffic_Generator(object):
 			incremental_blocking = 0
 			batch_blocking = 0
 			#calculates the averages of power consumption and active resources
+			#calculates the number of redirected RRHs
+			if redirected_rrhs:
+				average_redir_rrhs.append(sum((redirected_rrhs)))
+				redirected_rrhs = []
+			else:
+				average_redir_rrhs.append(0)
+			if b_redirected_rrhs:
+				b_average_redir_rrhs.append(sum((b_redirected_rrhs)))
+				b_redirected_rrhs = []
+			else:
+				b_average_redir_rrhs.append(0)
 			#power consumption for the incremental case
 			if power_consumption:
 				average_power_consumption.append(round(numpy.mean(power_consumption),4))
@@ -316,6 +334,10 @@ class Control_Plane(object):
 					antenas.pop()
 					count += 1
 					power_consumption.append(self.util.getPowerConsumption(lp))
+				if redirected_rrhs:
+					redirected_rrhs.append(sum((redirected_rrhs[-1], len(sol.var_k))))
+				else:
+					redirected_rrhs.append(len(sol.var_k))
 				#counts the current activated nodes, lambdas, DUs and switches
 				for i in lp.nodeState:
 					if i == 1:
@@ -363,6 +385,10 @@ class Control_Plane(object):
 				self.ilpBatch.updateValues(b_sol)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				#counts the current activated nodes, lambdas, DUs and switches
+				if b_redirected_rrhs:
+					b_redirected_rrhs.append(sum((b_redirected_rrhs[-1], len(b_sol.var_k))))
+				else:
+					b_redirected_rrhs.append(len(b_sol.var_k))
 				for i in plp.nodeState:
 					if i == 1:
 						count_nodes += 1
@@ -537,19 +563,19 @@ class Util(object):
 
 	#compute which nodes are active (cloud or fog, and how many of them are active)
 	def countNodes(self, ilp):
-	count_cloud = 0
-	cpunt_fog = 0
-	for i in range(len(ilp.nodeState)):
-		if ilp.nodeState[i] == 1:
-			if i == 0:
-				count_cloud += 1
-			else:
-				count_fog += 1
+		count_cloud = 0
+		count_fog = 0
+		for i in range(len(ilp.nodeState)):
+			if ilp.nodeState[i] == 1:
+				if i == 0:
+					count_cloud += 1
+				else:
+					count_fog += 1
 
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util)
-rrhs = util.createRRHs(10, env, service_time, cp)
+rrhs = util.createRRHs(20, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
@@ -566,6 +592,8 @@ print("\End at "+str(env.now))
 #print(lp.rrhs_on_nodes)
 print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
 print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
+print("Inc redirection {}".format(average_redir_rrhs))
+print("Batch redirection {}".format(b_average_redir_rrhs))
 
 #plt.plot(average_power_consumption, label = "incremental ilp")
 #plt.plot(batch_average_consumption, label = "batch ilp")
@@ -578,6 +606,7 @@ print("Daily power consumption (Batch) were: {}".format(batch_average_consumptio
 #plt.ylabel("Blocked Requests")
 #plt.show()
 #print("Batch failed {}".format(batch_count))
+
 '''
 print("---------------------------------RESULTS FROM INC-----------------------------")
 print("Lambda on Nodes:")
@@ -602,6 +631,7 @@ print(plp.wavelength_capacity)
 print("Switches capacities")
 print(plp.switchBandwidth)
 '''
+'''
 print("Nodes {}".format(average_act_nodes))
 print("Lambdas {}".format(average_act_lambdas))
 print("DUs {}".format(average_act_dus))
@@ -619,4 +649,4 @@ plt.ylim(0, 10)
 #plt.yticks(numpy.linspace(0,20,20,endpoint=True))
 plt.legend()
 plt.show()
-
+'''
