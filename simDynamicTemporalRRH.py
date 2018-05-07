@@ -84,15 +84,23 @@ redirected = []
 #to count the activated nodes
 activated_nodes = []
 average_act_nodes = []
+b_activated_nodes = []
+b_average_act_nodes = []
 #to count the activated lambdas
 activated_lambdas = []
 average_act_lambdas = []
+b_activated_lambdas = []
+b_average_act_lambdas = []
 #to count the activated DUs
 activated_dus = []
 average_act_dus = []
+b_activated_dus = []
+b_average_act_dus = []
 #to count the activated switches
 activated_switchs = []
 average_act_switch = []
+b_activated_switchs = []
+b_average_act_switch = []
 
 nodeCost = [
 600.0,
@@ -172,6 +180,10 @@ class Traffic_Generator(object):
 			global activated_dus
 			global activated_lambdas
 			global activated_switchs
+			global b_activated_nodes
+			global b_activated_dus
+			global b_activated_lambdas
+			global b_activated_switchs
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -200,28 +212,53 @@ class Traffic_Generator(object):
 				batch_average_consumption.append(0.0)
 			#activated nodes for the incremental case
 			if activated_nodes:
-				average_act_nodes.append(max(activated_nodes))
+				average_act_nodes.append(numpy.mean(activated_nodes))
 				activated_nodes = []
 			else:
 				average_act_nodes.append(0)
 			#activated lambdas for the incremental case
 			if activated_lambdas:
-				average_act_lambdas.append(max(activated_lambdas))
+				average_act_lambdas.append(numpy.mean(activated_lambdas))
 				activated_lambdas = []
 			else:
 				average_act_lambdas.append(0)
 			#activated DUs for the incremental case
 			if activated_dus:
-				average_act_dus.append(max(activated_dus))
+				average_act_dus.append(numpy.mean(activated_dus))
 				activated_dus = []
 			else:
 				average_act_dus.append(0)
 			#activated switches for the incremental case
 			if activated_switchs:
-				average_act_switch.append(max(activated_switchs))
+				average_act_switch.append(numpy.mean(activated_switchs))
 				activated_switchs = []
 			else:
 				average_act_switch.append(0)
+			#count the resources for batch case
+			#activated nodes for the incremental case
+			if b_activated_nodes:
+				b_average_act_nodes.append(numpy.mean(b_activated_nodes))
+				b_activated_nodes = []
+			else:
+				b_average_act_nodes.append(0)
+			#activated lambdas for the incremental case
+			if b_activated_lambdas:
+				b_average_act_lambdas.append(numpy.mean(b_activated_lambdas))
+				b_activated_lambdas = []
+			else:
+				b_average_act_lambdas.append(0)
+			#activated DUs for the incremental case
+			if b_activated_dus:
+				b_average_act_dus.append(numpy.mean(b_activated_dus))
+				b_activated_dus = []
+			else:
+				b_average_act_dus.append(0)
+			#activated switches for the incremental case
+			if b_activated_switchs:
+				b_average_act_switch.append(numpy.mean(b_activated_switchs))
+				b_activated_switchs = []
+			else:
+				b_average_act_switch.append(0)
 			self.action = self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
@@ -303,6 +340,10 @@ class Control_Plane(object):
 				antenas.pop()
 				incremental_blocking +=1
 			#calls the batch ilp
+			count_nodes = 0
+			count_lambdas = 0
+			count_dus = 0
+			count_switches = 0
 			#creates the input rrhs taking all that are active
 			for i in actives:
 				copy_of_rrh = copy.copy(i)
@@ -321,8 +362,27 @@ class Control_Plane(object):
 				b_sol = self.ilpBatch.return_solution_values()
 				self.ilpBatch.updateValues(b_sol)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
+				#counts the current activated nodes, lambdas, DUs and switches
+				for i in plp.nodeState:
+					if i == 1:
+						count_nodes += 1
+				b_activated_nodes.append(count_nodes)
+				for i in plp.lambda_state:
+					if i == 1:
+						count_lambdas += 1
+				b_activated_lambdas.append(count_lambdas)
+				for i in plp.du_state:
+					for j in i:
+						if j == 1:
+							count_dus += 1
+				b_activated_dus.append(count_dus)
+				for i in plp.switch_state:
+					if i == 1:
+						count_switches += 1
+				b_activated_switchs.append(count_switches)
 				self.ilpBatch.resetValues()
 				#print("batch {}".format(lp.du_processing))
+
 			else:
 				#print("Cant Batch allocate")
 				#print(plp.lambda_node)
@@ -475,11 +535,21 @@ class Util(object):
 				netCost += 15.0
 		return netCost
 
+	#compute which nodes are active (cloud or fog, and how many of them are active)
+	def countNodes(self, ilp):
+	count_cloud = 0
+	cpunt_fog = 0
+	for i in range(len(ilp.nodeState)):
+		if ilp.nodeState[i] == 1:
+			if i == 0:
+				count_cloud += 1
+			else:
+				count_fog += 1
 
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util)
-rrhs = util.createRRHs(50, env, service_time, cp)
+rrhs = util.createRRHs(10, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
@@ -537,12 +607,16 @@ print("Lambdas {}".format(average_act_lambdas))
 print("DUs {}".format(average_act_dus))
 print("Switches {}".format(average_act_switch))
 #plots for the activated resources
-plt.plot(average_act_nodes, label = "Activated Nodes")
-plt.plot(average_act_lambdas, label = "Activated lambdas")
-plt.plot(average_act_dus, label = "Activated DUsp")
-plt.plot(average_act_switch, label = "Activated Switches")
+plt.plot(average_act_nodes, linewidth=2.5, linestyle="-", label = "Inc Nodes")
+plt.plot(b_average_act_nodes,linewidth=2.5, linestyle="-", label = "Batch Nodes")
+#plt.plot(b_average_act_lambdas,linewidth=2.5, linestyle="-", label = "Inc Lambdas")
+#plt.plot(b_average_act_lambdas,linewidth=2.5, linestyle="-", label = "Batch Lambdas")
 plt.xlabel("Time of the day")
-plt.ylabel("Number of ActivatedResources")
+plt.ylabel("Number of Activated Resources")
+plt.xlim(0,24)
+#plt.xticks(numpy.linspace(0,24,24,endpoint=True))
+plt.ylim(0, 10)
+#plt.yticks(numpy.linspace(0,20,20,endpoint=True))
 plt.legend()
 plt.show()
 
