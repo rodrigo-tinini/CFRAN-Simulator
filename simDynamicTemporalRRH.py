@@ -28,6 +28,7 @@ loads = []
 actives = []
 #number of timestamps of load changing
 stamps = 24
+hours_range = range(1, stamps+1)
 for i in range(stamps):
 	x = norm.pdf(i, 12, 4)
 	x *= 100
@@ -106,6 +107,20 @@ redirected_rrhs = []
 average_redir_rrhs = []
 b_redirected_rrhs = []
 b_average_redir_rrhs = []
+#count the amount of time the solution took
+time_inc = []
+avg_time_inc = []
+time_b = []
+avg_time_b = []
+#count the occurrences of cloud and fog nodes
+count_cloud = []
+count_fog = []
+b_count_cloud = []
+b_count_fog = []
+max_count_cloud = []
+average_count_fog = []
+b_max_count_cloud = []
+b_average_count_fog = []
 
 nodeCost = [
 600.0,
@@ -191,6 +206,12 @@ class Traffic_Generator(object):
 			global b_activated_switchs
 			global redirected_rrhs
 			global b_redirected_rrhs
+			global time_inc
+			global time_b
+			global count_cloud
+			global count_fog
+			global b_count_cloud
+			global b_count_fog
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -204,6 +225,40 @@ class Traffic_Generator(object):
 			total_batch_blocking.append(batch_blocking)
 			incremental_blocking = 0
 			batch_blocking = 0
+			#calculates the average of activation of both cloud and fog nodes
+			#activation of cloud nodes
+			if count_cloud:
+				max_count_cloud.append(sum((count_cloud)))
+				count_cloud = []
+			else:
+				max_count_cloud.append(0.0)
+			if b_count_cloud:
+				b_max_count_cloud.append(sum((b_count_cloud)))
+				b_count_cloud = []
+			else:
+				b_max_count_cloud.append(0.0)
+			#activation of fog nodes
+			if count_fog:
+				average_count_fog.append(sum((count_fog)))
+				count_fog = []
+			else:
+				average_count_fog.append(0.0)
+			if b_count_fog:
+				b_average_count_fog.append(sum((b_count_fog)))
+				b_count_fog = []
+			else:
+				b_average_count_fog.append(0.0)
+			#calculates the average time spent for the solution on this hour
+			if time_inc:
+				avg_time_inc.append((numpy.mean(time_inc)))
+				time_inc = []
+			else:
+				avg_time_inc.append(0.0)
+			if time_b:
+				avg_time_b.append((numpy.mean(time_b)))
+				time_b = []
+			else:
+				avg_time_b.append(0.0)
 			#calculates the averages of power consumption and active resources
 			#calculates the number of redirected RRHs
 			if redirected_rrhs:
@@ -308,6 +363,9 @@ class Control_Plane(object):
 			count_lambdas = 0
 			count_dus = 0
 			count_switches = 0
+			#to count the activated fog nodes on the solution
+			fog = 0
+			b_fog = 0
 			#create a list for the batch solution
 			batch_list = []
 			r = yield self.requests.get()
@@ -327,6 +385,16 @@ class Control_Plane(object):
 				#print("Optimal solution is: {}".format(s.objective_value))
 				sol = self.ilp.return_solution_values()
 				self.ilp.updateValues(sol)
+				#take the time spent on the solution
+				time_inc.append(s.solve_details.time)
+				#count the type of activated nodes
+				for i in range(len(lp.nodeState)):
+					if lp.nodeState[i] == 1:
+						if i == 0:
+							count_cloud.append(1)
+						else:
+							fog += 1
+					count_fog.append(fog)
 				for i in antenas:
 					self.env.process(i.run())
 					actives.append(i)
@@ -376,14 +444,19 @@ class Control_Plane(object):
 			self.ilpBatch = plp.ILP(batch_list, range(len(batch_list)), plp.nodes, plp.lambdas)
 			b_s = self.ilpBatch.run()
 			if b_s != None:
-				#for i in batch_list:
-				#	print("Batch {}".format(i.id))
-				#for i in actives:
-				#	print("Inc {}".format(i.id))
-				#print("Optimal solution is: {}".format(s.objective_value))
+				#take the time spent on the solution
+				time_b.append(b_s.solve_details.time)
 				b_sol = self.ilpBatch.return_solution_values()
 				self.ilpBatch.updateValues(b_sol)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
+				#count the occurrence of cloud and fog nodes activated
+				for i in range(len(plp.nodeState)):
+					if plp.nodeState[i] == 1:
+						if i == 0:
+							b_count_cloud.append(1)
+						else:
+							b_fog += 1
+					b_count_fog.append(fog)
 				#counts the current activated nodes, lambdas, DUs and switches
 				if b_redirected_rrhs:
 					b_redirected_rrhs.append(sum((b_redirected_rrhs[-1], len(b_sol.var_k))))
@@ -492,48 +565,22 @@ class Util(object):
 	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			rrhs_matrix = [1,0,0,0,0,0,0,0,0,0]
-			if i < 10:
-				rrhs_matrix[1] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 10 and i < 20:
-				rrhs_matrix[2] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 20 and i < 30:
-				rrhs_matrix[3] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 30 and i < 40:
-				rrhs_matrix[4] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 40 and i < 50:
-				rrhs_matrix[5] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 50 and i < 60:
-				rrhs_matrix[6] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 60 and i < 70:
-				rrhs_matrix[7] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 70 and i < 80:
-				rrhs_matrix[8] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 80 and i < 90:
-				rrhs_matrix[9] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
-			if i >= 90 and i < 100:	
-				rrhs_matrix[9] = 1
-				r = RRH(i, rrhs_matrix, env, service_time, cp)
-				rrhs.append(r)
+			r = RRH(i, [1,0,0,0,0,0,0,0,0,0], env, service_time, cp)
+			rrhs.append(r)
+		self.setMatrix(rrhs)
 		return rrhs
+
+	#set the rrhs_matrix for each rrh created
+	def setMatrix(self, rrhs):
+		count = 1
+		for r in rrhs:
+			if count <= len(r.rrhs_matrix)-1:
+				r.rrhs_matrix[count] = 1
+				count += 1
+			else:
+				count = 1
+				r.rrhs_matrix[count] = 1
+				count += 1
 
 	#compute the power consumption at the moment
 	def getPowerConsumption(self, ilp):
@@ -572,81 +619,137 @@ class Util(object):
 				else:
 					count_fog += 1
 
+
+
+
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util)
 rrhs = util.createRRHs(20, env, service_time, cp)
-np.shuffle(rrhs)
-t = Traffic_Generator(env, distribution, service_time, cp)
-print("\Begin at "+str(env.now))
-env.run(until = 86401)
-print("Total generated requests {}".format(t.req_count))
+for i in rrhs:
+	print(i.rrhs_matrix)
+#np.shuffle(rrhs)
+#t = Traffic_Generator(env, distribution, service_time, cp)
+#print("\Begin at "+str(env.now))
+#env.run(until = 86401)
+#print("Total generated requests {}".format(t.req_count))
 #print("Allocated {}".format(total_aloc))
 #print("Optimal solution got: {}".format(op))
 #print("Non allocated {}".format(total_nonaloc))
 #print("Size of Nonallocated {}".format(len(no_allocated)))
-print("\End at "+str(env.now))
+#print("\End at "+str(env.now))
 #print(len(actives))
 #print(lp.du_processing)
 #print(lp.wavelength_capacity)
 #print(lp.rrhs_on_nodes)
-print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
-print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
-print("Inc redirection {}".format(average_redir_rrhs))
-print("Batch redirection {}".format(b_average_redir_rrhs))
-
-#plt.plot(average_power_consumption, label = "incremental ilp")
-#plt.plot(batch_average_consumption, label = "batch ilp")
-#plt.xlabel("Time of the day")
-#plt.ylabel("Average Power Consumption")
-#plt.show()
-#plt.plot(total_inc_blocking, label = "incremental blocking")
-#plt.plot(total_batch_blocking, label = "batch blocking")
-#plt.xlabel("Time of the day")
-#plt.ylabel("Blocked Requests")
-#plt.show()
-#print("Batch failed {}".format(batch_count))
+#print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
+#print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
+#print("Inc redirection {}".format(average_redir_rrhs))
+#print("Batch redirection {}".format(b_average_redir_rrhs))
 
 '''
-print("---------------------------------RESULTS FROM INC-----------------------------")
-print("Lambda on Nodes:")
-for i in lp.lambda_node:
-	print(i)
-print("DU Allocated on Nodes")
-for i in lp.du_processing:
-	print(i)
-print("Lambdas Capacities")
-print(lp.wavelength_capacity)
-print("Switches capacities")
-print(lp.switchBandwidth)
-print("---------------------------------RESULTS FROM BATCH-----------------------------")
-print("Lambda on Nodes:")
-for i in plp.lambda_node:
-	print(i)
-print("DU Allocated on Nodes")
-for i in plp.du_processing:
-	print(i)
-print("Lambdas Capacities")
-print(plp.wavelength_capacity)
-print("Switches capacities")
-print(plp.switchBandwidth)
-'''
-'''
-print("Nodes {}".format(average_act_nodes))
-print("Lambdas {}".format(average_act_lambdas))
-print("DUs {}".format(average_act_dus))
-print("Switches {}".format(average_act_switch))
-#plots for the activated resources
-plt.plot(average_act_nodes, linewidth=2.5, linestyle="-", label = "Inc Nodes")
-plt.plot(b_average_act_nodes,linewidth=2.5, linestyle="-", label = "Batch Nodes")
-#plt.plot(b_average_act_lambdas,linewidth=2.5, linestyle="-", label = "Inc Lambdas")
-#plt.plot(b_average_act_lambdas,linewidth=2.5, linestyle="-", label = "Batch Lambdas")
+min_power = min(min(average_power_consumption), min(batch_average_consumption))
+max_power = max(max(average_power_consumption), max(batch_average_consumption))
+min_dus = min(min(average_act_dus), min(b_average_act_dus))
+max_dus = max(max(average_act_dus), max(b_average_act_dus))
+min_switch = min(min(average_act_switch), min(b_average_act_switch))
+max_switch = max(max(average_act_switch), max(b_average_act_switch))
+min_redirected = min(min(average_redir_rrhs), min(b_average_redir_rrhs))
+max_redirected = max(max(average_redir_rrhs), max(b_average_redir_rrhs))
+min_time = min(min(avg_time_inc), min(avg_time_b))
+max_time = max(max(avg_time_inc), max(avg_time_b))
+
+#print(max_count_cloud)
+#print(average_count_fog)
+#print(b_max_count_cloud)
+#print(b_average_count_fog)
+
+print(avg_time_inc)
+print("--------")
+print(avg_time_b)
+
+#generate the plots for power consumption
+plt.plot(average_power_consumption, label = "Inc ILP")
+plt.plot(batch_average_consumption, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(min_power, max_power, 500))
+plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
-plt.ylabel("Number of Activated Resources")
-plt.xlim(0,24)
-#plt.xticks(numpy.linspace(0,24,24,endpoint=True))
-plt.ylim(0, 10)
-#plt.yticks(numpy.linspace(0,20,20,endpoint=True))
 plt.legend()
-plt.show()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/power_consumption.png', bbox_inches='tight')
+#plt.show()
+plt.clf()
+
+#generate the plots for activated lambdas
+plt.plot(average_act_lambdas, label = "Inc ILP")
+plt.plot(b_average_act_lambdas, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(0, 10, 1))
+plt.ylabel('Activated Lambdas')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_lambdas.png', bbox_inches='tight')
+plt.clf()
+
+#generate the plots for activated nodes
+plt.plot(average_act_nodes, label = "Inc ILP")
+plt.plot(b_average_act_nodes, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(0, 10, 1))
+plt.ylabel('Activated Nodes')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_nodes.png', bbox_inches='tight')
+plt.clf()
+
+#generate the plots for activated DUs
+plt.plot(average_act_dus, label = "Inc ILP")
+plt.plot(b_average_act_dus, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(min_dus, max_dus, 5))
+plt.ylabel('Activated DUs')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_DUs.png', bbox_inches='tight')
+plt.clf()
+
+#generate the plots for activated Switches
+plt.plot(average_act_switch, label = "Inc ILP")
+plt.plot(b_average_act_switch, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(min_switch, max_switch+1, 1))
+plt.ylabel('Activated Switches')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_switches.png', bbox_inches='tight')
+plt.clf()
+
+#generate the plots for redirected DUs
+plt.plot(average_redir_rrhs, label = "Inc ILP")
+plt.plot(b_average_redir_rrhs, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(min_redirected, max_redirected, 10))
+plt.ylabel('Redirected RRHs')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/redirected_rrhs.png', bbox_inches='tight')
+plt.clf()
+
+#generate the plots for solution time
+plt.plot(avg_time_inc, label = "Inc ILP")
+plt.plot(avg_time_b, label = "Batch ILP")
+plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
+plt.yticks(numpy.arange(min_time, max_time, 0.001))
+plt.ylabel('Solution Time (seconds)')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/solution_time.png', bbox_inches='tight')
+plt.clf()
 '''
