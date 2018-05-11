@@ -285,7 +285,7 @@ class Traffic_Generator(object):
 				batch_average_consumption.append(0.0)
 			#activated nodes for the incremental case
 			if activated_nodes:
-				average_act_nodes.append(numpy.mean(activated_nodes))
+				average_act_nodes.append(max(activated_nodes))
 				activated_nodes = []
 			else:
 				average_act_nodes.append(0)
@@ -310,7 +310,7 @@ class Traffic_Generator(object):
 			#count the resources for batch case
 			#activated nodes for the incremental case
 			if b_activated_nodes:
-				b_average_act_nodes.append(numpy.mean(b_activated_nodes))
+				b_average_act_nodes.append(max(b_activated_nodes))
 				b_activated_nodes = []
 			else:
 				b_average_act_nodes.append(0)
@@ -429,6 +429,8 @@ class Control_Plane(object):
 				rrhs.append(r)
 				antenas.pop()
 				incremental_blocking +=1
+				#print("Inc blocking")
+			#print(lp.du_processing)
 			#calls the batch ilp
 			count_nodes = 0
 			count_lambdas = 0
@@ -479,6 +481,9 @@ class Control_Plane(object):
 					if i == 1:
 						count_switches += 1
 				b_activated_switchs.append(count_switches)
+				#print(len(actives))
+				#print(plp.du_processing)
+				#print(plp.lambda_node)
 				self.ilpBatch.resetValues()
 				#print("batch {}".format(lp.du_processing))
 
@@ -486,6 +491,8 @@ class Control_Plane(object):
 				#print("Cant Batch allocate")
 				#print(plp.lambda_node)
 				batch_blocking += 1
+				#print("Batch blocking")
+			
 
 
 
@@ -551,6 +558,7 @@ class RRH(object):
 
 	def run(self):
 		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
+		#yield self.env.timeout(next_time - self.env.now)
 		self.cp.departs.put(self)
 
 #Utility class
@@ -565,7 +573,7 @@ class Util(object):
 	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0,0,0,0,0,0,0,0], env, service_time, cp)
+			r = RRH(i, [1,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
@@ -581,6 +589,8 @@ class Util(object):
 				count = 1
 				r.rrhs_matrix[count] = 1
 				count += 1
+
+	
 
 	#compute the power consumption at the moment
 	def getPowerConsumption(self, ilp):
@@ -625,19 +635,19 @@ class Util(object):
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util)
-rrhs = util.createRRHs(20, env, service_time, cp)
-for i in rrhs:
-	print(i.rrhs_matrix)
-#np.shuffle(rrhs)
-#t = Traffic_Generator(env, distribution, service_time, cp)
-#print("\Begin at "+str(env.now))
-#env.run(until = 86401)
+rrhs = util.createRRHs(45, env, service_time, cp)
+#for i in rrhs:
+#	print(i.rrhs_matrix)
+np.shuffle(rrhs)
+t = Traffic_Generator(env, distribution, service_time, cp)
+print("Begin at "+str(env.now))
+env.run(until = 86401)
 #print("Total generated requests {}".format(t.req_count))
 #print("Allocated {}".format(total_aloc))
 #print("Optimal solution got: {}".format(op))
 #print("Non allocated {}".format(total_nonaloc))
 #print("Size of Nonallocated {}".format(len(no_allocated)))
-#print("\End at "+str(env.now))
+print("End at "+str(env.now))
 #print(len(actives))
 #print(lp.du_processing)
 #print(lp.wavelength_capacity)
@@ -647,7 +657,6 @@ for i in rrhs:
 #print("Inc redirection {}".format(average_redir_rrhs))
 #print("Batch redirection {}".format(b_average_redir_rrhs))
 
-'''
 min_power = min(min(average_power_consumption), min(batch_average_consumption))
 max_power = max(max(average_power_consumption), max(batch_average_consumption))
 min_dus = min(min(average_act_dus), min(b_average_act_dus))
@@ -664,9 +673,11 @@ max_time = max(max(avg_time_inc), max(avg_time_b))
 #print(b_max_count_cloud)
 #print(b_average_count_fog)
 
-print(avg_time_inc)
+#print(avg_time_inc)
+print(average_act_nodes)
 print("--------")
-print(avg_time_b)
+print(b_average_act_nodes)
+#print(avg_time_b)
 
 #generate the plots for power consumption
 plt.plot(average_power_consumption, label = "Inc ILP")
@@ -677,7 +688,7 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/power_consumption.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/power_consumption.png', bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -690,7 +701,7 @@ plt.ylabel('Activated Lambdas')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_lambdas.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/activated_lambdas.png', bbox_inches='tight')
 plt.clf()
 
 #generate the plots for activated nodes
@@ -702,7 +713,7 @@ plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_nodes.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/activated_nodes.png', bbox_inches='tight')
 plt.clf()
 
 #generate the plots for activated DUs
@@ -714,7 +725,7 @@ plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_DUs.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/activated_DUs.png', bbox_inches='tight')
 plt.clf()
 
 #generate the plots for activated Switches
@@ -726,7 +737,7 @@ plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_switches.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/activated_switches.png', bbox_inches='tight')
 plt.clf()
 
 #generate the plots for redirected DUs
@@ -738,18 +749,18 @@ plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/redirected_rrhs.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/redirected_rrhs.png', bbox_inches='tight')
 plt.clf()
 
 #generate the plots for solution time
 plt.plot(avg_time_inc, label = "Inc ILP")
 plt.plot(avg_time_b, label = "Batch ILP")
 plt.xticks(numpy.arange(min(hours_range), max(hours_range), 5))
-plt.yticks(numpy.arange(min_time, max_time, 0.001))
+plt.yticks(numpy.arange(min_time, max_time, 0.01))
 plt.ylabel('Solution Time (seconds)')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/solution_time.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/experiments/solution_time.png', bbox_inches='tight')
 plt.clf()
-'''
+

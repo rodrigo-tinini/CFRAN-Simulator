@@ -516,48 +516,69 @@ class Util(object):
 	def createRRHs(self, amount):
 		rrhs = []
 		for i in range(amount):
-			rrhs_matrix = [1,0,0,0,0,0,0,0,0,0]
+			rrhs_matrix = [1,0]
 			if i < 10:
 				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 10 and i < 20:
-				rrhs_matrix[2] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 20 and i < 30:
-				rrhs_matrix[3] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 30 and i < 40:
-				rrhs_matrix[4] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 40 and i < 50:
-				rrhs_matrix[5] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 50 and i < 60:
-				rrhs_matrix[6] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 60 and i < 70:
-				rrhs_matrix[7] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 70 and i < 80:
-				rrhs_matrix[8] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 80 and i < 90:
-				rrhs_matrix[9] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 			if i >= 90 and i < 100:	
-				rrhs_matrix[9] = 1
+				rrhs_matrix[1] = 1
 				r = RRH(i, rrhs_matrix)
 				rrhs.append(r)
 		return rrhs
+
+	#create a list of RRHs with its own connected processing nodes
+	def newCreateRRHs(self, amount):
+		rrhs = []
+		for i in range(amount):
+			r = RRH(i, [1,0])
+			rrhs.append(r)
+		self.setMatrix(rrhs)
+		return rrhs
+
+	#set the rrhs_matrix for each rrh created
+	def setMatrix(self, rrhs):
+		count = 1
+		for r in rrhs:
+			if count <= len(r.rrhs_matrix)-1:
+				r.rrhs_matrix[count] = 1
+				count += 1
+			else:
+				count = 1
+				r.rrhs_matrix[count] = 1
+				count += 1
 
 	#compute the power consumption at the moment
 	def getPowerConsumption(self):
@@ -590,20 +611,16 @@ class Util(object):
 util = Util()
 
 #to keep the amount of RRHs being processed on each node
-rrhs_on_nodes = [0,0,0,0,0,0,0,0,0,0]
+rrhs_on_nodes = [0,0,0]
 
 #to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 lambda_node = [
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
-[1,1,1,1,1,1,1,1,1,1],
+[1,1,1],
+[1,1,1],
+[1,1,1],
+[1,1,1],
+[1,1,1],
+
 ]
 
 #to test if the rrh can be allcoated to the node
@@ -613,58 +630,37 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 ]
 du_processing = [
-[9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[5.0, 5.0, 5.0, 5.0, 5.0],
+[2.0, 2.0, 2.0, 2.0, 2.0],
+[2.0, 2.0, 2.0, 2.0, 2.0],
+
+
 
 ]
 
 du_state = [
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+
+
 ]
 
-nodeState = [0,0,0,0,0,0,0,0,0,0]
+nodeState = [0,0,0]
 
 nodeCost = [
 600.0,
 500.0,
 500.0,
-500.0,
-500.0,
-500.0,
-500.0,
-500.0,
-500.0,
-500.0,
+
 ]
+
 du_cost = [
-[100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[100.0, 100.0, 100.0, 100.0, 100.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+
+
 ]
 lc_cost = [
 20.0,
@@ -672,34 +668,32 @@ lc_cost = [
 20.0,
 20.0,
 20.0,
-20.0,
-20.0,
-20.0,
-20.0,
-20.0,
+
 ]
 
-switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0,]
-switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+switch_cost = [15.0, 15.0, 15.0]
+switchBandwidth = [10000.0,10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
-lambda_state = [0,0,0,0,0,0,0,0,0,0]
-switch_state = [0,0,0,0,0,0,0,0,0,0]
+lambda_state = [0,0,0,0,0]
+switch_state = [0,0,0]
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
-nodes = range(0, 10)
+nodes = range(0, 3)
 #number of lambdas
-lambdas = range(0, 10)
+lambdas = range(0, 5)
 
 
-"""
+'''
 u = Util()
-antenas = u.createRRHs(100)
+antenas = u.createRRHs(30)
+for i in antenas:
+	print(i.rrhs_matrix)
 #for i in range(len(antenas)):
 #	print(antenas[i].rrhs_matrix)
 np.shuffle(antenas)
@@ -708,6 +702,8 @@ s = ilp.run()
 sol = ilp.return_solution_values()
 ilp.updateValues(sol)
 print("Solving time: {}".format(s.solve_details.time))
+print(du_processing)
+print(lambda_node)
 #for i in sol.var_u:
 #	print(i)
 #print(rrhs_on_nodes)
@@ -718,7 +714,7 @@ print("Solving time: {}".format(s.solve_details.time))
 cost = 0.0
 cost = util.getPowerConsumption()
 print("Power consumption is {}".format(cost))
-"""
+'''
 """
 for i in nodes:
 	pns.append(ProcessingNode(i, len(wavelength_capacity), cloud_du_capacity, fog_du_capacity))
