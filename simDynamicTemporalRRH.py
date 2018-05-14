@@ -427,6 +427,7 @@ class Control_Plane(object):
 			else:
 				#print("Can't find a solution!! {}".format(len(rrhs)))
 				rrhs.append(r)
+				np.shuffle(rrhs)
 				antenas.pop()
 				incremental_blocking +=1
 				#print("Inc blocking")
@@ -458,7 +459,7 @@ class Control_Plane(object):
 							b_count_cloud.append(1)
 						else:
 							b_fog += 1
-					b_count_fog.append(fog)
+					b_count_fog.append(b_fog)
 				#counts the current activated nodes, lambdas, DUs and switches
 				if b_redirected_rrhs:
 					b_redirected_rrhs.append(sum((b_redirected_rrhs[-1], len(b_sol.var_k))))
