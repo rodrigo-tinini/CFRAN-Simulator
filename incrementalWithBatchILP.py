@@ -121,6 +121,8 @@ max_count_cloud = []
 average_count_fog = []
 b_max_count_cloud = []
 b_average_count_fog = []
+#rrhs inc Batch threshold
+load_threshold = 30
 
 nodeCost = [
 600.0,
@@ -390,7 +392,7 @@ class Control_Plane(object):
 				#as soon as it gets the request, allocates it into a RRH
 				#if x RRHs are active, calls the batch, else, continues running the incremental
 				#----------------------CALLS THE ILP-------------------------
-				if count_rrhs < 20:
+				if count_rrhs < load_threshold:
 					self.ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas)
 					#print("Calling ILP")
 					#calling the incremental ILP
@@ -605,6 +607,7 @@ class Control_Plane(object):
 			self.ilp.deallocateRRH(r)
 			r.var_x = None
 			r.var_u = None
+			r.enabled = False
 			rrhs.append(r)
 			np.shuffle(rrhs)
 			actives.pop()
@@ -655,6 +658,8 @@ class RRH(object):
 		self.env = env
 		self.service_time = service_time
 		self.cp = cp
+		self.generationTime = 0.0
+		self.waitingTime = 0.0
 
 	def run(self):
 		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
@@ -732,7 +737,7 @@ class Util(object):
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util, "inc")
-rrhs = util.createRRHs(25, env, service_time, cp)
+rrhs = util.createRRHs(45, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
@@ -791,7 +796,7 @@ stamps = len(loads)
 
 env = simpy.Environment()
 cp = Control_Plane(env, util, "inc_batch")
-rrhs = util.createRRHs(40, env, service_time, cp)
+rrhs = util.createRRHs(45, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
@@ -841,7 +846,7 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/power_consumption.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/power_consumption_{}.png'.format(load_threshold), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -854,7 +859,7 @@ plt.ylabel('Activated Lambdas')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_lambdas.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/activated_lambdas_{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
 
 #generate the plots for activated nodes
@@ -866,7 +871,7 @@ plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_nodes.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/activated_nodes_{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
 
 #generate the plots for activated DUs
@@ -878,7 +883,7 @@ plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_DUs.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/activated_DUs{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
 
 #generate the plots for activated Switches
@@ -890,7 +895,7 @@ plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/activated_switches.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/activated_switches{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
 
 #generate the plots for redirected DUs
@@ -902,7 +907,7 @@ plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/redirected_rrhs.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/redirected_rrhs_{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
 
 #generate the plots for solution time
@@ -914,6 +919,6 @@ plt.ylabel('Solution Time (seconds)')
 plt.xlabel("Time of the day")
 plt.legend()
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator/plots/solution_time.png', bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/solution_time_{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
 

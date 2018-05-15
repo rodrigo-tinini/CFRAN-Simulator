@@ -506,6 +506,7 @@ class Control_Plane(object):
 			self.ilp.deallocateRRH(r)
 			r.var_x = None
 			r.var_u = None
+			r.enabled = True
 			rrhs.append(r)
 			np.shuffle(rrhs)
 			actives.pop()
@@ -556,6 +557,8 @@ class RRH(object):
 		self.env = env
 		self.service_time = service_time
 		self.cp = cp
+		self.generationTime = 0.0
+		self.waitingTime = 0.0
 
 	def run(self):
 		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
