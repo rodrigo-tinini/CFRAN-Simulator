@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, '/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/')
+sys.path.insert(0, '/home/hextinini/Área de Trabalho/simulador/CFRAN-Simulator')
 import simpy
 import functools
 import random as np
@@ -126,6 +126,8 @@ max_count_cloud = []
 average_count_fog = []
 b_max_count_cloud = []
 b_average_count_fog = []
+#to keep the average waiting time for every hour
+avg_hours_wait_time = []
 
 nodeCost = [
 600.0,
@@ -155,7 +157,7 @@ lambda_cost = [
 batch_count = 0
 #traffic generator - generates requests considering the distribution
 class Traffic_Generator(object):
-	def __init__(self, env, distribution, service, cp):
+	def __init__(self, env, distribution, service, cp, util):
 		self.env = env
 		self.dist = distribution
 		self.service = service
@@ -164,6 +166,7 @@ class Traffic_Generator(object):
 		self.action = self.env.process(self.run())
 		self.load_variation = self.env.process(self.change_load())
 		self.ilp = None
+		self.util = util
 
 	#generation of requests
 	def run(self):
@@ -184,7 +187,7 @@ class Traffic_Generator(object):
 				antenas.append(r)
 				#np.shuffle(rrhs)
 			else:
-				pass
+				yield self.env.timeout(0.05)
 				#print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
@@ -194,28 +197,20 @@ class Traffic_Generator(object):
 	def change_load(self):
 		while True:
 			global traffics
-			#global loads
 			global arrival_rate
 			global total_period_requests
 			global next_time
 			global power_consumption
-			global batch_power_consumption
+			global average_power_consumption
 			global incremental_blocking
 			global batch_blocking
-			global activated_nodes
-			global activated_dus
-			global activated_lambdas
-			global activated_switchs
 			global b_activated_nodes
 			global b_activated_dus
 			global b_activated_lambdas
 			global b_activated_switchs
 			global redirected_rrhs
 			global b_redirected_rrhs
-			global time_inc
 			global time_b
-			global count_cloud
-			global count_fog
 			global b_count_cloud
 			global b_count_fog
 			global antenas
@@ -234,35 +229,31 @@ class Traffic_Generator(object):
 			batch_blocking = 0
 			#calls the ilp for the batched RRHs on active list
 			self.ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas)
+			s = self.ilp.run()
+			if s != None:
+				sol = self.ilp.return_solution_values()
+				self.ilp.updateValues(sol)
+				for r in antenas:
+					r.updateWaitTime(self.env.now)
+					rrhs.append(r)
+				self.countResources(plp, s, sol)
+				avg_hours_wait_time.append(self.averageWaitingTime(antenas))
+				antenas = []
+				self.ilp.resetValues()
 			#calculates the average of activation of both cloud and fog nodes
 			#activation of cloud nodes
-			if count_cloud:
-				max_count_cloud.append(sum((count_cloud)))
-				count_cloud = []
-			else:
-				max_count_cloud.append(0.0)
 			if b_count_cloud:
 				b_max_count_cloud.append(sum((b_count_cloud)))
 				b_count_cloud = []
 			else:
 				b_max_count_cloud.append(0.0)
 			#activation of fog nodes
-			if count_fog:
-				average_count_fog.append(sum((count_fog)))
-				count_fog = []
-			else:
-				average_count_fog.append(0.0)
 			if b_count_fog:
 				b_average_count_fog.append(sum((b_count_fog)))
 				b_count_fog = []
 			else:
 				b_average_count_fog.append(0.0)
 			#calculates the average time spent for the solution on this hour
-			if time_inc:
-				avg_time_inc.append((numpy.mean(time_inc)))
-				time_inc = []
-			else:
-				avg_time_inc.append(0.0)
 			if time_b:
 				avg_time_b.append((numpy.mean(time_b)))
 				time_b = []
@@ -270,11 +261,6 @@ class Traffic_Generator(object):
 				avg_time_b.append(0.0)
 			#calculates the averages of power consumption and active resources
 			#calculates the number of redirected RRHs
-			if redirected_rrhs:
-				average_redir_rrhs.append(sum((redirected_rrhs)))
-				redirected_rrhs = []
-			else:
-				average_redir_rrhs.append(0)
 			if b_redirected_rrhs:
 				b_average_redir_rrhs.append(sum((b_redirected_rrhs)))
 				b_redirected_rrhs = []
@@ -283,39 +269,11 @@ class Traffic_Generator(object):
 			#power consumption for the incremental case
 			if power_consumption:
 				average_power_consumption.append(round(numpy.mean(power_consumption),4))
-				power_consumption = []
+				#power_consumption = []
 			else:
 				average_power_consumption.append(0.0)
 			#power consumption for the batch case
-			if batch_power_consumption:
-				batch_average_consumption.append(round(numpy.mean(batch_power_consumption), 4))
-				batch_power_consumption = []
-			else:
-				batch_average_consumption.append(0.0)
 			#activated nodes for the incremental case
-			if activated_nodes:
-				average_act_nodes.append(max(activated_nodes))
-				activated_nodes = []
-			else:
-				average_act_nodes.append(0)
-			#activated lambdas for the incremental case
-			if activated_lambdas:
-				average_act_lambdas.append(numpy.mean(activated_lambdas))
-				activated_lambdas = []
-			else:
-				average_act_lambdas.append(0)
-			#activated DUs for the incremental case
-			if activated_dus:
-				average_act_dus.append(numpy.mean(activated_dus))
-				activated_dus = []
-			else:
-				average_act_dus.append(0)
-			#activated switches for the incremental case
-			if activated_switchs:
-				average_act_switch.append(numpy.mean(activated_switchs))
-				activated_switchs = []
-			else:
-				average_act_switch.append(0)
 			#count the resources for batch case
 			#activated nodes for the incremental case
 			if b_activated_nodes:
@@ -344,6 +302,57 @@ class Traffic_Generator(object):
 			self.action = self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
+
+	#calculates the average waiting time of RRHs to be scheduled
+	def averageWaitingTime(self, antenas):
+		avg = []
+		for r in antenas:
+			avg.append(r.waitingTime)
+		if sum(avg) > 0:
+			return numpy.mean(avg)
+		else:
+			return 0
+
+	#count the activated resources
+	def countResources(self, plp, s, b_sol):
+		count_nodes = 0
+		count_lambdas = 0
+		count_dus = 0
+		count_switches = 0
+		b_fog = 0
+		#count the occurrence of cloud and fog nodes activated
+		for i in range(len(plp.nodeState)):
+			if plp.nodeState[i] == 1:
+				if i == 0:
+					b_count_cloud.append(1)
+				else:
+					b_fog += 1
+			b_count_fog.append(b_fog)
+		time_b.append(s.solve_details.time)
+		power_consumption.append(self.util.getPowerConsumption(plp))
+		#counts the current activated nodes, lambdas, DUs and switches
+		if b_redirected_rrhs:
+			b_redirected_rrhs.append(sum((b_redirected_rrhs[-1], len(b_sol.var_k))))
+		else:
+			b_redirected_rrhs.append(len(b_sol.var_k))
+		for i in plp.nodeState:
+			if i == 1:
+				count_nodes += 1
+		b_activated_nodes.append(count_nodes)
+		for i in plp.lambda_state:
+			if i == 1:
+				count_lambdas += 1
+		b_activated_lambdas.append(count_lambdas)
+		for i in plp.du_state:
+			for j in i:
+				if j == 1:
+					count_dus += 1
+		b_activated_dus.append(count_dus)
+		for i in plp.switch_state:
+			if i == 1:
+				count_switches += 1
+		b_activated_switchs.append(count_switches)
+
 
 #control plane that controls the allocations and deallocations
 class Control_Plane(object):
@@ -547,8 +556,8 @@ class RRH(object):
 		self.generationTime = gen_time
 
 	#updates the waiting time
-	def updateGenTime(self, wait_time):
-		self.waitingTime = wait_time
+	def updateWaitTime(self, wait_time):
+		self.waitingTime = wait_time - self.generationTime
 
 	def run(self):
 		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
@@ -623,20 +632,86 @@ class Util(object):
 				else:
 					count_fog += 1
 
+power_execution_average = []
+wait_time_hour_average = []
+total_average_power = []
+total_average_wait_time = []
+for i in range(10):
+	count = 0
+	#timestamp to change the load
+	change_time = 3600
+	#the next time
+	next_time = 3600
+	#the actual hout time stamp
+	actual_stamp = 0.0
+	#inter arrival rate of the users requests
+	arrival_rate = 3600
+	#service time of a request
+	service_time = lambda x: np.uniform(0,100)
+	#total generated requests per timestamp
+	total_period_requests = 0
+	#to generate the traffic load of each timestamp
+	loads = []
+	actives = []
+	#number of timestamps of load changing
+	stamps = 24
+	hours_range = range(1, stamps+1)
+	for j in range(stamps):
+		x = norm.pdf(j, 12, 2)
+		x *= 100
+		#x= round(x,4)
+		#if x != 0:
+		#	loads.append(x)
+		loads.append(x)
+	#distribution for arrival of packets
+	#first arrival rate of the simulation - to initiate the simulation
+	arrival_rate = loads[0]/change_time
+	distribution = lambda x: np.expovariate(arrival_rate)
+	loads.reverse()
+	#print(loads)
+	stamps = len(loads)
+	util = Util()
+	env = simpy.Environment()
+	cp = Control_Plane(env, util)
+	rrhs = util.createRRHs(45, env, service_time, cp)
+	#for i in rrhs:
+	#	print(i.rrhs_matrix)
+	np.shuffle(rrhs)
+	t = Traffic_Generator(env, distribution, service_time, cp, util)
+	print("Begin at "+str(env.now))
+	print("Running {}th".format(i+1))
+	env.run(until = 86401)
+	print("End at "+str(env.now))
+	total_average_power.append(power_consumption)
+	total_average_wait_time.append(avg_hours_wait_time)
+	power_consumption = []
+	avg_hours_wait_time = []
+power_execution_average = [float(sum(col))/len(col) for col in zip(*total_average_power)]
+wait_time_hour_average = [float(sum(col))/len(col) for col in zip(*total_average_wait_time)]
 
+#generate the plots for power consumption
+plt.plot(power_execution_average, label = "Power Average")
+plt.xticks(numpy.arange(0, 24, 1))
+plt.yticks(numpy.arange(0, 3000, 200))
+plt.ylabel('Power Consumption')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/power_consumption.png', bbox_inches='tight')
+#plt.show()
+plt.clf()
 
-
-util = Util()
-env = simpy.Environment()
-cp = Control_Plane(env, util)
-rrhs = util.createRRHs(45, env, service_time, cp)
-#for i in rrhs:
-#	print(i.rrhs_matrix)
-np.shuffle(rrhs)
-t = Traffic_Generator(env, distribution, service_time, cp)
-print("Begin at "+str(env.now))
-env.run(until = 86401)
-print("End at "+str(env.now))
+#generate the plots for power consumption
+plt.plot(wait_time_hour_average, label = "Wait Time Average")
+plt.xticks(numpy.arange(0, 24, 1))
+plt.yticks(numpy.arange(0, 3000,300))
+plt.ylabel('Waiting time')
+plt.xlabel("Time of the day")
+plt.legend()
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/wait_time.png', bbox_inches='tight')
+#plt.show()
+plt.clf()
 
 """
 min_power = min(min(average_power_consumption), min(batch_average_consumption))
