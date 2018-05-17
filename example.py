@@ -3,25 +3,21 @@ import functools
 import random as np
 import time
 from enum import Enum
+import numpy
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-import cfran_batch_ilp as lp
+import batch_teste as lp
+import pureBatchILP as plp
+import copy
+import incrementalWithBatchILP as sim
 
-#to generate the traffic load of each timestamp
-loads = []
-#number of timestamps of load changing
-stamps = 24
-for i in range(stamps):
-	x = norm.pdf(i, 10, 4)
-	x *= 1000
-	x= round(x,0)
-	loads.append(x)
-loads.reverse()
-rrhs = []
-for i in range(0,100):
-	r = lp.RRH(i, [1,1,0,0,0,0,0,0,0,0])
-	rrhs.append(r)
-for period in loads:
+util = sim.Util()
 
-
-	
+env = simpy.Environment()
+cp = sim.Control_Plane(env, util, "inc")
+sim.rrhs = util.createRRHs(20, env, sim.service_time, cp)
+np.shuffle(sim.rrhs)
+t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
+print("\Begin at "+str(env.now))
+env.run(until = 86401)
+print("\End at "+str(env.now))
