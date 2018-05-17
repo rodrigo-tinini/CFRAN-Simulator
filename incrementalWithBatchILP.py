@@ -122,7 +122,7 @@ average_count_fog = []
 b_max_count_cloud = []
 b_average_count_fog = []
 #rrhs inc Batch threshold
-load_threshold = 30
+load_threshold = 1
 
 nodeCost = [
 600.0,
@@ -150,6 +150,8 @@ lambda_cost = [
 ]
 #rrhs = util.createRRHs(100, env, cp, service_time)
 batch_count = 0
+
+
 #traffic generator - generates requests considering the distribution
 class Traffic_Generator(object):
 	def __init__(self, env, distribution, service, cp):
@@ -167,7 +169,6 @@ class Traffic_Generator(object):
 		global rrhs
 		#global actives
 		while True:
-			#print("To entrando aqui!!!!")
 			#if total_period_requests <= maximum_load:
 			yield self.env.timeout(self.dist(self))
 			self.req_count += 1
@@ -720,6 +721,45 @@ class Util(object):
 				netCost += 15.0
 		return netCost
 
+	#reset the parameters
+	def resetParams(self):
+		global count, change_time, next_time, actual_stamp, arrival_rate, service_time, total_period_requests, loads, actives, stamps, hours_range, arrival_rate, distribution,traffics
+		count = 0
+		#timestamp to change the load
+		change_time = 3600
+		#the next time
+		next_time = 3600
+		#the actual hout time stamp
+		actual_stamp = 0.0
+		#inter arrival rate of the users requests
+		arrival_rate = 3600
+		#service time of a request
+		service_time = lambda x: np.uniform(0,100)
+		#total generated requests per timestamp
+		total_period_requests = 0
+		#to generate the traffic load of each timestamp
+		loads = []
+		actives = []
+		#number of timestamps of load changing
+		stamps = 24
+		hours_range = range(1, stamps+1)
+		for i in range(stamps):
+			x = norm.pdf(i, 12, 4)
+			x *= 100
+			#x= round(x,4)
+			#if x != 0:
+			#	loads.append(x)
+			loads.append(x)
+		#distribution for arrival of packets
+		#first arrival rate of the simulation - to initiate the simulation
+		arrival_rate = loads[0]/change_time
+		distribution = lambda x: np.expovariate(arrival_rate)
+		loads.reverse()
+		#print(loads)
+		stamps = len(loads)
+		#record the requests arrived at each stamp
+		traffics = []
+
 	#compute which nodes are active (cloud or fog, and how many of them are active)
 	def countNodes(self, ilp):
 		count_cloud = 0
@@ -733,64 +773,20 @@ class Util(object):
 
 
 
-
+"""
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, util, "inc")
-rrhs = util.createRRHs(45, env, service_time, cp)
+rrhs = util.createRRHs(20, env, service_time, cp)
 np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
-#print("Total generated requests {}".format(t.req_count))
-#print("Allocated {}".format(total_aloc))
-#print("Optimal solution got: {}".format(op))
-#print("Non allocated {}".format(total_nonaloc))
-#print("Size of Nonallocated {}".format(len(no_allocated)))
 print("\End at "+str(env.now))
-#print(len(actives))
-#print(lp.du_processing)
-#print(lp.wavelength_capacity)
-#print(lp.rrhs_on_nodes)
-#print("Daily power consumption (Incremental) were: {}".format(average_power_consumption))
-#print("Daily power consumption (Batch) were: {}".format(batch_average_consumption))
-#print("Inc redirection {}".format(average_redir_rrhs))
-#print("Batch redirection {}".format(b_average_redir_rrhs))
+
 
 #---------------------------NEW RUN------------------------------------------
-count = 0
-#timestamp to change the load
-change_time = 3600
-#the next time
-next_time = 3600
-#the actual hout time stamp
-actual_stamp = 0.0
-#inter arrival rate of the users requests
-arrival_rate = 3600
-#service time of a request
-service_time = lambda x: np.uniform(0,100)
-#total generated requests per timestamp
-total_period_requests = 0
-#to generate the traffic load of each timestamp
-loads = []
-actives = []
-#number of timestamps of load changing
-stamps = 24
-hours_range = range(1, stamps+1)
-for i in range(stamps):
-	x = norm.pdf(i, 12, 4)
-	x *= 100
-	#x= round(x,4)
-	#if x != 0:
-	#	loads.append(x)
-	loads.append(x)
-#distribution for arrival of packets
-#first arrival rate of the simulation - to initiate the simulation
-arrival_rate = loads[0]/change_time
-distribution = lambda x: np.expovariate(arrival_rate)
-loads.reverse()
-#print(loads)
-stamps = len(loads)
+util.resetParams()
 
 
 
@@ -801,12 +797,11 @@ np.shuffle(rrhs)
 t = Traffic_Generator(env, distribution, service_time, cp)
 print("\Begin at "+str(env.now))
 env.run(until = 86401)
-#print("Total generated requests {}".format(t.req_count))
-#print("Allocated {}".format(total_aloc))
-#print("Optimal solution got: {}".format(op))
-#print("Non allocated {}".format(total_nonaloc))
-#print("Size of Nonallocated {}".format(len(no_allocated)))
+
 print("\End at "+str(env.now))
+"""
+
+"""
 
 #print(average_power_consumption)
 #print("--------")
@@ -829,11 +824,11 @@ max_time = max(max(avg_time_inc), max(avg_time_b))
 	
 #print(avg_time_inc)
 #print(average_power_consumption)
-print(average_act_switch)
-print(average_redir_rrhs)
+print(average_power_consumption)
+print(batch_average_consumption)
 print("--------")
-print(b_average_act_switch)
-print(b_average_redir_rrhs)
+#print(b_average_act_switch)
+#print(b_average_redir_rrhs)
 #print(power_consumption)
 #print(avg_time_b)
 
@@ -921,4 +916,4 @@ plt.legend()
 plt.grid()
 plt.savefig('/home/tinini/Área de Trabalho/simQuaseFinal/CFRAN-Simulator/plots/solution_time_{}.png'.format(load_threshold), bbox_inches='tight')
 plt.clf()
-
+"""
