@@ -563,7 +563,7 @@ class Util(object):
 	def newCreateRRHs(self, amount):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0])
+			r = RRH(i, [1,0,0])
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs

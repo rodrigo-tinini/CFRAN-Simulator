@@ -646,7 +646,7 @@ class Util(object):
 	def newCreateRRHs(self, amount):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0])
+			r = RRH(i, [1,0,0])
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
@@ -773,7 +773,7 @@ lambdas = range(0, 5)
 
 '''
 u = Util()
-antenas = u.newCreateRRHs(15)
+antenas = u.newCreateRRHs(40)
 for i in antenas:
 	print(i.rrhs_matrix)
 #for i in range(len(antenas)):
@@ -784,6 +784,8 @@ s = ilp.run()
 sol = ilp.return_solution_values()
 ilp.updateValues(sol)
 print("Solving time: {}".format(s.solve_details.time))
+'''
+'''
 print(du_processing)
 print(lambda_node)
 #for i in sol.var_u:
