@@ -448,7 +448,7 @@ class Control_Plane(object):
 				if i == 1:
 					count_switches += 1
 			activated_switchs.append(count_switches)
-			
+			return solution
 
 	#batch scheduling
 	def batchSched(self, r, ilp_module):
@@ -500,6 +500,36 @@ class Control_Plane(object):
 				if i == 1:
 					count_switches += 1
 			b_activated_switchs.append(count_switches)
+			return solution
+
+
+	#jointly incremental and batch scheduling
+	#this method calls the batch scheduling every time that a certain amount of RRHs arrived on the network
+	#after the batch is called, this threshold of RRHs is set to zero, so the process begins and the batch is called
+	#every after "x" RRHs
+	def incrementalBatchSched(self, r, antenas, ilp_module):
+		count_rrhs = 1
+		#verifies if is it time to call the batch scheduling
+		if count_rrhs == load_threshold:
+			#calls the batch scheduling
+			s = self.batchSched(r, ilp_module)
+			count_rrhs = 0
+		else:
+			s = self.incSched(r, antenas, ilp_module)
+			count_rrhs += 1
+
+	#this method performs the incremental scheduling until a certain load of RRHs is activated on the network
+	#and above that load, only the batch scheduling is performed
+	#the incremental scheduling is only performed again when the load is under certain threshold
+	def loadIncBatchSched(self, r, antenas, ilp_module):
+		#verifies if is it time to call the batch scheduling
+		if len(actives) >= load_threshold:
+			#calls the batch scheduling
+			s = self.batchSched(r, ilp_module)
+		else:
+			s = self.incSched(r, antenas, ilp_module)
+
+
 
 
 
@@ -576,7 +606,7 @@ class Util(object):
 	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0,0,0,0,0,0,0,0], env, service_time, cp)
+			r = RRH(i, [1,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
