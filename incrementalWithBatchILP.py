@@ -125,8 +125,7 @@ max_count_cloud = []
 average_count_fog = []
 b_max_count_cloud = []
 b_average_count_fog = []
-#rrhs inc Batch threshold
-load_threshold = 1
+
 
 incremental_power_consumption = []
 
@@ -159,6 +158,10 @@ lambda_cost = [
 ]
 #rrhs = util.createRRHs(100, env, cp, service_time)
 batch_count = 0
+
+#rrhs inc Batch threshold
+load_threshold = 10
+count_rrhs = 0
 
 
 #traffic generator - generates requests considering the distribution
@@ -390,7 +393,9 @@ class Control_Plane(object):
 		global batch_blocking
 		global inc_block
 		global batch_block
+		global count_rrhs
 		while True:
+			#print(count_rrhs)
 			r = yield self.requests.get()
 			antenas = []
 			antenas.append(r)
@@ -398,6 +403,10 @@ class Control_Plane(object):
 				self.incSched(r, antenas, plp)
 			elif self.type == "batch":
 				self.batchSched(r, plp)
+			elif self.type == "inc_batch":
+				self.incrementalBatchSched(r,antenas, plp)
+			elif self.type == "load_inc_batch":
+				self.loadIncBatchSched(r, antenas, plp)
 
 	#incremental scheduling
 	def incSched(self, r, antenas, ilp_module):
@@ -508,13 +517,16 @@ class Control_Plane(object):
 	#after the batch is called, this threshold of RRHs is set to zero, so the process begins and the batch is called
 	#every after "x" RRHs
 	def incrementalBatchSched(self, r, antenas, ilp_module):
-		count_rrhs = 1
+		global count_rrhs
 		#verifies if is it time to call the batch scheduling
 		if count_rrhs == load_threshold:
+			print("Entering batch")
 			#calls the batch scheduling
 			s = self.batchSched(r, ilp_module)
 			count_rrhs = 0
 		else:
+			print("entrou inc")
+			#print(count_rrhs)
 			s = self.incSched(r, antenas, ilp_module)
 			count_rrhs += 1
 
