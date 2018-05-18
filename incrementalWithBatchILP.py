@@ -10,6 +10,9 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
+
+inc_block = 0
+batch_block = 0
 count = 0
 #timestamp to change the load
 change_time = 3600
@@ -76,6 +79,7 @@ batch_power_consumption = []
 #to jeep the average consumption of each hour of the day for the batch case
 batch_average_consumption = []
 #counting the blocked RRHs
+inc_batch_blocking = 0
 incremental_blocking = 0
 batch_blocking = 0
 total_inc_blocking = []
@@ -123,6 +127,11 @@ b_max_count_cloud = []
 b_average_count_fog = []
 #rrhs inc Batch threshold
 load_threshold = 1
+
+incremental_power_consumption = []
+
+incremental_time = []
+batch_time = []
 
 nodeCost = [
 600.0,
@@ -182,7 +191,7 @@ class Traffic_Generator(object):
 				#np.shuffle(rrhs)
 			else:
 				pass
-				#print("All RRHs are active!")
+				print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
 			#yield self.env.timeout(0.05)
@@ -196,6 +205,7 @@ class Traffic_Generator(object):
 			global total_period_requests
 			global next_time
 			global power_consumption
+			global incremental_power_consumption
 			global batch_power_consumption
 			global incremental_blocking
 			global batch_blocking
@@ -230,7 +240,7 @@ class Traffic_Generator(object):
 			batch_blocking = 0
 			#calculates the average of activation of both cloud and fog nodes
 			#activation of cloud nodes
-			if self.cp.type == "inc_batch":
+			if self.cp.type == "inc":
 				if count_cloud:
 					max_count_cloud.append(sum((count_cloud)))
 					count_cloud = []
@@ -256,9 +266,9 @@ class Traffic_Generator(object):
 				else:
 					average_redir_rrhs.append(0)
 				#power consumption for the incremental case
-				if power_consumption:
+				if incremental_power_consumption:
 					average_power_consumption.append(round(numpy.mean(power_consumption),4))
-					power_consumption = []
+					incremental_power_consumption = []
 				else:
 					average_power_consumption.append(0.0)
 				#activated nodes for the incremental case
@@ -287,7 +297,7 @@ class Traffic_Generator(object):
 					average_act_switch.append(0)
 				#count the resources for batch case
 				#activated nodes for the incremental case
-			elif self.cp.type == "inc":
+			elif self.cp.type == "batch":
 				if b_count_cloud:
 					b_max_count_cloud.append(sum((b_count_cloud)))
 					b_count_cloud = []
@@ -342,7 +352,7 @@ class Traffic_Generator(object):
 					b_activated_switchs = []
 				else:
 					b_average_act_switch.append(0)
-			self.action = self.action = self.env.process(self.run())
+			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
 
@@ -369,13 +379,23 @@ class Control_Plane(object):
 		global actives
 		global incremental_blocking
 		global batch_blocking
+		global inc_block
+		global batch_block
 		while True:
+			r = yield self.requests.get()
+			antenas = []
+			antenas.append(r)
+			if self.type == "inc":
+				self.incSched(r, antenas, plp)
+			elif self.type == "batch":
+				self.batchSched(r, plp)
+			"""
 			if self.type == "inc_batch":
 				count_nodes = 0
 				count_lambdas = 0
 				count_dus = 0
 				count_switches = 0
-				count_rrhs = 0
+				count_rrhs = 1
 				#to count the activated fog nodes on the solution
 				fog = 0
 				b_fog = 0
@@ -394,6 +414,7 @@ class Control_Plane(object):
 				#if x RRHs are active, calls the batch, else, continues running the incremental
 				#----------------------CALLS THE ILP-------------------------
 				if count_rrhs < load_threshold:
+					print("Entrnando aqui")
 					self.ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas)
 					#print("Calling ILP")
 					#calling the incremental ILP
@@ -446,16 +467,18 @@ class Control_Plane(object):
 						rrhs.append(r)
 						np.shuffle(rrhs)
 						antenas.pop()
-						incremental_blocking +=1
+						batch_blocking +=1
+						print("Batch BLOCKINGGGG")
 				else:
-					count_rrhs = 0
+					count_rrhs = 1
 					#calls the batch ilp
 					count_nodes = 0
 					count_lambdas = 0
 					count_dus = 0
 					count_switches = 0
-					batch_list = copy.copy(actives)
-					batch_list.append(r)
+					#batch_list = copy.copy(actives)
+					#batch_list.append(r)
+					actives.append(r)
 					#creates the input rrhs taking all that are active
 					#for i in actives:
 					#	copy_of_rrh = copy.copy(i)
@@ -463,15 +486,15 @@ class Control_Plane(object):
 					#if s == None:
 					#	copy_of_r = copy.copy(r)
 					#	batch_list.append(copy_of_r)
-					self.ilpBatch = plp.ILP(batch_list, range(len(batch_list)), plp.nodes, plp.lambdas)
+					self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas)
 					#reset the data structure values to find the optimal solution
-					self.ilpBatch.resetValues()
-					b_s = self.ilpBatch.run()
+					self.ilp.resetValues()
+					b_s = self.ilp.run()
 					if b_s != None:
 						#take the time spent on the solution
 						time_inc.append(b_s.solve_details.time)
-						b_sol = self.ilpBatch.return_solution_values()
-						self.ilpBatch.updateValues(b_sol)
+						b_sol = self.ilp.return_solution_values()
+						self.ilp.updateValues(b_sol)
 						power_consumption.append(self.util.getPowerConsumption(plp))
 						#count the occurrence of cloud and fog nodes activated
 						for i in range(len(plp.nodeState)):
@@ -507,12 +530,26 @@ class Control_Plane(object):
 						#print("batch {}".format(lp.du_processing))
 						#finally, put the RRH that triggered the batch execution to run
 						self.env.process(r.run())
-						actives.append(r)
+						#actives.append(r)
 						batch_list = []
+						pp = copy.copy(plp.du_processing)
+						p2 = copy.copy(plp.wavelength_capacity)
+						p3 = copy.copy(plp.lambda_node)
+						#print("-------------------")
+						self.ilp.resetValues()
 					else:
 						#print("Cant Batch allocate")
 						#print(plp.lambda_node)
 						batch_blocking += 1
+						actives.remove(r)
+						rrhs.append(r)
+						print("PURE Batch BLOCKINGGGG")
+						print("Actives list is len{}".format(len(actives)))
+						print("Batch list is len{}".format(len(batch_list)))
+						print(pp)
+						print(p2)
+						print(p3)
+						print("-------------------")
 			elif self.type == "inc":
 				count_nodes = 0
 				count_lambdas = 0
@@ -588,6 +625,7 @@ class Control_Plane(object):
 					np.shuffle(rrhs)
 					antenas.pop()
 					incremental_blocking +=1
+					print("INC BLOCKINGGGG")
 					#print("Inc blocking")
 				#print(lp.du_processing)
 				#calls the batch ilp
@@ -596,6 +634,100 @@ class Control_Plane(object):
 				count_dus = 0
 				count_switches = 0
 
+		"""
+
+
+	#incremental scheduling
+	def incSched(self, r, antenas, ilp_module):
+		#print("Calling Incremental")
+		block = 0
+		self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas)
+		solution = self.ilp.run()
+		if solution == None:
+			rrhs.append(r)
+			np.shuffle(rrhs)
+			antenas = []
+			print("Incremental Blocking")
+			block += 1
+		else:
+			solution_values = self.ilp.return_solution_values()
+			self.ilp.updateValues(solution_values)
+			incremental_time.append(solution.solve_details.time)
+			for i in antenas:
+				self.env.process(i.run())
+				actives.append(i)
+				#print("ACTIVE IS {}".format(len(actives)))
+				antenas.remove(i)
+				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+			#count the activeresources
+			if redirected_rrhs:
+				redirected_rrhs.append(sum((redirected_rrhs[-1], len(b_sol.var_k))))
+			else:
+				redirected_rrhs.append(len(b_sol.var_k))
+			for i in ilp_module.nodeState:
+				if i == 1:
+					count_nodes += 1
+			activated_nodes.append(count_nodes)
+			for i in ilp_module.lambda_state:
+				if i == 1:
+					count_lambdas += 1
+			activated_lambdas.append(count_lambdas)
+			for i in ilp_module.du_state:
+				for j in i:
+					if j == 1:
+						count_dus += 1
+			activated_dus.append(count_dus)
+			for i in ilp_module.switch_state:
+				if i == 1:
+					count_switches += 1
+			activated_switchs.append(count_switches)
+			
+
+	#batch scheduling
+	def batchSched(self, r, ilp_module):
+		block = 0
+		#print("Calling Batch")
+		batch_list = copy.copy(actives)
+		batch_list.append(r)
+		actives.append(r)
+		self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas)
+		self.ilp.resetValues()
+		solution = self.ilp.run()
+		if solution == None:
+			rrhs.append(r)
+			actives.remove(r)
+			np.shuffle(rrhs)
+			print("Batch Blocking")
+			print("Cant Schedule {} RRHs".format(len(actives)))
+			block += 1
+		else:
+			solution_values = self.ilp.return_solution_values()
+			self.ilp.updateValues(solution_values)
+			batch_time.append(solution.solve_details.time)
+			self.env.process(r.run())
+			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+			if b_redirected_rrhs:
+				b_redirected_rrhs.append(sum((redirected_rrhs[-1], len(sol.var_k))))
+			else:
+				b_redirected_rrhs.append(len(sol.var_k))
+			#counts the current activated nodes, lambdas, DUs and switches
+			for i in ilp_module.nodeState:
+				if i == 1:
+					count_nodes += 1
+			b_activated_nodes.append(count_nodes)
+			for i in ilp_module.lambda_state:
+				if i == 1:
+					count_lambdas += 1
+			b_activated_lambdas.append(count_lambdas)
+			for i in ilp_module.du_state:
+				for j in i:
+					if j == 1:
+						count_dus += 1
+			b_activated_dus.append(count_dus)
+			for i in ilp_module.switch_state:
+				if i == 1:
+					count_switches += 1
+			b_activated_switchs.append(count_switches)
 
 
 
@@ -606,13 +738,15 @@ class Control_Plane(object):
 		while True:
 			r = yield self.departs.get()
 			self.ilp.deallocateRRH(r)
+			self.ilp.resetValues()
 			r.var_x = None
 			r.var_u = None
 			r.enabled = False
 			rrhs.append(r)
 			np.shuffle(rrhs)
-			actives.pop()
-			#print("Deallocating RRH {}".format(r.id))
+			actives.remove(r)
+				
+			
 
 	#allocates the RRHs/ONU turned on into a VPON in a processing node
 	def allocateRRH(self, rrh):
@@ -678,7 +812,7 @@ class Util(object):
 	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0,0,0,0,0,0,0,0], env, service_time, cp)
+			r = RRH(i, [1,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
@@ -724,6 +858,12 @@ class Util(object):
 	#reset the parameters
 	def resetParams(self):
 		global count, change_time, next_time, actual_stamp, arrival_rate, service_time, total_period_requests, loads, actives, stamps, hours_range, arrival_rate, distribution,traffics
+		global power_consumption,average_power_consumption,	batch_power_consumption,batch_average_consumption,incremental_blocking,batch_blocking
+		global total_inc_blocking,total_batch_blocking,redirected,activated_nodes,average_act_nodes,b_activated_nodes,b_average_act_nodes
+		global activated_lambdas,average_act_lambdas,b_activated_lambdas,b_average_act_lambdas,	activated_dus,average_act_dus,b_activated_dus
+		global b_average_act_dus,activated_switchs,	average_act_switch,	b_activated_switchs,b_average_act_switch,redirected_rrhs,average_redir_rrhs
+		global b_redirected_rrhs,b_average_redir_rrhs,time_inc,	avg_time_inc,time_b,avg_time_b,count_cloud,	count_fog,b_count_cloud,b_count_fog
+		global max_count_cloud,	average_count_fog,b_max_count_cloud,b_average_count_fog
 		count = 0
 		#timestamp to change the load
 		change_time = 3600
@@ -759,6 +899,110 @@ class Util(object):
 		stamps = len(loads)
 		#record the requests arrived at each stamp
 		traffics = []
+				#amount of rrhs
+		rrhs_amount = 100
+		#list of rrhs of the network
+		rrhs = []
+		#amount of processing nodes
+		nodes_amount = 10
+		#list of processing nodes
+		nodes = []
+		rrh_nodes = range(0,10)
+		#capacity of each rrh
+		rrh_capacity = 5000
+		#keeps the non allocated requests
+		no_allocated = []
+		total_aloc = 0
+		total_nonaloc = 0
+		lambdas = range(0,10)
+		switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+		wavelength_capacity = [10000.0, 10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0,10000.0]
+		lc_cost = 20
+		B = 1000000
+		op = 0
+		maximum_load = 100
+		#to keep the consumption of each allcoated RRH
+		power_consumption = []
+		#average of power consumption of each hour of the dary
+		average_power_consumption = []
+		#to keep the power consumption of the batch allocation
+		batch_power_consumption = []
+		#to jeep the average consumption of each hour of the day for the batch case
+		batch_average_consumption = []
+		#counting the blocked RRHs
+		#incremental_blocking = 0
+		#batch_blocking = 0
+		#total_inc_blocking = []
+		#total_batch_blocking = []
+		#to count the redirected rrhs
+		redirected = []
+		#to count the activated nodes
+		activated_nodes = []
+		average_act_nodes = []
+		b_activated_nodes = []
+		b_average_act_nodes = []
+		#to count the activated lambdas
+		activated_lambdas = []
+		average_act_lambdas = []
+		b_activated_lambdas = []
+		b_average_act_lambdas = []
+		#to count the activated DUs
+		activated_dus = []
+		average_act_dus = []
+		b_activated_dus = []
+		b_average_act_dus = []
+		#to count the activated switches
+		activated_switchs = []
+		average_act_switch = []
+		b_activated_switchs = []
+		b_average_act_switch = []
+		#to count the redirected RRHs
+		redirected_rrhs = []
+		average_redir_rrhs = []
+		b_redirected_rrhs = []
+		b_average_redir_rrhs = []
+		#count the amount of time the solution took
+		time_inc = []
+		avg_time_inc = []
+		time_b = []
+		avg_time_b = []
+		#count the occurrences of cloud and fog nodes
+		count_cloud = []
+		count_fog = []
+		b_count_cloud = []
+		b_count_fog = []
+		max_count_cloud = []
+		average_count_fog = []
+		b_max_count_cloud = []
+		b_average_count_fog = []
+	
+
+		nodeCost = [
+		600.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
+		]
+		lambda_cost = [
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		20.0,
+		]
+		#rrhs = util.createRRHs(100, env, cp, service_time)
+		batch_count = 0
 
 	#compute which nodes are active (cloud or fog, and how many of them are active)
 	def countNodes(self, ilp):
