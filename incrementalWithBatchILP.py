@@ -33,8 +33,8 @@ actives = []
 stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
-	x = norm.pdf(i, 12, 4)
-	x *= 100
+	x = norm.pdf(i, 12, 2)
+	x *= 50
 	#x= round(x,4)
 	#if x != 0:
 	#	loads.append(x)
@@ -126,6 +126,41 @@ average_count_fog = []
 b_max_count_cloud = []
 b_average_count_fog = []
 
+#variables for the inc_batch scheduling
+inc_batch_count_cloud = []
+inc_batch_max_count_cloud = [] 
+inc_batch_count_fog = []
+inc_batch_average_count_fog = []
+time_inc_batch = []
+avg_time_inc_batch = []
+inc_batch_redirected_rrhs = []
+inc_batch_average_redir_rrhs = []
+inc_batch_power_consumption = []
+inc_batch_average_consumption = []
+inc_batch_activated_nodes = []
+inc_batch_average_act_nodes = []
+inc_batch_activated_lambdas = []
+inc_batch_average_act_lambdas = []
+inc_batch_activated_dus = []
+inc_batch_average_act_dus = []
+inc_batch_activated_switchs = []
+inc_batch_average_act_switch = []
+#------------------------------
+
+inc_batch_power_consumption =[]
+inc_batch_redirected_rrhs = []
+inc_batch_activated_nodes= [] 
+inc_batch_activated_lambdas =[]
+inc_batch_activated_dus = []
+inc_batch_activated_switchs = []
+
+inc_avg_batch_power_consumption =[]
+inc_avg_batch_redirected_rrhs = []
+inc_avg_batch_activated_nodes= [] 
+inc_avg_batch_activated_lambdas =[]
+inc_avg_batch_activated_dus = []
+inc_avg_batch_activated_switchs = []
+
 
 incremental_power_consumption = []
 
@@ -159,6 +194,10 @@ lambda_cost = [
 #rrhs = util.createRRHs(100, env, cp, service_time)
 batch_count = 0
 
+#batch_rrhs_wait_time
+batch_rrhs_wait_time = []
+avg_batch_rrhs_wait_time = []
+
 #rrhs inc Batch threshold
 load_threshold = 10
 count_rrhs = 0
@@ -189,6 +228,7 @@ class Traffic_Generator(object):
 				r = rrhs.pop()
 				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
 				self.cp.requests.put(r)
+				r.updateGenTime(self.env.now)
 				r.enabled = True
 				total_period_requests +=1
 				#np.shuffle(rrhs)
@@ -228,12 +268,103 @@ class Traffic_Generator(object):
 			#count averages for the batch case
 			if self.cp.type == "inc":
 				self.countIncAverages()
+				print("Incremental HOUR is {}".format(incremental_power_consumption))
 			#count averages for the batch case
 			elif self.cp.type == "batch":
 				self.countBatchAverages()
+			elif self.cp.type == "inc_batch":
+				self.countIncBatchAverages()
+			elif self.cp.type == "load_inc_batch":
+				self.countIncBatchAverages()
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_period_requests = 0
+
+	#count averages consumptions and active resources for any case
+	def countAverageResources(self):
+		pass
+
+
+	#count average consumptions and activeresources for incremental with batch case
+	def countIncBatchAverages(self):
+		global inc_batch_count_cloud
+		global inc_batch_max_count_cloud
+		global inc_batch_count_fog
+		global inc_batch_average_count_fog
+		global time_inc_batch
+		global avg_time_inc_batch
+		global inc_batch_redirected_rrhs
+		global inc_batch_average_redir_rrhs
+		global inc_batch_power_consumption
+		global inc_batch_average_consumption
+		global inc_batch_activated_nodes
+		global inc_batch_average_act_nodes
+		global inc_batch_activated_lambdas
+		global inc_batch_average_act_lambdas
+		global inc_batch_activated_dus
+		global inc_batch_average_act_dus
+		global inc_batch_activated_switchs
+		global inc_batch_average_act_switch
+
+		if inc_batch_count_cloud:
+			inc_batch_max_count_cloud.append(sum((inc_batch_count_cloud)))
+			inc_batch_count_cloud = []
+		else:
+			inc_batch_max_count_cloud.append(0.0)
+		#activation of fog nodes
+		if inc_batch_count_fog:
+			inc_batch_average_count_fog.append(sum((inc_batch_count_fog)))
+			inc_batch_count_fog = []
+		else:
+			inc_batch_average_count_fog.append(0.0)
+		#calculates the average time spent for the solution on this hour
+		if time_inc_batch:
+			avg_time_inc_batch.append((numpy.mean(time_inc_batch)))
+			time_inc_batch = []
+		else:
+			avg_time_inc_batch.append(0.0)
+		#calculates the averages of power consumption and active resources
+		#calculates the number of redirected RRHs
+		if inc_batch_redirected_rrhs:
+			inc_batch_average_redir_rrhs.append(sum((inc_batch_redirected_rrhs)))
+			inc_batch_redirected_rrhs = []
+		else:
+			inc_batch_average_redir_rrhs.append(0)
+		#power consumption for the incremental case
+		if inc_batch_power_consumption:
+			inc_batch_average_consumption.append(round(numpy.mean(inc_batch_power_consumption),4))
+			inc_batch_power_consumption = []
+		else:
+			inc_batch_average_consumption.append(0.0)
+		#activated nodes for the incremental case
+		if inc_batch_activated_nodes:
+			inc_batch_average_act_nodes.append(numpy.mean(inc_batch_activated_nodes))
+			inc_batch_activated_nodes = []
+		else:
+			inc_batch_average_act_nodes.append(0)
+		#activated lambdas for the incremental case
+		if inc_batch_activated_lambdas:
+			inc_batch_average_act_lambdas.append(numpy.mean(inc_batch_activated_lambdas))
+			inc_batch_activated_lambdas = []
+		else:
+			inc_batch_average_act_lambdas.append(0)
+		#activated DUs for the incremental case
+		if inc_batch_activated_dus:
+			inc_batch_average_act_dus.append(numpy.mean(inc_batch_activated_dus))
+			inc_batch_activated_dus = []
+		else:
+			inc_batch_average_act_dus.append(0)
+		#activated switches for the incremental case
+		if inc_batch_activated_switchs:
+			inc_batch_average_act_switch.append(numpy.mean(inc_batch_activated_switchs))
+			inc_batch_activated_switchs = []
+		else:
+			inc_batch_average_act_switch.append(0)
+
+	#count average consumptions and activeresources for incremental with batch case
+	def countLoadIncBatchAverages(self):
+		pass
+
 
 	#count average consumptions and active resources for the incremental case
 	def countIncAverages(self):
@@ -272,6 +403,7 @@ class Traffic_Generator(object):
 			average_redir_rrhs.append(0)
 		#power consumption for the incremental case
 		if incremental_power_consumption:
+			print(incremental_power_consumption)
 			average_power_consumption.append(round(numpy.mean(incremental_power_consumption),4))
 			incremental_power_consumption = []
 		else:
@@ -312,7 +444,13 @@ class Traffic_Generator(object):
 		global b_redirected_rrhs
 		global time_b
 		global b_count_cloud
-		global b_count_fog	
+		global b_count_fog
+		global batch_rrhs_wait_time	
+		if batch_rrhs_wait_time:
+			avg_batch_rrhs_wait_time.append(numpy.mean(batch_rrhs_wait_time))
+			batch_rrhs_wait_time = []
+		else:
+			avg_batch_rrhs_wait_time.append(0.0)
 		if b_count_cloud:
 			b_max_count_cloud.append(sum((b_count_cloud)))
 			b_count_cloud = []
@@ -368,6 +506,8 @@ class Traffic_Generator(object):
 		else:
 			b_average_act_switch.append(0)
 
+
+
 #control plane that controls the allocations and deallocations
 class Control_Plane(object):
 	def __init__(self, env, util, type):
@@ -400,16 +540,17 @@ class Control_Plane(object):
 			antenas = []
 			antenas.append(r)
 			if self.type == "inc":
-				self.incSched(r, antenas, plp)
+				self.incSched(r, antenas, plp, incremental_power_consumption, redirected_rrhs, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
 			elif self.type == "batch":
-				self.batchSched(r, plp)
+				self.batchSched(r, plp, batch_power_consumption,b_redirected_rrhs,b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
 			elif self.type == "inc_batch":
 				self.incrementalBatchSched(r,antenas, plp)
 			elif self.type == "load_inc_batch":
 				self.loadIncBatchSched(r, antenas, plp)
 
 	#incremental scheduling
-	def incSched(self, r, antenas, ilp_module):
+	def incSched(self, r, antenas, ilp_module, incremental_power_consumption, redirected_rrhs, 
+		activated_nodes, activated_lambdas, activated_dus, activated_switchs):
 		count_nodes = 0
 		count_lambdas = 0
 		count_dus = 0
@@ -429,6 +570,7 @@ class Control_Plane(object):
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
 			time_inc.append(solution.solve_details.time)
+			r.updateWaitTime(self.env.now)
 			for i in antenas:
 				self.env.process(i.run())
 				actives.append(i)
@@ -460,7 +602,8 @@ class Control_Plane(object):
 			return solution
 
 	#batch scheduling
-	def batchSched(self, r, ilp_module):
+	def batchSched(self, r, ilp_module, batch_power_consumption,b_redirected_rrhs,
+		b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs):
 		count_nodes = 0
 		count_lambdas = 0
 		count_dus = 0
@@ -485,8 +628,12 @@ class Control_Plane(object):
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
 			batch_time.append(solution.solve_details.time)
+			r.updateWaitTime(self.env.now+solution.solve_details.time)
+			#print("Gen is {} ".format(r.generationTime))
+			#print("NOW {} ".format(r.waitingTime))
 			self.env.process(r.run())
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+			batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 			if b_redirected_rrhs:
 				b_redirected_rrhs.append(sum((b_redirected_rrhs[-1], len(solution_values.var_k))))
 			else:
@@ -511,6 +658,16 @@ class Control_Plane(object):
 			b_activated_switchs.append(count_switches)
 			return solution
 
+	#calculates the average waiting time of RRHs to be scheduled
+	def averageWaitingTime(self, antenas):
+		avg = []
+		for r in antenas:
+			avg.append(r.waitingTime)
+		if sum(avg) > 0:
+			return numpy.mean(avg)
+		else:
+			return 0
+
 
 	#jointly incremental and batch scheduling
 	#this method calls the batch scheduling every time that a certain amount of RRHs arrived on the network
@@ -522,12 +679,14 @@ class Control_Plane(object):
 		if count_rrhs == load_threshold:
 			print("Entering batch")
 			#calls the batch scheduling
-			s = self.batchSched(r, ilp_module)
+			s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 			count_rrhs = 0
 		else:
 			print("entrou inc")
 			#print(count_rrhs)
-			s = self.incSched(r, antenas, ilp_module)
+			s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 			count_rrhs += 1
 
 	#this method performs the incremental scheduling until a certain load of RRHs is activated on the network
@@ -537,9 +696,11 @@ class Control_Plane(object):
 		#verifies if is it time to call the batch scheduling
 		if len(actives) >= load_threshold:
 			#calls the batch scheduling
-			s = self.batchSched(r, ilp_module)
+			s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 		else:
-			s = self.incSched(r, antenas, ilp_module)
+			s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 
 
 
@@ -601,6 +762,14 @@ class RRH(object):
 		self.cp = cp
 		self.generationTime = 0.0
 		self.waitingTime = 0.0
+
+	#updates the generation time
+	def updateGenTime(self, gen_time):
+		self.generationTime = gen_time
+
+	#updates the waiting time
+	def updateWaitTime(self, wait_time):
+		self.waitingTime = wait_time - self.generationTime
 
 	def run(self):
 		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
@@ -669,7 +838,7 @@ class Util(object):
 		global activated_lambdas,average_act_lambdas,b_activated_lambdas,b_average_act_lambdas,	activated_dus,average_act_dus,b_activated_dus
 		global b_average_act_dus,activated_switchs,	average_act_switch,	b_activated_switchs,b_average_act_switch,redirected_rrhs,average_redir_rrhs
 		global b_redirected_rrhs,b_average_redir_rrhs,time_inc,	avg_time_inc,time_b,avg_time_b,count_cloud,	count_fog,b_count_cloud,b_count_fog
-		global max_count_cloud,	average_count_fog,b_max_count_cloud,b_average_count_fog
+		global max_count_cloud,	average_count_fog,b_max_count_cloud,b_average_count_fog,batch_rrhs_wait_time,avg_batch_rrhs_wait_time
 		count = 0
 		#timestamp to change the load
 		change_time = 3600
@@ -690,8 +859,8 @@ class Util(object):
 		stamps = 24
 		hours_range = range(1, stamps+1)
 		for i in range(stamps):
-			x = norm.pdf(i, 12, 4)
-			x *= 100
+			x = norm.pdf(i, 12, 2)
+			x *= 50
 			#x= round(x,4)
 			#if x != 0:
 			#	loads.append(x)
@@ -781,7 +950,50 @@ class Util(object):
 		average_count_fog = []
 		b_max_count_cloud = []
 		b_average_count_fog = []
-	
+
+		#variables for the inc_batch scheduling
+		inc_batch_count_cloud = []
+		inc_batch_max_count_cloud = [] 
+		inc_batch_count_fog = []
+		inc_batch_average_count_fog = []
+		time_inc_batch = []
+		avg_time_inc_batch = []
+		inc_batch_redirected_rrhs = []
+		inc_batch_average_redir_rrhs = []
+		inc_batch_power_consumption = []
+		inc_batch_average_consumption = []
+		inc_batch_activated_nodes = []
+		inc_batch_average_act_nodes = []
+		inc_batch_activated_lambdas = []
+		inc_batch_average_act_lambdas = []
+		inc_batch_activated_dus = []
+		inc_batch_average_act_dus = []
+		inc_batch_activated_switchs = []
+		inc_batch_average_act_switch = []
+		#------------------------------
+
+		#inc_batch_power_consumption =[]
+		#inc_batch_redirected_rrhs = []
+		#inc_batch_activated_nodes= [] 
+		#inc_batch_activated_lambdas =[]
+		#inc_batch_activated_dus = []
+		#inc_batch_activated_switchs = []
+
+		#inc_avg_batch_power_consumption =[]
+		#inc_avg_batch_redirected_rrhs = []
+		#inc_avg_batch_activated_nodes= [] 
+		#inc_avg_batch_activated_lambdas =[]
+		#inc_avg_batch_activated_dus = []
+		#inc_avg_batch_activated_switchs = []
+
+
+		incremental_power_consumption = []
+
+		incremental_time = []
+		batch_time = []
+
+		batch_rrhs_wait_time = []
+		avg_batch_rrhs_wait_time = []
 
 		nodeCost = [
 		600.0,
