@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import batch_teste as lp
 import pureBatchILP as plp
 import copy
+import incrementalWithBatchILP as sim
 
 
 count = 0
@@ -33,8 +34,8 @@ actives = []
 stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
-	x = norm.pdf(i, 12, 4)
-	x *= 100
+	x = norm.pdf(i, 12, 2)
+	x *= 50
 	#x= round(x,4)
 	#if x != 0:
 	#	loads.append(x)
@@ -234,7 +235,7 @@ class Traffic_Generator(object):
 				sol = self.ilp.return_solution_values()
 				self.ilp.updateValues(sol)
 				for r in antenas:
-					r.updateWaitTime(self.env.now)
+					r.updateWaitTime(self.env.now+s.solve_details.time)
 					rrhs.append(r)
 				self.countResources(plp, s, sol)
 				avg_hours_wait_time.append(self.averageWaitingTime(antenas))
@@ -561,7 +562,6 @@ class RRH(object):
 
 	def run(self):
 		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
-		#yield self.env.timeout(next_time - self.env.now)
 		self.cp.departs.put(self)
 
 #Utility class
@@ -632,6 +632,46 @@ class Util(object):
 				else:
 					count_fog += 1
 
+	#reset params
+	def resetParams(self):
+		global count, change_time, next_time, actual_stamp, arrival_rate, service_time, total_period_requests
+		global loads, actives, stamps, power_consumption, avg_hours_wait_time
+		count = 0
+		#timestamp to change the load
+		change_time = 3600
+		#the next time
+		next_time = 3600
+		#the actual hout time stamp
+		actual_stamp = 0.0
+		#inter arrival rate of the users requests
+		arrival_rate = 3600
+		#service time of a request
+		service_time = lambda x: np.uniform(0,100)
+		#total generated requests per timestamp
+		total_period_requests = 0
+		#to generate the traffic load of each timestamp
+		loads = []
+		actives = []
+		#number of timestamps of load changing
+		stamps = 24
+		hours_range = range(1, stamps+1)
+		for j in range(stamps):
+			x = norm.pdf(j, 12, 2)
+			x *= 50
+			#x= round(x,4)
+			#if x != 0:
+			#	loads.append(x)
+			loads.append(x)
+		#distribution for arrival of packets
+		#first arrival rate of the simulation - to initiate the simulation
+		arrival_rate = loads[0]/change_time
+		distribution = lambda x: np.expovariate(arrival_rate)
+		loads.reverse()
+		#print(loads)
+		stamps = len(loads)
+		power_consumption = []
+		avg_hours_wait_time = []
+"""
 power_execution_average = []
 wait_time_hour_average = []
 total_average_power = []
@@ -712,6 +752,8 @@ plt.grid()
 plt.savefig('/home/hextinini/Área de Trabalho/wait_time.png', bbox_inches='tight')
 #plt.show()
 plt.clf()
+
+"""
 
 """
 min_power = min(min(average_power_consumption), min(batch_average_consumption))
