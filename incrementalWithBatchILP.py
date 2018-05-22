@@ -250,6 +250,7 @@ class Traffic_Generator(object):
 			global power_consumption
 			global incremental_power_consumption
 			global batch_power_consumption
+			global inc_batch_power_consumption
 			global incremental_blocking
 			global batch_blocking
 			#self.action = self.action = self.env.process(self.run())
@@ -268,7 +269,6 @@ class Traffic_Generator(object):
 			#count averages for the batch case
 			if self.cp.type == "inc":
 				self.countIncAverages()
-				print("Incremental HOUR is {}".format(incremental_power_consumption))
 			#count averages for the batch case
 			elif self.cp.type == "batch":
 				self.countBatchAverages()
@@ -403,7 +403,6 @@ class Traffic_Generator(object):
 			average_redir_rrhs.append(0)
 		#power consumption for the incremental case
 		if incremental_power_consumption:
-			print(incremental_power_consumption)
 			average_power_consumption.append(round(numpy.mean(incremental_power_consumption),4))
 			incremental_power_consumption = []
 		else:
@@ -839,6 +838,10 @@ class Util(object):
 		global b_average_act_dus,activated_switchs,	average_act_switch,	b_activated_switchs,b_average_act_switch,redirected_rrhs,average_redir_rrhs
 		global b_redirected_rrhs,b_average_redir_rrhs,time_inc,	avg_time_inc,time_b,avg_time_b,count_cloud,	count_fog,b_count_cloud,b_count_fog
 		global max_count_cloud,	average_count_fog,b_max_count_cloud,b_average_count_fog,batch_rrhs_wait_time,avg_batch_rrhs_wait_time
+		global inc_batch_count_cloud, inc_batch_max_count_cloud, inc_batch_count_fog, inc_batch_average_count_fog, time_inc_batch, avg_time_inc_batch
+		global inc_batch_redirected_rrhs, inc_batch_average_redir_rrhs, inc_batch_power_consumption, inc_batch_average_consumption, inc_batch_activated_nodes
+		global inc_batch_average_act_nodes, inc_batch_activated_lambdas, inc_batch_average_act_lambdas,	inc_batch_activated_dus, inc_batch_average_act_dus
+		global inc_batch_activated_switchs, inc_batch_average_act_switch
 		count = 0
 		#timestamp to change the load
 		change_time = 3600
