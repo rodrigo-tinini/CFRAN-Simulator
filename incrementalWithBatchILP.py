@@ -79,11 +79,11 @@ batch_power_consumption = []
 #to jeep the average consumption of each hour of the day for the batch case
 batch_average_consumption = []
 #counting the blocked RRHs
-inc_batch_blocking = 0
-incremental_blocking = 0
-batch_blocking = 0
-total_inc_blocking = []
-total_batch_blocking = []
+#inc_batch_blocking = 0
+#incremental_blocking = 0
+#batch_blocking = 0
+#total_inc_blocking = []
+#total_batch_blocking = []
 #to count the redirected rrhs
 redirected = []
 #to count the activated nodes
@@ -270,10 +270,10 @@ class Traffic_Generator(object):
 			arrival_rate = loads.pop()/change_time
 			#print("RRHS on {}".format(len(actives)))
 			#print("RRHs off {}".format(len(rrhs)))
-			total_inc_blocking.append(incremental_blocking)
-			total_batch_blocking.append(batch_blocking)
-			incremental_blocking = 0
-			batch_blocking = 0
+			#total_inc_blocking.append(incremental_blocking)
+			#total_batch_blocking.append(batch_blocking)
+			#incremental_blocking = 0
+			#batch_blocking = 0
 			#count averages for the batch case
 			if self.cp.type == "inc":
 				self.countIncAverages()
@@ -468,7 +468,7 @@ class Traffic_Generator(object):
 		global b_count_fog
 		global batch_rrhs_wait_time
 		global batch_blocking
-		
+
 		if batch_blocking:
 			total_batch_blocking.append(sum((batch_blocking)))
 			batch_blocking = []
@@ -558,7 +558,7 @@ class Control_Plane(object):
 		global count
 		global actives
 		global incremental_blocking
-		global batch_blocking
+		#global batch_blocking
 		global inc_block
 		global batch_block
 		global count_rrhs
@@ -656,6 +656,7 @@ class Control_Plane(object):
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
 			batch_time.append(solution.solve_details.time)
+			time_b.append(solution.solve_details.time)
 			r.updateWaitTime(self.env.now+solution.solve_details.time)
 			#print("Gen is {} ".format(r.generationTime))
 			#print("NOW {} ".format(r.waitingTime))
@@ -862,7 +863,7 @@ class Util(object):
 	def resetParams(self):
 		global count, change_time, next_time, actual_stamp, arrival_rate, service_time, total_period_requests, loads, actives, stamps, hours_range, arrival_rate, distribution,traffics
 		global power_consumption,average_power_consumption,	batch_power_consumption,batch_average_consumption,incremental_blocking,batch_blocking
-		global total_inc_blocking,total_batch_blocking,redirected,activated_nodes,average_act_nodes,b_activated_nodes,b_average_act_nodes
+		global redirected,activated_nodes,average_act_nodes,b_activated_nodes,b_average_act_nodes
 		global activated_lambdas,average_act_lambdas,b_activated_lambdas,b_average_act_lambdas,	activated_dus,average_act_dus,b_activated_dus
 		global b_average_act_dus,activated_switchs,	average_act_switch,	b_activated_switchs,b_average_act_switch,redirected_rrhs,average_redir_rrhs
 		global b_redirected_rrhs,b_average_redir_rrhs,time_inc,	avg_time_inc,time_b,avg_time_b,count_cloud,	count_fog,b_count_cloud,b_count_fog

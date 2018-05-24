@@ -62,14 +62,14 @@ total_inc_batch_time = []
 total_inc_batch_time2 = []
 
 #lists
-
+exec_number = 10
 util = sim.Util()
 sim.load_threshold = 10
 #incremental simulation
 
 number_of_rrhs = 25
 
-for i in range(10):
+for i in range(exec_number):
 	print("STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -97,7 +97,7 @@ for i in range(10):
 
 #batch simulation
 
-for i in range(10):
+for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -125,7 +125,7 @@ for i in range(10):
 
 	#batch simulation
 
-for i in range(10):
+for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -153,7 +153,7 @@ for i in range(10):
 
 old_th = 10
 sim.load_threshold = 5
-for i in range(10):
+for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -294,7 +294,7 @@ plt.plot(inc_batch_dus_mean, label = "Batch ILP Threshold = {}".format(old_th))
 plt.plot(inc_batch_dus_mean2, label = "Batch ILP Threshold = {}".format(sim.load_threshold))
 plt.plot(batch_dus_mean, label = "Pure Batch ILP")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(0, 25,1))
+plt.yticks(numpy.arange(0, 10,1))
 plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend()
@@ -309,7 +309,7 @@ plt.plot(inc_batch_lambdas_mean, label = "Batch ILP Threshold = {}".format(old_t
 plt.plot(inc_batch_lambdas_mean2, label = "Batch ILP Threshold = {}".format(sim.load_threshold))
 plt.plot(batch_lambdas_mean, label = "Pure Batch ILP")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(0, 10,1))
+plt.yticks(numpy.arange(0, 5,1))
 plt.ylabel('Activated lambdas')
 plt.xlabel("Time of the day")
 plt.legend()
@@ -324,7 +324,7 @@ plt.plot(inc_batch_redir_mean, label = "Batch ILP Threshold = {}".format(old_th)
 plt.plot(inc_batch_redir_mean2, label = "Batch ILP Threshold = {}".format(sim.load_threshold))
 plt.plot(batch_redir_mean, label = "Pure Batch ILP")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(0, 100,1))
+plt.yticks(numpy.arange(0, 500,20))
 plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend()
@@ -339,7 +339,7 @@ plt.plot(inc_batch_switches_mean, label = "Batch ILP Threshold = {}".format(old_
 plt.plot(inc_batch_switches_mean2, label = "Batch ILP Threshold = {}".format(sim.load_threshold))
 plt.plot(batch_switches_mean, label = "Pure Batch ILP")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(0, 10,1))
+plt.yticks(numpy.arange(0, 5,0.5))
 plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend()
@@ -354,7 +354,7 @@ plt.plot(inc_batch_blocked_mean, label = "Batch ILP Threshold = {}".format(old_t
 plt.plot(inc_batch_blocked_mean2, label = "Batch ILP Threshold = {}".format(sim.load_threshold))
 plt.plot(batch_blocked_mean, label = "Pure Batch ILP")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(0, 500,20))
+plt.yticks(numpy.arange(0, 30,5))
 plt.ylabel('Blocked RRHs')
 plt.xlabel("Time of the day")
 plt.legend()
@@ -369,7 +369,7 @@ plt.plot(inc_batch_time_mean, label = "Batch ILP Threshold = {}".format(old_th))
 plt.plot(inc_batch_time_mean2, label = "Batch ILP Threshold = {}".format(sim.load_threshold))
 plt.plot(batch_time_mean, label = "Pure Batch ILP")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(0, 0.1,0.01))
+plt.yticks(numpy.arange(0, 1, 0.05))
 plt.ylabel('Solution Time')
 plt.xlabel("Time of the day")
 plt.legend()
