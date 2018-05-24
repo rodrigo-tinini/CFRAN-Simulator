@@ -126,6 +126,14 @@ average_count_fog = []
 b_max_count_cloud = []
 b_average_count_fog = []
 
+#variables for counting the blocking
+inc_blocking = []
+total_inc_blocking = []
+batch_blocking = []
+total_batch_blocking  = []
+inc_batch_blocking = []
+total_inc_batch_blocking = []
+
 #variables for the inc_batch scheduling
 inc_batch_count_cloud = []
 inc_batch_max_count_cloud = [] 
@@ -305,7 +313,13 @@ class Traffic_Generator(object):
 		global inc_batch_average_act_dus
 		global inc_batch_activated_switchs
 		global inc_batch_average_act_switch
-
+		global inc_batch_blocking
+		
+		if inc_batch_blocking:
+			total_inc_batch_blocking.append(sum((inc_batch_blocking)))
+			inc_batch_blocking = []
+		else:
+			total_inc_batch_blocking.append(0)
 		if inc_batch_count_cloud:
 			inc_batch_max_count_cloud.append(sum((inc_batch_count_cloud)))
 			inc_batch_count_cloud = []
@@ -377,6 +391,14 @@ class Traffic_Generator(object):
 		global time_inc
 		global count_cloud
 		global count_fog
+		global inc_blocking
+		#print(inc_blocking)
+		
+		if inc_blocking:
+			total_inc_blocking.append(sum((inc_blocking)))
+			inc_blocking = []
+		else:
+			total_inc_blocking.append(0)
 		if count_cloud:
 			max_count_cloud.append(sum((count_cloud)))
 			count_cloud = []
@@ -444,7 +466,14 @@ class Traffic_Generator(object):
 		global time_b
 		global b_count_cloud
 		global b_count_fog
-		global batch_rrhs_wait_time	
+		global batch_rrhs_wait_time
+		global batch_blocking
+		
+		if batch_blocking:
+			total_batch_blocking.append(sum((batch_blocking)))
+			batch_blocking = []
+		else:
+			total_batch_blocking.append(0)
 		if batch_rrhs_wait_time:
 			avg_batch_rrhs_wait_time.append(numpy.mean(batch_rrhs_wait_time))
 			batch_rrhs_wait_time = []
@@ -539,9 +568,9 @@ class Control_Plane(object):
 			antenas = []
 			antenas.append(r)
 			if self.type == "inc":
-				self.incSched(r, antenas, plp, incremental_power_consumption, redirected_rrhs, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
+				self.incSched(r, antenas, plp, incremental_power_consumption, redirected_rrhs, activated_nodes, activated_lambdas, activated_dus, activated_switchs, inc_blocking)
 			elif self.type == "batch":
-				self.batchSched(r, plp, batch_power_consumption,b_redirected_rrhs,b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
+				self.batchSched(r, plp, batch_power_consumption,b_redirected_rrhs,b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs, batch_blocking)
 			elif self.type == "inc_batch":
 				self.incrementalBatchSched(r,antenas, plp)
 			elif self.type == "load_inc_batch":
@@ -549,7 +578,7 @@ class Control_Plane(object):
 
 	#incremental scheduling
 	def incSched(self, r, antenas, ilp_module, incremental_power_consumption, redirected_rrhs, 
-		activated_nodes, activated_lambdas, activated_dus, activated_switchs):
+		activated_nodes, activated_lambdas, activated_dus, activated_switchs, inc_blocking):
 		count_nodes = 0
 		count_lambdas = 0
 		count_dus = 0
@@ -563,7 +592,7 @@ class Control_Plane(object):
 			np.shuffle(rrhs)
 			antenas = []
 			print("Incremental Blocking")
-			block += 1
+			inc_blocking.append(1)
 			incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 		else:
 			solution_values = self.ilp.return_solution_values()
@@ -602,7 +631,7 @@ class Control_Plane(object):
 
 	#batch scheduling
 	def batchSched(self, r, ilp_module, batch_power_consumption,b_redirected_rrhs,
-		b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs):
+		b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs, batch_blocking):
 		count_nodes = 0
 		count_lambdas = 0
 		count_dus = 0
@@ -622,7 +651,7 @@ class Control_Plane(object):
 			print("Batch Blocking")
 			print("Cant Schedule {} RRHs".format(len(actives)))
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
-			block += 1
+			batch_blocking.append(1)
 		else:
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
@@ -679,13 +708,13 @@ class Control_Plane(object):
 			print("Entering batch")
 			#calls the batch scheduling
 			s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
 			count_rrhs = 0
 		else:
 			print("entrou inc")
 			#print(count_rrhs)
 			s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
 			count_rrhs += 1
 
 	#this method performs the incremental scheduling until a certain load of RRHs is activated on the network
@@ -842,6 +871,7 @@ class Util(object):
 		global inc_batch_redirected_rrhs, inc_batch_average_redir_rrhs, inc_batch_power_consumption, inc_batch_average_consumption, inc_batch_activated_nodes
 		global inc_batch_average_act_nodes, inc_batch_activated_lambdas, inc_batch_average_act_lambdas,	inc_batch_activated_dus, inc_batch_average_act_dus
 		global inc_batch_activated_switchs, inc_batch_average_act_switch
+		global inc_blocking, total_inc_blocking, batch_blocking, total_batch_blocking, inc_batch_blocking, total_inc_batch_blocking
 		count = 0
 		#timestamp to change the load
 		change_time = 3600
@@ -974,6 +1004,14 @@ class Util(object):
 		inc_batch_activated_switchs = []
 		inc_batch_average_act_switch = []
 		#------------------------------
+
+		#variables for counting the blocking
+		inc_blocking = []
+		total_inc_blocking = []
+		batch_blocking = []
+		total_batch_blocking  = []
+		inc_batch_blocking = []
+		total_inc_batch_blocking = []
 
 		#inc_batch_power_consumption =[]
 		#inc_batch_redirected_rrhs = []

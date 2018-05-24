@@ -14,13 +14,13 @@ import copy
 import incrementalWithBatchILP as sim
 import static_accounting_base_line as st
 
-number_of_rrhs = 20
+number_of_rrhs = 35
 total_average_wait_time = []
 total_din_average_wait_time = []
 
 #running for the static
 util = st.Util()
-for i in range(5):
+for i in range(1):
 	env = simpy.Environment()
 	cp = st.Control_Plane(env, util)
 	st.rrhs = util.createRRHs(number_of_rrhs, env, st.service_time, cp)
@@ -39,7 +39,7 @@ wait_time_hour_average = [float(sum(col))/len(col) for col in zip(*total_average
 print(wait_time_hour_average)
 
 util2 = sim.Util()
-for i in range(5):
+for i in range(1):
 	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -60,7 +60,7 @@ print(din_wait_time_average)
 plt.plot(wait_time_hour_average, label = "Static Traffic")
 plt.plot(din_wait_time_average, label = "Dynamic Traffic")
 plt.xticks(numpy.arange(0, 24, 1))
-plt.yticks(numpy.arange(min(min(wait_time_hour_average), min(din_wait_time_average)), max(max(wait_time_hour_average), max(din_wait_time_average)),100))
+plt.yticks(numpy.arange(-1, max(max(wait_time_hour_average), max(din_wait_time_average)),100))
 plt.ylabel('Average Waiting Time')
 plt.xlabel("Time of the day")
 plt.legend()
