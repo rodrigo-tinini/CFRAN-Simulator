@@ -33,8 +33,8 @@ actives = []
 stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
-	x = norm.pdf(i, 12, 2)
-	x *= 50
+	x = norm.pdf(i, 12, 4)
+	x *= 100
 	#x= round(x,4)
 	#if x != 0:
 	#	loads.append(x)
@@ -340,7 +340,7 @@ class Traffic_Generator(object):
 		#calculates the averages of power consumption and active resources
 		#calculates the number of redirected RRHs
 		if inc_batch_redirected_rrhs:
-			inc_batch_average_redir_rrhs.append(sum((inc_batch_redirected_rrhs)))
+			inc_batch_average_redir_rrhs.append(numpy.mean(inc_batch_redirected_rrhs))
 			inc_batch_redirected_rrhs = []
 		else:
 			inc_batch_average_redir_rrhs.append(0)
@@ -419,7 +419,7 @@ class Traffic_Generator(object):
 		#calculates the averages of power consumption and active resources
 		#calculates the number of redirected RRHs
 		if redirected_rrhs:
-			average_redir_rrhs.append(sum((redirected_rrhs)))
+			average_redir_rrhs.append(numpy.mean(redirected_rrhs))
 			redirected_rrhs = []
 		else:
 			average_redir_rrhs.append(0)
@@ -498,7 +498,7 @@ class Traffic_Generator(object):
 		#calculates the averages of power consumption and active resources
 		#calculates the number of redirected RRHs
 		if b_redirected_rrhs:
-			b_average_redir_rrhs.append(sum((b_redirected_rrhs)))
+			b_average_redir_rrhs.append(numpy.mean(b_redirected_rrhs))
 			b_redirected_rrhs = []
 		else:
 			b_average_redir_rrhs.append(0)
@@ -606,10 +606,10 @@ class Control_Plane(object):
 				antenas.remove(i)
 				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			#count the activeresources
-			if redirected_rrhs:
-				redirected_rrhs.append(sum((redirected_rrhs[-1], len(solution_values.var_k))))
-			else:
+			if solution_values.var_k:
 				redirected_rrhs.append(len(solution_values.var_k))
+			else:
+				redirected_rrhs.append(0)
 			for i in ilp_module.nodeState:
 				if i == 1:
 					count_nodes += 1
@@ -663,10 +663,10 @@ class Control_Plane(object):
 			self.env.process(r.run())
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
-			if b_redirected_rrhs:
-				b_redirected_rrhs.append(sum((b_redirected_rrhs[-1], len(solution_values.var_k))))
-			else:
+			if solution_values.var_k:
 				b_redirected_rrhs.append(len(solution_values.var_k))
+			else:
+				b_redirected_rrhs.append(0)
 			#counts the current activated nodes, lambdas, DUs and switches
 			for i in ilp_module.nodeState:
 				if i == 1:
@@ -731,7 +731,82 @@ class Control_Plane(object):
 			s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
 				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 
+	#count resources during the execution
+	def count_inc_resources(self, ilp_module, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs):
+		count_nodes = 0
+		count_lambdas = 0
+		count_dus = 0
+		count_switches = 0
+		incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+		for i in ilp_module.nodeState:
+			if i == 1:
+				count_nodes += 1
+		activated_nodes.append(count_nodes)
+		for i in ilp_module.lambda_state:
+			if i == 1:
+				count_lambdas += 1
+		activated_lambdas.append(count_lambdas)
+		for i in ilp_module.du_state:
+			for j in i:
+				if j == 1:
+					count_dus += 1
+		activated_dus.append(count_dus)
+		for i in ilp_module.switch_state:
+			if i == 1:
+				count_switches += 1
+		activated_switchs.append(count_switches)
 
+	def count_batch_resources(self, ilp_module, batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs):
+		count_nodes = 0
+		count_lambdas = 0
+		count_dus = 0
+		count_switches = 0
+		batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+		#counts the current activated nodes, lambdas, DUs and switches
+		for i in ilp_module.nodeState:
+			if i == 1:
+				count_nodes += 1
+		b_activated_nodes.append(count_nodes)
+		for i in ilp_module.lambda_state:
+			if i == 1:
+				count_lambdas += 1
+		b_activated_lambdas.append(count_lambdas)
+		for i in ilp_module.du_state:
+			for j in i:
+				if j == 1:
+					count_dus += 1
+		b_activated_dus.append(count_dus)
+		for i in ilp_module.switch_state:
+			if i == 1:
+				count_switches += 1
+		b_activated_switchs.append(count_switches)
+
+	def count_inc_batch_resources(self, ilp_module, inc_batch_power_consumption,inc_batch_activated_nodes, 
+		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs):
+		count_nodes = 0
+		count_lambdas = 0
+		count_dus = 0
+		count_switches = 0
+		#print("Calling Incremental")
+		inc_batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+		#count the activeresources
+		for i in ilp_module.nodeState:
+			if i == 1:
+				count_nodes += 1
+		inc_batch_activated_nodes.append(count_nodes)
+		for i in ilp_module.lambda_state:
+			if i == 1:
+				count_lambdas += 1
+		inc_batch_activated_lambdas.append(count_lambdas)
+		for i in ilp_module.du_state:
+			for j in i:
+				if j == 1:
+					count_dus += 1
+		inc_batch_activated_dus.append(count_dus)
+		for i in ilp_module.switch_state:
+			if i == 1:
+				count_switches += 1
+		inc_batch_activated_switchs.append(count_switches)
 
 
 
@@ -749,7 +824,14 @@ class Control_Plane(object):
 			rrhs.append(r)
 			np.shuffle(rrhs)
 			actives.remove(r)
-				
+			#account resourcesand consumption
+			if self.type == "inc":
+				self.count_inc_resources(plp, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
+			elif self.type == "batch":
+				self.count_batch_resources(plp,batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
+			elif self.type == "inc_batch":
+				self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
+		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
@@ -806,6 +888,11 @@ class RRH(object):
 
 #Utility class
 class Util(object):
+
+	#to count the usage of wavelengthson each solution
+	def wavelengthUsage(self, ilp_module):
+		pass
+
 	#print all active nodes
 	def printActiveNodes(self):
 		for i in pns:
@@ -893,8 +980,8 @@ class Util(object):
 		stamps = 24
 		hours_range = range(1, stamps+1)
 		for i in range(stamps):
-			x = norm.pdf(i, 12, 2)
-			x *= 50
+			x = norm.pdf(i, 12, 4)
+			x *= 100
 			#x= round(x,4)
 			#if x != 0:
 			#	loads.append(x)
