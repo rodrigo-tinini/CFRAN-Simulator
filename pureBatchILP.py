@@ -107,6 +107,8 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
+		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes))
+		'''
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
 		self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes) + 
 		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
@@ -114,7 +116,7 @@ class ILP(object):
 		(self.mdl.sum(self.s[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
 		self.mdl.sum(self.rd[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
 		self.mdl.sum(self.e[j] * switch_cost[j] for j in self.nodes))
-
+		'''
 	#solves the model
 	def solveILP(self):
 		self.sol = self.mdl.solve()
