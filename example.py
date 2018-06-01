@@ -64,10 +64,10 @@ total_inc_batch_time2 = []
 #lists
 exec_number = 10
 util = sim.Util()
-sim.load_threshold = 10
+sim.load_threshold = 20
 #incremental simulation
 
-number_of_rrhs = 25
+number_of_rrhs = 45
 
 for i in range(exec_number):
 	print("STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---")
@@ -126,7 +126,7 @@ for i in range(exec_number):
 	#batch simulation
 
 for i in range(exec_number):
-	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
 	cp = sim.Control_Plane(env, util, "batch")
@@ -151,8 +151,8 @@ for i in range(exec_number):
 	total_batch_time.append(sim.avg_time_b)
 	util.resetParams()
 sim.count_rrhs = 0
-old_th = 10
-sim.load_threshold = 5
+old_th = 20
+sim.load_threshold = 15
 for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
@@ -286,7 +286,7 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -301,7 +301,7 @@ plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -316,7 +316,7 @@ plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -331,7 +331,7 @@ plt.ylabel('Activated lambdas')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -346,7 +346,7 @@ plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -361,7 +361,7 @@ plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -376,7 +376,7 @@ plt.ylabel('Blocked RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -391,7 +391,7 @@ plt.ylabel('Solution Time')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/plots/newcost2/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 print("Redirected")
