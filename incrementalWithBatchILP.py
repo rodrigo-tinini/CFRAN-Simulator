@@ -33,7 +33,7 @@ actives = []
 stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
-	x = norm.pdf(i, 12, 4)
+	x = norm.pdf(i, 12, 3)
 	x *= 100
 	#x= round(x,4)
 	#if x != 0:
@@ -241,8 +241,8 @@ class Traffic_Generator(object):
 				total_period_requests +=1
 				#np.shuffle(rrhs)
 			else:
-				pass
-				#print("All RRHs are active!")
+				#pass
+				print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
 			#yield self.env.timeout(0.05)
@@ -591,7 +591,7 @@ class Control_Plane(object):
 			rrhs.append(r)
 			np.shuffle(rrhs)
 			antenas = []
-			print("Incremental Blocking")
+			#print("Incremental Blocking")
 			inc_blocking.append(1)
 			incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 		else:
@@ -706,13 +706,13 @@ class Control_Plane(object):
 		global count_rrhs
 		#verifies if is it time to call the batch scheduling
 		if count_rrhs == load_threshold:
-			print("Entering batch")
+			#print("Entering batch")
 			#calls the batch scheduling
 			s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
 				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
 			count_rrhs = 0
 		else:
-			print("entrou inc")
+			#print("entrou inc")
 			#print(count_rrhs)
 			s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
 				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
@@ -980,7 +980,7 @@ class Util(object):
 		stamps = 24
 		hours_range = range(1, stamps+1)
 		for i in range(stamps):
-			x = norm.pdf(i, 12, 4)
+			x = norm.pdf(i, 12, 3)
 			x *= 100
 			#x= round(x,4)
 			#if x != 0:
@@ -1308,3 +1308,4 @@ plt.savefig('/home/hextinini/Área de Trabalho/plots/solution_time_{}.png'.forma
 plt.clf()
 
 """
+print(loads)
