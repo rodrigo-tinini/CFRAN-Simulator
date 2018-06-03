@@ -10,7 +10,7 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
-
+traffic_quocient = 70
 inc_block = 0
 batch_block = 0
 count = 0
@@ -34,7 +34,7 @@ stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
 	x = norm.pdf(i, 12, 3)
-	x *= 100
+	x *= traffic_quocient
 	#x= round(x,4)
 	#if x != 0:
 	#	loads.append(x)
@@ -230,18 +230,21 @@ class Traffic_Generator(object):
 		while True:
 			#if total_period_requests <= maximum_load:
 			yield self.env.timeout(self.dist(self))
+			total_period_requests +=1
 			self.req_count += 1
 			#takes the first turned off RRH
 			if rrhs:
+				print(len(rrhs))
 				r = rrhs.pop()
 				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
 				self.cp.requests.put(r)
 				r.updateGenTime(self.env.now)
 				r.enabled = True
-				total_period_requests +=1
+				#total_period_requests +=1
 				#np.shuffle(rrhs)
 			else:
 				#pass
+				#total_period_requests +=1
 				print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
@@ -981,7 +984,7 @@ class Util(object):
 		hours_range = range(1, stamps+1)
 		for i in range(stamps):
 			x = norm.pdf(i, 12, 3)
-			x *= 100
+			x *= traffic_quocient
 			#x= round(x,4)
 			#if x != 0:
 			#	loads.append(x)
@@ -1308,4 +1311,5 @@ plt.savefig('/home/hextinini/Área de Trabalho/plots/solution_time_{}.png'.forma
 plt.clf()
 
 """
-print(loads)
+for i in loads:
+	print(i)

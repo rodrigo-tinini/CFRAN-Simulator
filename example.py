@@ -67,13 +67,13 @@ util = sim.Util()
 sim.load_threshold = 20
 #incremental simulation
 
-number_of_rrhs = 45
+number_of_rrhs = 35
 
 for i in range(exec_number):
 	print("STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, util, "inc")
+	cp = sim.Control_Plane(env, util, "batch")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
