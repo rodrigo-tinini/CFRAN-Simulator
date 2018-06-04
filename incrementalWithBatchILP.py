@@ -10,7 +10,7 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
-traffic_quocient = 70
+traffic_quocient = 100
 inc_block = 0
 batch_block = 0
 count = 0
@@ -886,7 +886,10 @@ class RRH(object):
 		self.waitingTime = wait_time - self.generationTime
 
 	def run(self):
-		yield self.env.timeout(np.uniform(0, next_time -self.env.now))
+		t = np.uniform((next_time -self.env.now)/2, next_time -self.env.now)
+		#print("Interval time is {}".format(next_time -self.env.now))
+		#print("Service is {}".format(t))
+		yield self.env.timeout(t)
 		self.cp.departs.put(self)
 
 #Utility class
