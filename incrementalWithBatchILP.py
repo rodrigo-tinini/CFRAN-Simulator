@@ -10,7 +10,7 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
-traffic_quocient = 100
+traffic_quocient = 50
 inc_block = 0
 batch_block = 0
 count = 0
@@ -33,7 +33,7 @@ actives = []
 stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
-	x = norm.pdf(i, 12, 3)
+	x = norm.pdf(i, 12, 4)
 	x *= traffic_quocient
 	#x= round(x,4)
 	#if x != 0:
@@ -228,24 +228,25 @@ class Traffic_Generator(object):
 		global rrhs
 		#global actives
 		while True:
-			#if total_period_requests <= maximum_load:
-			yield self.env.timeout(self.dist(self))
-			total_period_requests +=1
-			self.req_count += 1
-			#takes the first turned off RRH
 			if rrhs:
-				print(len(rrhs))
-				r = rrhs.pop()
-				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
-				self.cp.requests.put(r)
-				r.updateGenTime(self.env.now)
-				r.enabled = True
-				#total_period_requests +=1
-				#np.shuffle(rrhs)
-			else:
-				#pass
-				#total_period_requests +=1
-				print("All RRHs are active!")
+				#if total_period_requests <= maximum_load:
+				yield self.env.timeout(self.dist(self))
+				total_period_requests +=1
+				self.req_count += 1
+				#takes the first turned off RRH
+				if rrhs:
+					print(len(rrhs))
+					r = rrhs.pop()
+					#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
+					self.cp.requests.put(r)
+					r.updateGenTime(self.env.now)
+					r.enabled = True
+					#total_period_requests +=1
+					#np.shuffle(rrhs)
+				else:
+					#pass
+					#total_period_requests +=1
+					print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
 			#yield self.env.timeout(0.05)
@@ -656,6 +657,7 @@ class Control_Plane(object):
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 		else:
+			print(solution.solve_details.time)
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
 			batch_time.append(solution.solve_details.time)
@@ -886,7 +888,7 @@ class RRH(object):
 		self.waitingTime = wait_time - self.generationTime
 
 	def run(self):
-		t = np.uniform((next_time -self.env.now)/2, next_time -self.env.now)
+		t = np.uniform((next_time -self.env.now)/4, next_time -self.env.now)
 		#print("Interval time is {}".format(next_time -self.env.now))
 		#print("Service is {}".format(t))
 		yield self.env.timeout(t)
@@ -986,7 +988,7 @@ class Util(object):
 		stamps = 24
 		hours_range = range(1, stamps+1)
 		for i in range(stamps):
-			x = norm.pdf(i, 12, 3)
+			x = norm.pdf(i, 12, 4)
 			x *= traffic_quocient
 			#x= round(x,4)
 			#if x != 0:
