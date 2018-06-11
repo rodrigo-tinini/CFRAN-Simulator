@@ -435,8 +435,14 @@ class ILP(object):
 		[1.0, 1.0, 1.0, 1.0, 1.0],
 		[1.0, 1.0, 1.0, 1.0, 1.0],
 
+		]
 
-
+		#used to calculate the processing usage of the node
+		dus_total_capacity = [
+		[5.0, 5.0, 5.0, 5.0, 5.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0],
+		
 		]
 
 		du_state = [
@@ -488,6 +494,12 @@ class ILP(object):
 		nodes = range(0, 3)
 		#number of lambdas
 		lambdas = range(0, 5)
+
+	def getProcUsage(self):
+			nodes_usage = []
+			for i in range(len(du_processing)):
+				nodes_usage.append((sum(du_processing[i]))/ sum(dus_total_capacity[i]))
+			return nodes_usage
 
 
 
@@ -719,7 +731,13 @@ du_processing = [
 [1.0, 1.0, 1.0, 1.0, 1.0],
 [1.0, 1.0, 1.0, 1.0, 1.0],
 
+]
 
+#used to calculate the processing usage of the node
+dus_total_capacity = [
+[5.0, 5.0, 5.0, 5.0, 5.0],
+[1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0],
 
 ]
 
@@ -773,20 +791,21 @@ nodes = range(0, 3)
 #number of lambdas
 lambdas = range(0, 5)
 
-'''
+
+
+
 u = Util()
 antenas = u.newCreateRRHs(40)
-for i in antenas:
-	print(i.rrhs_matrix)
+#for i in antenas:
+#	print(i.rrhs_matrix)
 #for i in range(len(antenas)):
 #	print(antenas[i].rrhs_matrix)
 np.shuffle(antenas)
 ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
-s = ilp.run()
-sol = ilp.return_solution_values()
-ilp.updateValues(sol)
-print("Solving time: {}".format(s.solve_details.time))
-'''
+#print(dus_total_capacity)
+x = ilp.getProcUsage()
+print(x)
+
 '''
 print(du_processing)
 print(lambda_node)
