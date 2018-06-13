@@ -228,25 +228,25 @@ class Traffic_Generator(object):
 		global rrhs
 		#global actives
 		while True:
+			#if rrhs:
+			#if total_period_requests <= maximum_load:
+			yield self.env.timeout(self.dist(self))
+			total_period_requests +=1
+			self.req_count += 1
+			#takes the first turned off RRH
 			if rrhs:
-				#if total_period_requests <= maximum_load:
-				yield self.env.timeout(self.dist(self))
-				total_period_requests +=1
-				self.req_count += 1
-				#takes the first turned off RRH
-				if rrhs:
-					print(len(rrhs))
-					r = rrhs.pop()
-					#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
-					self.cp.requests.put(r)
-					r.updateGenTime(self.env.now)
-					r.enabled = True
-					#total_period_requests +=1
-					#np.shuffle(rrhs)
-				else:
-					#pass
-					#total_period_requests +=1
-					print("All RRHs are active!")
+				print(len(rrhs))
+				r = rrhs.pop()
+				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
+				self.cp.requests.put(r)
+				r.updateGenTime(self.env.now)
+				r.enabled = True
+				#total_period_requests +=1
+				#np.shuffle(rrhs)
+			else:
+				#pass
+				#total_period_requests +=1
+				print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
 			#yield self.env.timeout(0.05)
