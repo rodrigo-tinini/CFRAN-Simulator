@@ -10,6 +10,7 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
+network_threshold = 0.5
 traffic_quocient = 50
 inc_block = 0
 batch_block = 0
@@ -553,6 +554,83 @@ class Control_Plane(object):
 		self.ilp = None
 		self.util = util
 		self.ilpBatch = None
+		if self.type == "load_inc_batch":
+			self.load_balancing = self.env.process(self.monitorLoad())
+
+	#monitors the network and triggers the load balancing
+	def monitorLoad(self):
+		proc_loads = [0,0,0]
+		while True:
+			print(plp.nodeState)
+			for i in range(len(plp.du_processing)):
+				proc_loads[i] = (sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i])
+			for i in proc_loads:
+				if i <= network_threshold:
+					#call the batch
+					print("Load balancing")
+					print(plp.nodeState)
+					count_nodes = 0
+					count_lambdas = 0
+					count_dus = 0
+					count_switches = 0
+					block = 0
+					#print("Calling Batch")
+					batch_list = copy.copy(actives)
+					#batch_list.append(r)
+					#actives.append(r)
+					self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas)
+					self.ilp.resetValues()
+					solution = self.ilp.run()
+					if solution == None:
+					#	rrhs.append(r)
+					#	actives.remove(r)
+					#	np.shuffle(rrhs)
+						print("Batch Blocking")
+						print("Cant Schedule {} RRHs".format(len(actives)))
+						batch_power_consumption.append(self.util.getPowerConsumption(plp))
+						batch_blocking.append(1)
+					else:
+						print(solution.solve_details.time)
+						solution_values = self.ilp.return_solution_values()
+						self.ilp.updateValues(solution_values)
+						batch_time.append(solution.solve_details.time)
+						time_b.append(solution.solve_details.time)
+					#	r.updateWaitTime(self.env.now+solution.solve_details.time)
+						#print("Gen is {} ".format(r.generationTime))
+						#print("NOW {} ".format(r.waitingTime))
+					#	self.env.process(r.run())
+						batch_power_consumption.append(self.util.getPowerConsumption(plp))
+						batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
+						if solution_values.var_k:
+							b_redirected_rrhs.append(len(solution_values.var_k))
+						else:
+							b_redirected_rrhs.append(0)
+						#counts the current activated nodes, lambdas, DUs and switches
+						for i in plp.nodeState:
+							if i == 1:
+								count_nodes += 1
+						b_activated_nodes.append(count_nodes)
+						for i in plp.lambda_state:
+							if i == 1:
+								count_lambdas += 1
+						b_activated_lambdas.append(count_lambdas)
+						for i in plp.du_state:
+							for j in i:
+								if j == 1:
+									count_dus += 1
+						b_activated_dus.append(count_dus)
+						for i in plp.switch_state:
+							if i == 1:
+								count_switches += 1
+						b_activated_switchs.append(count_switches)
+			yield self.env.timeout(0.5)
+
+	#calculate the usage of each processing node
+	def getProcUsage(self, plp):
+		nodes_usage = []
+		for i in range(len(plp.du_processing)):
+			nodes_usage.append((sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i]))
+		return nodes_usage
 
 	#take requests and tries to allocate on a RRH
 	def run(self):
@@ -728,13 +806,15 @@ class Control_Plane(object):
 	#the incremental scheduling is only performed again when the load is under certain threshold
 	def loadIncBatchSched(self, r, antenas, ilp_module):
 		#verifies if is it time to call the batch scheduling
-		if len(actives) >= load_threshold:
+		s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
+		#if len(actives) >= load_threshold:
 			#calls the batch scheduling
-			s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
-		else:
-			s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
+		#	s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+		#		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
+		#else:
+		#	s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+		#		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 
 	#count resources during the execution
 	def count_inc_resources(self, ilp_module, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs):
