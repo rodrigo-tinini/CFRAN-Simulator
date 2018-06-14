@@ -10,7 +10,7 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
-network_threshold = 0.5
+network_threshold = 0.8
 traffic_quocient = 50
 inc_block = 0
 batch_block = 0
@@ -236,7 +236,7 @@ class Traffic_Generator(object):
 			self.req_count += 1
 			#takes the first turned off RRH
 			if rrhs:
-				print(len(rrhs))
+				#print(len(rrhs))
 				r = rrhs.pop()
 				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
 				self.cp.requests.put(r)
@@ -554,6 +554,7 @@ class Control_Plane(object):
 		self.ilp = None
 		self.util = util
 		self.ilpBatch = None
+		self.check_load = simpy.Store(self.env)
 		if self.type == "load_inc_batch":
 			self.load_balancing = self.env.process(self.monitorLoad())
 
@@ -561,14 +562,25 @@ class Control_Plane(object):
 	def monitorLoad(self):
 		proc_loads = [0,0,0]
 		while True:
+			batch_done = False
+			#print("AQUIII")
+			yield self.check_load.get()
+			#print("Saiu alguém")
+			print("---Normal Operation---")
 			print(plp.nodeState)
+			print(len(actives))
+			print("##Normal Operation##")
 			for i in range(len(plp.du_processing)):
 				proc_loads[i] = (sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i])
-			for i in proc_loads:
-				if i <= network_threshold:
+			for i in range(len(proc_loads)):
+				if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False:
 					#call the batch
+					print("########")
 					print("Load balancing")
 					print(plp.nodeState)
+					print(len(actives))
+					print("Load is {} in {}".format(proc_loads[i], i))
+					print("########")
 					count_nodes = 0
 					count_lambdas = 0
 					count_dus = 0
@@ -590,7 +602,7 @@ class Control_Plane(object):
 						batch_power_consumption.append(self.util.getPowerConsumption(plp))
 						batch_blocking.append(1)
 					else:
-						print(solution.solve_details.time)
+						#print(solution.solve_details.time)
 						solution_values = self.ilp.return_solution_values()
 						self.ilp.updateValues(solution_values)
 						batch_time.append(solution.solve_details.time)
@@ -623,7 +635,7 @@ class Control_Plane(object):
 							if i == 1:
 								count_switches += 1
 						b_activated_switchs.append(count_switches)
-			yield self.env.timeout(0.5)
+						batch_done = True
 
 	#calculate the usage of each processing node
 	def getProcUsage(self, plp):
@@ -735,7 +747,7 @@ class Control_Plane(object):
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 		else:
-			print(solution.solve_details.time)
+			#print(solution.solve_details.time)
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
 			batch_time.append(solution.solve_details.time)
@@ -917,6 +929,7 @@ class Control_Plane(object):
 			elif self.type == "inc_batch":
 				self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
 		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
+			self.check_load.put(r)
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
