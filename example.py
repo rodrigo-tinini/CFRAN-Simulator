@@ -18,53 +18,69 @@ total_inc_power = []
 total_batch_power = []
 total_inc_batch = []
 total_inc_batch2 = []
+total_inc_batch3 = []
+total_inc_batch4 = []
 
 #lists of activated nodes means
 total_inc_nodes = []
 total_batch_nodes = []
 total_inc_batch_nodes = []
 total_inc_batch_nodes2 = []
+total_inc_batch_nodes3 = []
+total_inc_batch_nodes4 = []
 
 #lists of activated DUs means
 total_inc_DUs = []
 total_batch_DUs = []
 total_inc_batch_DUs = []
 total_inc_batch_DUs2 = []
+total_inc_batch_DUs3 = []
+total_inc_batch_DUs4 = []
 
 #lists of activated switches means
 total_inc_switches = []
 total_batch_switches = []
 total_inc_batch_switches = []
 total_inc_batch_switches2 = []
+total_inc_batch_switches3 = []
+total_inc_batch_switches4 = []
 
 #lists of activated lambdas means
 total_inc_lambdas = []
 total_batch_lambdas = []
 total_inc_batch_lambdas = []
 total_inc_batch_lambdas2 = []
+total_inc_batch_lambdas3 = []
+total_inc_batch_lambdas4 = []
 
 #lists of redirectes RRHs means
 total_inc_redir = []
 total_batch_redir = []
 total_inc_batch_redir = []
 total_inc_batch_redir2 = []
+total_inc_batch_redir3 = []
+total_inc_batch_redir4 = []
 
 #lists of blocked RRHs means
 total_inc_blocked = []
 total_batch_blocked = []
 total_inc_batch_blocked = []
 total_inc_batch_blocked2 = []
+total_inc_batch_blocked3 = []
+total_inc_batch_blocked4 = []
 
 #lists of solutions time means
 total_inc_time = []
 total_batch_time = []
 total_inc_batch_time = []
 total_inc_batch_time2 = []
+total_inc_batch_time3 = []
+total_inc_batch_time4 = []
 
 #lists
 exec_number = 20
 util = sim.Util()
-sim.load_threshold = 10
+#sim.load_threshold = 10
 #incremental simulation
 
 number_of_rrhs = 35
@@ -124,10 +140,10 @@ for i in range(exec_number):
 #batch simulation
 
 for i in range(exec_number):
-	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("STARTING INC BATCH SIMULATION 1 ---STARTING BATCH SIMULATION 1 ---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, util, "inc_batch")
+	cp = sim.Control_Plane(env, util, "load_inc_batch")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
@@ -150,15 +166,15 @@ for i in range(exec_number):
 	util.resetParams()
 
 	#batch simulation
-
+sim.network_threshold = 0.6
 sim.count_rrhs = 0
-old_th = 10
-sim.load_threshold = 5
+old_th = 0.8
+#sim.load_threshold = 5
 for i in range(exec_number):
-	print("STARTING INC BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, util, "inc_batch")
+	cp = sim.Control_Plane(env, util, "load_inc_batch")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
@@ -178,6 +194,68 @@ for i in range(exec_number):
 	total_inc_batch_switches2.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked2.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time2.append(sim.avg_time_inc_batch)
+
+	util.resetParams()
+
+sim.network_threshold = 0.4
+sim.count_rrhs = 0
+old_th2 = 0.6
+#sim.load_threshold = 5
+for i in range(exec_number):
+	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("Execution # {}".format(i))
+	env = simpy.Environment()
+	cp = sim.Control_Plane(env, util, "load_inc_batch")
+	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
+	np.shuffle(sim.rrhs)
+	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
+	print("\Begin at "+str(env.now))
+	env.run(until = 86401)
+	print("\End at "+str(env.now))
+	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	print(sim.inc_batch_average_consumption)
+	print("-------------------------------------")
+	print(len(sim.inc_batch_average_consumption))
+	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	total_inc_batch3.append(sim.inc_batch_average_consumption)
+	total_inc_batch_nodes3.append(sim.inc_batch_average_act_nodes)
+	total_inc_batch_DUs3.append(sim.inc_batch_average_act_dus)
+	total_inc_batch_lambdas3.append(sim.inc_batch_average_act_lambdas)
+	total_inc_batch_redir3.append(sim.inc_batch_average_redir_rrhs)
+	total_inc_batch_switches3.append(sim.inc_batch_average_act_switch)
+	total_inc_batch_blocked3.append(sim.total_inc_batch_blocking)
+	total_inc_batch_time3.append(sim.avg_time_inc_batch)
+
+	util.resetParams()
+
+sim.network_threshold = 0.2
+sim.count_rrhs = 0
+old_th3 = 0.4
+#sim.load_threshold = 5
+for i in range(exec_number):
+	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("Execution # {}".format(i))
+	env = simpy.Environment()
+	cp = sim.Control_Plane(env, util, "load_inc_batch")
+	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
+	np.shuffle(sim.rrhs)
+	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
+	print("\Begin at "+str(env.now))
+	env.run(until = 86401)
+	print("\End at "+str(env.now))
+	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	print(sim.inc_batch_average_consumption)
+	print("-------------------------------------")
+	print(len(sim.inc_batch_average_consumption))
+	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	total_inc_batch4.append(sim.inc_batch_average_consumption)
+	total_inc_batch_nodes4.append(sim.inc_batch_average_act_nodes)
+	total_inc_batch_DUs4.append(sim.inc_batch_average_act_dus)
+	total_inc_batch_lambdas4.append(sim.inc_batch_average_act_lambdas)
+	total_inc_batch_redir4.append(sim.inc_batch_average_redir_rrhs)
+	total_inc_batch_switches4.append(sim.inc_batch_average_act_switch)
+	total_inc_batch_blocked4.append(sim.total_inc_batch_blocking)
+	total_inc_batch_time4.append(sim.avg_time_inc_batch)
 
 	util.resetParams()
 
@@ -211,7 +289,9 @@ print(batch_standard_deviations)
 total_average_inc_power = [float(sum(col))/len(col) for col in zip(*total_inc_power)]
 total_average_batch_power = [float(sum(col))/len(col) for col in zip(*total_batch_power)]
 total_average_inc_batch_power = [float(sum(col))/len(col) for col in zip(*total_inc_batch)]
-total_average_inc_batch_power2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch2)] 
+total_average_inc_batch_power2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch2)]
+total_average_inc_batch_power3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch3)] 
+total_average_inc_batch_power4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch4)]  
 #inc
 inc_nodes_mean = [float(sum(col))/len(col) for col in zip(*total_inc_nodes)]
 inc_dus_mean=	[float(sum(col))/len(col) for col in zip(*total_inc_DUs)]
@@ -244,6 +324,22 @@ inc_batch_redir_mean2=	[float(sum(col))/len(col) for col in zip(*total_inc_batch
 inc_batch_switches_mean2=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_switches2)]
 inc_batch_blocked_mean2=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_blocked2)]
 inc_batch_time_mean2=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_time2)]
+#inc_batch3
+inc_batch_nodes_mean3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_nodes3)]
+inc_batch_dus_mean3=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_DUs3)]
+inc_batch_lambdas_mean3=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_lambdas3)]
+inc_batch_redir_mean3=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_redir3)]
+inc_batch_switches_mean3=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_switches3)]
+inc_batch_blocked_mean3=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_blocked3)]
+inc_batch_time_mean3=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_time3)]
+#inc_batch4
+inc_batch_nodes_mean4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_nodes4)]
+inc_batch_dus_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_DUs4)]
+inc_batch_lambdas_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_lambdas4)]
+inc_batch_redir_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_redir4)]
+inc_batch_switches_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_switches4)]
+inc_batch_blocked_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_blocked4)]
+inc_batch_time_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_time4)]
 
 
 
@@ -275,10 +371,12 @@ power_max = max(max_power)
 
 
 #generate the plots for power consumption
-plt.plot(total_average_inc_power,marker='o', label = "Incremental ILP")
-plt.plot(total_average_inc_batch_power,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(total_average_inc_batch_power2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(total_average_batch_power,marker='^', label = "Pure Batch ILP")
+plt.plot(total_average_inc_power,marker='o', label = "No-nfvLB")
+plt.plot(total_average_inc_batch_power,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(total_average_inc_batch_power2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(total_average_inc_batch_power3,marker='v', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(total_average_inc_batch_power4,marker='v', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(total_average_batch_power,marker='^', label = "PureBatch-nfvLB ")
 #plt.errorbar(x, total_average_inc_batch_power, yerr=batch_ci, fmt='none')
 #plt.errorbar(x, total_average_inc_power, yerr=inc_ci, fmt='none')
 #plt.xticks(numpy.arange(0, 24, 1))
@@ -287,112 +385,126 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for activated nodes
-plt.plot(inc_nodes_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_nodes_mean, marker='v',label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_nodes_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_nodes_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_nodes_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_nodes_mean, marker='v',label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_nodes_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_nodes_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_nodes_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_nodes_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 4,1))
 plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for activated DUs
-plt.plot(inc_dus_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_dus_mean,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_dus_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_dus_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_dus_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_dus_mean,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_dus_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_dus_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_dus_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_dus_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 10,1))
 plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for activated lambdas
-plt.plot(inc_lambdas_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_lambdas_mean,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_lambdas_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_lambdas_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_lambdas_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_lambdas_mean,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_lambdas_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_lambdas_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_lambdas_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_lambdas_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 5,1))
 plt.ylabel('Activated lambdas')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for redirected RRHs
-plt.plot(inc_redir_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_redir_mean,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_redir_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_redir_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_redir_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_redir_mean,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_redir_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_redir_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_redir_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_redir_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 500,50))
 plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for activated switches
-plt.plot(inc_switches_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_switches_mean,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_switches_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_switches_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_switches_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_switches_mean,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_switches_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_switches_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_switches_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_switches_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 5,0.5))
 plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for blocked RRHs
-plt.plot(inc_blocked_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_blocked_mean,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_blocked_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_blocked_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_blocked_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_blocked_mean,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_blocked_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_blocked_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_blocked_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_blocked_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 30,5))
 plt.ylabel('Blocked RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #plot for solution times
-plt.plot(inc_time_mean,marker='o', label = "Incremental ILP")
-plt.plot(inc_batch_time_mean,marker='v', label = "Batch ILP Threshold = {}".format(old_th))
-plt.plot(inc_batch_time_mean2,marker='h', label = "Batch ILP Threshold = {}".format(sim.load_threshold))
-plt.plot(batch_time_mean,marker='^', label = "Pure Batch ILP")
+plt.plot(inc_time_mean,marker='o', label = "No-nfvLB")
+plt.plot(inc_batch_time_mean,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(inc_batch_time_mean2,marker='h', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(inc_batch_time_mean3,marker='h', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(inc_batch_time_mean4,marker='h', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(batch_time_mean,marker='^', label = "PureBatch-nfvLB")
 #plt.xticks(numpy.arange(0, 24, 1))
 #plt.yticks(numpy.arange(0, 1, 0.05))
 plt.ylabel('Solution Time')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/plots_new_st/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 print("Redirected")
