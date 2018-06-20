@@ -77,13 +77,37 @@ total_inc_batch_time2 = []
 total_inc_batch_time3 = []
 total_inc_batch_time4 = []
 
+#lists of external migrations means
+total_inc_migrations = []
+total_batch_migrations = []
+total_inc_batch_migrations = []
+total_inc_batch_migrations2 = []
+total_inc_batch_migrations3 = []
+total_inc_batch_migrations4 = []
+
+#lists of bandwidth usage
+total_inc_lambda_usage = []
+total_batch_lambda_usage = []
+total_inc_batch_lambda_usage = []
+total_inc_batch_lambda_usage2 = []
+total_inc_batch_lambda_usage3 = []
+total_inc_batch_lambda_usage4 = []
+
+#lists of proc usage
+total_inc_proc_usage = []
+total_batch_proc_usage = []
+total_inc_batch_proc_usage = []
+total_inc_batch_proc_usage2 = []
+total_inc_batch_proc_usage3 = []
+total_inc_batch_proc_usage4 = []
+
 #lists
-exec_number = 20
+exec_number = 10
 util = sim.Util()
 #sim.load_threshold = 10
 #incremental simulation
 
-number_of_rrhs = 35
+number_of_rrhs = sim.rrhs_quantity
 
 for i in range(exec_number):
 	print("STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
@@ -109,6 +133,9 @@ for i in range(exec_number):
 	total_batch_switches.append(sim.b_average_act_switch)
 	total_batch_blocked.append(sim.total_batch_blocking)
 	total_batch_time.append(sim.avg_time_b)
+	total_batch_migrations.append(sim.avg_external_migrations)
+	total_batch_lambda_usage.append(sim.avg_lambda_usage)
+	total_batch_proc_usage.append(sim.avg_proc_usage)
 	util.resetParams()
 
 for i in range(exec_number):
@@ -135,6 +162,9 @@ for i in range(exec_number):
 	total_inc_switches.append(sim.average_act_switch)
 	total_inc_blocked.append(sim.total_inc_blocking)
 	total_inc_time.append(sim.avg_time_inc)
+	total_inc_migrations.append(sim.avg_external_migrations)
+	total_inc_lambda_usage.append(sim.avg_lambda_usage)
+	total_inc_proc_usage.append(sim.avg_proc_usage)
 	util.resetParams()
 
 #batch simulation
@@ -163,6 +193,9 @@ for i in range(exec_number):
 	total_inc_batch_switches.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time.append(sim.avg_time_inc_batch)
+	total_inc_batch_migrations.append(sim.avg_external_migrations)
+	total_inc_batch_lambda_usage.append(sim.avg_lambda_usage)
+	total_inc_batch_proc_usage.append(sim.avg_proc_usage)
 	util.resetParams()
 
 	#batch simulation
@@ -194,7 +227,9 @@ for i in range(exec_number):
 	total_inc_batch_switches2.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked2.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time2.append(sim.avg_time_inc_batch)
-
+	total_inc_batch_migrations2.append(sim.avg_external_migrations)
+	total_inc_batch_lambda_usage2.append(sim.avg_lambda_usage)
+	total_inc_batch_proc_usage2.append(sim.avg_proc_usage)
 	util.resetParams()
 
 sim.network_threshold = 0.4
@@ -225,7 +260,9 @@ for i in range(exec_number):
 	total_inc_batch_switches3.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked3.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time3.append(sim.avg_time_inc_batch)
-
+	total_inc_batch_migrations3.append(sim.avg_external_migrations)
+	total_inc_batch_lambda_usage3.append(sim.avg_lambda_usage)
+	total_inc_batch_proc_usage3.append(sim.avg_proc_usage)
 	util.resetParams()
 
 sim.network_threshold = 0.2
@@ -256,8 +293,11 @@ for i in range(exec_number):
 	total_inc_batch_switches4.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked4.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time4.append(sim.avg_time_inc_batch)
-
+	total_inc_batch_migrations4.append(sim.avg_external_migrations)
+	total_inc_batch_lambda_usage4.append(sim.avg_lambda_usage)
+	total_inc_batch_proc_usage4.append(sim.avg_proc_usage)
 	util.resetParams()
+
 
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0*numpy.array(data)
@@ -285,6 +325,27 @@ print(batch_standard_deviations)
 
 
 #means
+#lambdas usage
+avg_total_inc_lambda_usage = [float(sum(col))/len(col) for col in zip(*total_inc_lambda_usage)]
+avg_total_batch_lambda_usage = [float(sum(col))/len(col) for col in zip(*total_batch_lambda_usage)]
+avg_total_inc_batch_lambda_usage = [float(sum(col))/len(col) for col in zip(*total_inc_batch_lambda_usage)]
+avg_total_inc_batch_lambda_usage2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_lambda_usage2)]
+avg_total_inc_batch_lambda_usage3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_lambda_usage3)]
+avg_total_inc_batch_lambda_usage4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_lambda_usage4)]
+#procs usage
+avg_total_inc_proc_usage = [float(sum(col))/len(col) for col in zip(*total_inc_proc_usage)]
+avg_total_batch_proc_usage = [float(sum(col))/len(col) for col in zip(*total_batch_proc_usage)]
+avg_total_inc_batch_proc_usage = [float(sum(col))/len(col) for col in zip(*total_inc_batch_proc_usage)]
+avg_total_inc_batch_proc_usage2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_proc_usage2)]
+avg_total_inc_batch_proc_usage3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_proc_usage3)]
+avg_total_inc_batch_proc_usage4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_proc_usage4)]
+#migrations
+avg_total_inc_migrations = [float(sum(col))/len(col) for col in zip(*total_inc_migrations)]
+avg_total_batch_migrations = [float(sum(col))/len(col) for col in zip(*total_batch_migrations)]
+avg_total_inc_batch_migrations = [float(sum(col))/len(col) for col in zip(*total_inc_batch_migrations)]
+avg_total_inc_batch_migrations2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_migrations2)]
+avg_total_inc_batch_migrations3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_migrations3)]
+avg_total_inc_batch_migrations4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_migrations4)]
 #power
 total_average_inc_power = [float(sum(col))/len(col) for col in zip(*total_inc_power)]
 total_average_batch_power = [float(sum(col))/len(col) for col in zip(*total_batch_power)]
@@ -368,6 +429,50 @@ max_power.append(total_average_inc_batch_power2)
 power_min = min(min_power)
 power_max = max(max_power)
 
+#plot for lambdas usage
+plt.plot(avg_total_inc_lambda_usage,marker='o', label = "No-nfvLB")
+plt.plot(avg_total_inc_batch_lambda_usage,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(avg_total_inc_batch_lambda_usage2,marker='v', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(avg_total_inc_batch_lambda_usage3,marker='v', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(avg_total_inc_batch_lambda_usage4,marker='v', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(avg_total_batch_lambda_usage,marker='^', label = "PureBatch-nfvLB ")
+plt.ylabel('Bandwidth Usage')
+plt.xlabel("Time of the day")
+plt.legend(loc="upper left",prop={'size': 8})
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/lambda_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
+#plt.show()
+plt.clf()
+
+#plot for DUs usage
+plt.plot(avg_total_inc_proc_usage,marker='o', label = "No-nfvLB")
+plt.plot(avg_total_inc_batch_proc_usage,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(avg_total_inc_batch_proc_usage2,marker='v', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(avg_total_inc_batch_proc_usage3,marker='v', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(avg_total_inc_batch_proc_usage4,marker='v', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(avg_total_batch_proc_usage,marker='^', label = "PureBatch-nfvLB ")
+plt.ylabel('Virtualized DUs Usage')
+plt.xlabel("Time of the day")
+plt.legend(loc="upper left",prop={'size': 8})
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/procs_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
+#plt.show()
+plt.clf()
+
+#plot for external migrations
+plt.plot(avg_total_inc_migrations,marker='o', label = "No-nfvLB")
+plt.plot(avg_total_inc_batch_migrations,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+plt.plot(avg_total_inc_batch_migrations2,marker='v', label = "nfvLB Threshold = {}".format(old_th2))
+plt.plot(avg_total_inc_batch_migrations3,marker='v', label = "nfvLB Threshold = {}".format(old_th3))
+plt.plot(avg_total_inc_batch_migrations4,marker='v', label = "nfvLB Threshold = {}".format(sim.network_threshold))
+plt.plot(avg_total_batch_migrations,marker='^', label = "PureBatch-nfvLB ")
+plt.ylabel('Inter Node Service Interruption Probability')
+plt.xlabel("Time of the day")
+plt.legend(loc="upper left",prop={'size': 6})
+plt.grid()
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/migrations{}.png'.format(number_of_rrhs), bbox_inches='tight')
+#plt.show()
+plt.clf()
 
 
 #generate the plots for power consumption
@@ -385,7 +490,7 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -402,7 +507,7 @@ plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -419,7 +524,7 @@ plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -436,7 +541,7 @@ plt.ylabel('Activated lambdas')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -453,7 +558,7 @@ plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -470,7 +575,7 @@ plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -487,7 +592,7 @@ plt.ylabel('Blocked RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -504,7 +609,7 @@ plt.ylabel('Solution Time')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 print("Redirected")

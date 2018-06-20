@@ -6,7 +6,6 @@ import time
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-from docplex.mp.relaxer import Relaxer
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
@@ -30,15 +29,6 @@ class ILP(object):
 		#self.du_cost = du_cost
 		#self.switch_cost = switch_cost
 
-	#run relax version
-	def relax_run(self):
-		self.setModel()
-		self.setConstraints()
-		self.setObjective()
-		rx = Relaxer(prioritizer='all')
-		sol = rx.relax(self.mdl)
-		return sol
-
 	#run the formulation
 	def run(self):
 		self.setModel()
@@ -58,30 +48,25 @@ class ILP(object):
 		 
 		#Decision variables
 		#x[rrhs][lambdas][nodes];
-		self.x = self.mdl.continuous_var_dict(self.idx_ijw, lb = 0.001, ub = 1.0, name = 'RRH/Node/Lambda', key_format = "")
+		self.x = self.mdl.continuous_var_dict(self.idx_ijw, name = 'RRH/Node/Lambda', key_format = "")
 		#u[rrhs][lambdas][nodes];
-		self.u = self.mdl.continuous_var_dict(self.idx_ijw,lb = 0.001, ub = 1.0, name = 'RRH/Node/DU')
+		self.u = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/DU')
 		#y[rrhs][nodes];
-		self.y = self.mdl.continuous_var_dict(self.idx_ij,lb = 0.001, ub = 1.0, name = 'RRH/Node')
+		self.y = self.mdl.binary_var_dict(self.idx_ij, name = 'RRH/Node')
 		#k[rrhs][nodes];
-		self.k = self.mdl.continuous_var_dict(self.idx_ij,lb = 0.001, ub = 1.0, name = 'Redirection of RRH in Node')
+		self.k = self.mdl.binary_var_dict(self.idx_ij, name = 'Redirection of RRH in Node')
 		#rd[lambdas][nodes];
-		self.rd = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.001, ub = 1.0, name = 'DU in Node used for redirection')
+		self.rd = self.mdl.binary_var_dict(self.idx_wj, name = 'DU in Node used for redirection')
 		#s[lambdas][nodes];
-		self.s = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.001, ub = 1.0, name = 'DU activated in node')
+		self.s = self.mdl.binary_var_dict(self.idx_wj, name = 'DU activated in node')
 		#e[nodes];
-		self.e = self.mdl.continuous_var_dict(self.idx_j,lb = 0.001, ub = 1.0, name = "Switch/Node")
+		self.e = self.mdl.binary_var_dict(self.idx_j, name = "Switch/Node")
 		#g[rrhs][lambdas][nodes];
-		self.g = self.mdl.continuous_var_dict(self.idx_ijw,lb = 0.001, ub = 1.0, name = 'Redirection of RRH in Node in DU')
+		self.g = self.mdl.binary_var_dict(self.idx_ijw, name = 'Redirection of RRH in Node in DU')
 		#xn[nodes];
-		self.xn = self.mdl.continuous_var_dict(self.idx_j,lb = 0.001, ub = 1.0, name = 'Node activated')
+		self.xn = self.mdl.binary_var_dict(self.idx_j, name = 'Node activated')
 		#z[lambdas][nodes];
-		self.z = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.001, ub = 1.0, name = 'Lambda in Node')
-
-	def relax(self,mdl):
-		rx = Relaxer(prioritizer='all')
-		sol = rx.relax(mdl)
-		return sol
+		self.z = self.mdl.binary_var_dict(self.idx_wj, name = 'Lambda in Node')
 
 	#create constraints
 	def setConstraints(self):
@@ -117,7 +102,7 @@ class ILP(object):
 		#self.mdl.add_constraints(self.y[i,j] >= self.x[i,j,w] + self.fog[i][j] - 1 for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#self.mdl.add_constraints(self.y[i,j] <= self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#this constraints guarantees that each rrh can be allocated to either the cloud or a specific fog node
-		self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes) #PRECISO ARRUMAR ESSA RESTRIÇÃO PQ ELA ESTÁ IMPEDINDO O MODELO RELAXADO DE RODAR
+		self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.z[w,j] <= lambda_node[w][j] for w in self.lambdas for j in self.nodes)
 
 	#set the objective function
@@ -728,7 +713,7 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 ]
 du_processing = [
-[15.0, 15.0, 5.0, 5.0, 5.0],
+[5.0, 5.0, 5.0, 5.0, 5.0],
 [2.0, 2.0, 2.0, 2.0, 2.0],
 [2.0, 2.0, 2.0, 2.0, 2.0],
 
@@ -788,20 +773,18 @@ lambdas = range(0, 5)
 
 
 u = Util()
-antenas = u.newCreateRRHs(30)
-#for i in antenas:
-#	print(i.rrhs_matrix)
+antenas = u.newCreateRRHs(45)
+for i in antenas:
+	print(i.rrhs_matrix)
 #for i in range(len(antenas)):
 #	print(antenas[i].rrhs_matrix)
 np.shuffle(antenas)
 ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
 s = ilp.run()
-#sol = ilp.return_solution_values()
-#ilp.print_var_values()
+sol = ilp.return_solution_values()
+ilp.print_var_values()
 #ilp.updateValues(sol)
 print("Solving time: {}".format(s.solve_details.time))
-for i in ilp.u:
-	print("{} is {}".format(ilp.u[i],ilp.u[i].solution_value))
 
 '''
 print(du_processing)

@@ -10,8 +10,28 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 
+external_migrations = 0
+internal_migrations = 0
+avg_external_migrations = []
+avg_internal_migrations = []
+
+lambda_usage = []
+avg_lambda_usage = []
+proc_usage = []
+avg_proc_usage = []
+
+dus_total_capacity = [
+		[5.0, 5.0, 5.0, 5.0, 5.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0],
+		]
+
+dus_capacity = [5,1,1]
+
 network_threshold = 0.8
 traffic_quocient = 50
+rrhs_quantity = 10
+served_requests = 0
 inc_block = 0
 batch_block = 0
 count = 0
@@ -266,6 +286,7 @@ class Traffic_Generator(object):
 			global inc_batch_power_consumption
 			global incremental_blocking
 			global batch_blocking
+			global served_requests
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -291,6 +312,10 @@ class Traffic_Generator(object):
 				self.countIncBatchAverages()
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			#print("Was served {}".format(served_requests))
+			served_requests = 0
+			#print("Total Node Migrations: {}".format(avg_external_migrations))
+			#print("Total In Node Migrations: {}".format(avg_internal_migrations))
 			total_period_requests = 0
 
 	#count averages consumptions and active resources for any case
@@ -319,6 +344,35 @@ class Traffic_Generator(object):
 		global inc_batch_activated_switchs
 		global inc_batch_average_act_switch
 		global inc_batch_blocking
+		global avg_external_migrations
+		global avg_internal_migrations
+		global external_migrations
+		global internal_migrations
+		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
+		
+		if lambda_usage:
+			avg_lambda_usage.append(numpy.mean(lambda_usage))
+			lambda_usage = []
+		else:
+			avg_lambda_usage.append(0.0)
+
+		if proc_usage:
+			avg_proc_usage.append(numpy.mean(proc_usage))
+			proc_usage = []
+		else:
+			avg_proc_usage.append(0.0)
+
+		if external_migrations:
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			avg_external_migrations.append(0)
+
+		if internal_migrations:
+			avg_internal_migrations.append(internal_migrations)
+			external_migrations = 0
+		else:
+			avg_internal_migrations.append(0)
 		
 		if inc_batch_blocking:
 			total_inc_batch_blocking.append(sum((inc_batch_blocking)))
@@ -397,7 +451,19 @@ class Traffic_Generator(object):
 		global count_cloud
 		global count_fog
 		global inc_blocking
-		#print(inc_blocking)
+		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
+		
+		if lambda_usage:
+			avg_lambda_usage.append(numpy.mean(lambda_usage))
+			lambda_usage = []
+		else:
+			avg_lambda_usage.append(0.0)
+
+		if proc_usage:
+			avg_proc_usage.append(numpy.mean(proc_usage))
+			proc_usage = []
+		else:
+			avg_proc_usage.append(0.0)
 		
 		if inc_blocking:
 			total_inc_blocking.append(sum((inc_blocking)))
@@ -473,6 +539,19 @@ class Traffic_Generator(object):
 		global b_count_fog
 		global batch_rrhs_wait_time
 		global batch_blocking
+		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
+		
+		if lambda_usage:
+			avg_lambda_usage.append(numpy.mean(lambda_usage))
+			lambda_usage = []
+		else:
+			avg_lambda_usage.append(0.0)
+
+		if proc_usage:
+			avg_proc_usage.append(numpy.mean(proc_usage))
+			proc_usage = []
+		else:
+			avg_proc_usage.append(0.0)
 
 		if batch_blocking:
 			total_batch_blocking.append(sum((batch_blocking)))
@@ -560,6 +639,13 @@ class Control_Plane(object):
 			self.load_balancing = self.env.process(self.monitorLoad())
 			#self.cloud_balancing = self.env.process(self.cloudMonitor())
 
+
+	#count external migrations
+	def extMigrations(self, plp, copy_nodeState):
+		global external_migrations
+		if copy_nodeState != plp.nodeState:
+			external_migrations += 1
+
 	#monitors the network and triggers the load balancing
 	def cloudMonitor(self):
 		while True:
@@ -574,12 +660,12 @@ class Control_Plane(object):
 			#Verify the cloud can handle the load on the DUs of the F-APs (fog nodes)
 			if sum(plp.du_processing):
 				#call the batch
-				print("########")
+				#print("########")
 				print("Load balancing")
-				print(plp.nodeState)
-				print(len(actives))
-				print("Load is {} in {}".format(proc_loads[i], i))
-				print("########")
+				#print(plp.nodeState)
+				#print(len(actives))
+				#print("Load is {} in {}".format(proc_loads[i], i))
+				#print("########")
 				count_nodes = 0
 				count_lambdas = 0
 				count_dus = 0
@@ -635,6 +721,12 @@ class Control_Plane(object):
 							count_switches += 1
 					b_activated_switchs.append(count_switches)
 					batch_done = True
+					#count DUs and lambdas usage
+					if count_lambdas > 0:
+						lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+					if count_dus > 0:
+						proc_usage.append(len(actives)/self.getProcUsage(plp))
+
 
 	#monitors the network and triggers the load balancing
 	def monitorLoad(self):
@@ -653,12 +745,18 @@ class Control_Plane(object):
 			#for i in range(len(proc_loads)):
 			#	if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False:
 					#call the batch
-			print("########")
+			#print("########")
 			print("Load balancing")
-			print(plp.nodeState)
-			print(len(actives))
+			#print(len(actives))
+			#print(plp.lambda_node)
+			#self.getProcUsage(plp)
+			#print(plp.nodeState)
+			#print(len(actives))
+			#print("Nodes actives are: {}".format(plp.nodeState))
+			#print("Lambdas actives are: {}".format(plp.lambda_node))
+			#print("DUs load are: {}".format(plp.du_processing))
 			#print("Load is {} in {}".format(proc_loads[i], i))
-			print("########")
+			#print("########")
 			count_nodes = 0
 			count_lambdas = 0
 			count_dus = 0
@@ -680,6 +778,7 @@ class Control_Plane(object):
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				batch_blocking.append(1)
 			else:
+				copy_state = copy.copy(plp.nodeState)
 				#print(solution.solve_details.time)
 				solution_values = self.ilp.return_solution_values()
 				self.ilp.updateValues(solution_values)
@@ -689,6 +788,16 @@ class Control_Plane(object):
 				#print("Gen is {} ".format(r.generationTime))
 				#print("NOW {} ".format(r.waitingTime))
 			#	self.env.process(r.run())
+				#print("After Load balancing")
+				#print(plp.nodeState)
+				#print(len(actives))
+				#print("Nodes actives are: {}".format(plp.nodeState))
+				#print("Lambdas actives are: {}".format(plp.lambda_node))
+				#print("DUs load are: {}".format(plp.du_processing))
+				#print("Load is {} in {}".format(proc_loads[i], i))
+				#print("########")
+				#counts the external migrations
+				self.extMigrations(plp, copy_state)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 				if solution_values.var_k:
@@ -714,14 +823,23 @@ class Control_Plane(object):
 						count_switches += 1
 				b_activated_switchs.append(count_switches)
 				#batch_done = True
+				#count DUs and lambdas usage
+				if count_lambdas > 0:
+					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+				if count_dus > 0:
+					proc_usage.append(len(actives)/self.getProcUsage(plp))
+
 
 	#calculate the usage of each processing node
 	def getProcUsage(self, plp):
-		nodes_usage = []
-		for i in range(len(plp.du_processing)):
-			nodes_usage.append((sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i]))
-		return nodes_usage
-
+		du_usage = 0
+		#counts the active DUs
+		for i in range(len(plp.du_state)):
+			du_usage += sum(plp.du_state[i])*dus_capacity[i]
+		print("Active DUs {}".format(plp.du_state))
+		print("Processing Usage {}".format(du_usage))
+		return du_usage
+			
 	#take requests and tries to allocate on a RRH
 	def run(self):
 		global total_aloc
@@ -760,7 +878,10 @@ class Control_Plane(object):
 		self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas)
 		solution = self.ilp.run()
 		if solution == None:
-			print("Incremental Blocking")
+			#print("Incremental Blocking")
+			#print("Nodes actives are: {}".format(plp.nodeState))
+			#print("Lambdas actives are: {}".format(plp.lambda_node))
+			#print("DUs load are: {}".format(plp.du_processing))
 			#verifies if it is the nfv control plane
 			if self.type == "load_inc_batch":
 				s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
@@ -774,6 +895,10 @@ class Control_Plane(object):
 				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 				return solution
 		else:
+			#print("Success")
+			#print("Nodes actives are: {}".format(plp.nodeState))
+			#print("Lambdas actives are: {}".format(plp.lambda_node))
+			#print("DUs load are: {}".format(plp.du_processing))
 			#print("Success")
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
@@ -807,6 +932,11 @@ class Control_Plane(object):
 				if i == 1:
 					count_switches += 1
 			activated_switchs.append(count_switches)
+			#count DUs and lambdas usage
+			if count_lambdas > 0:
+				lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+			if count_dus > 0:
+				proc_usage.append(len(actives)/self.getProcUsage(plp))
 			return solution
 
 	#batch scheduling
@@ -866,6 +996,11 @@ class Control_Plane(object):
 				if i == 1:
 					count_switches += 1
 			b_activated_switchs.append(count_switches)
+			#count DUs and lambdas usage
+			if count_lambdas > 0:
+				lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+			if count_dus > 0:
+				proc_usage.append(len(actives)/self.getProcUsage(plp))
 			return solution
 
 	#calculates the average waiting time of RRHs to be scheduled
@@ -946,6 +1081,12 @@ class Control_Plane(object):
 			if i == 1:
 				count_switches += 1
 		activated_switchs.append(count_switches)
+		#count DUs and lambdas usage
+		if count_lambdas > 0:
+			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+		if count_dus > 0:
+			proc_usage.append(len(actives)/self.getProcUsage(plp))
+
 
 	def count_batch_resources(self, ilp_module, batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs):
 		count_nodes = 0
@@ -971,6 +1112,12 @@ class Control_Plane(object):
 			if i == 1:
 				count_switches += 1
 		b_activated_switchs.append(count_switches)
+		#count DUs and lambdas usage
+		if count_lambdas > 0:
+			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+		if count_dus > 0:
+			proc_usage.append(len(actives)/self.getProcUsage(plp))
+
 
 	def count_inc_batch_resources(self, ilp_module, inc_batch_power_consumption,inc_batch_activated_nodes, 
 		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs):
@@ -998,19 +1145,23 @@ class Control_Plane(object):
 			if i == 1:
 				count_switches += 1
 		inc_batch_activated_switchs.append(count_switches)
-
-
+		#count DUs and lambdas usage
+		if count_lambdas > 0:
+			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+		if count_dus > 0:
+			proc_usage.append(len(actives)/self.getProcUsage(plp))
 
 	#starts the deallocation of a request
 	def depart_request(self):
 		global rrhs
+		global served_requests
 		#global actives
 		while True:
 			proc_loads = [0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
-			print(r.var_x)
-			print("Departing {}".format(r.id))
+			#print(r.var_x)
+			#print("Departing {}".format(r.id))
 			self.ilp.deallocateRRH(r)
 			#self.ilp.resetValues()
 			r.var_x = None
@@ -1019,6 +1170,7 @@ class Control_Plane(object):
 			rrhs.append(r)
 			np.shuffle(rrhs)
 			actives.remove(r)
+			served_requests += 1
 			#account resourcesand consumption
 			if self.type == "inc":
 				self.count_inc_resources(plp, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
@@ -1096,7 +1248,7 @@ class RRH(object):
 		#print("Service is {}".format(t))
 		yield self.env.timeout(t)
 		self.cp.departs.put(self)
-		print("Put on depart RRH {}".format(self.id))
+		#print("Put on depart RRH {}".format(self.id))
 
 #Utility class
 class Util(object):
@@ -1172,6 +1324,19 @@ class Util(object):
 		global inc_batch_average_act_nodes, inc_batch_activated_lambdas, inc_batch_average_act_lambdas,	inc_batch_activated_dus, inc_batch_average_act_dus
 		global inc_batch_activated_switchs, inc_batch_average_act_switch
 		global inc_blocking, total_inc_blocking, batch_blocking, total_batch_blocking, inc_batch_blocking, total_inc_batch_blocking
+		global external_migrations, internal_migrations, avg_external_migrations, avg_internal_migrations, served_requests
+		global lambda_usage, avg_lambda_usage,proc_usage, avg_proc_usage
+		
+		lambda_usage = []
+		avg_lambda_usage = []
+		proc_usage = []
+		avg_proc_usage = []
+
+		external_migrations = 0
+		internal_migrations = 0
+		avg_external_migrations = []
+		avg_internal_migrations = []
+		served_requests = 0
 		count = 0
 		#timestamp to change the load
 		change_time = 3600
@@ -1375,7 +1540,16 @@ class Util(object):
 					count_fog += 1
 
 
-
+util = Util()
+env = simpy.Environment()
+cp = Control_Plane(env, util, "inc")
+cp.getProcUsage(plp)
+#rrhs = util.createRRHs(10, env, service_time, cp)
+#np.shuffle(rrhs)
+#t = Traffic_Generator(env, distribution, service_time, cp)
+#print("\Begin at "+str(env.now))
+#env.run(until = 86401)
+#print("\End at "+str(env.now))
 """
 util = Util()
 env = simpy.Environment()
@@ -1520,5 +1694,5 @@ plt.savefig('/home/hextinini/Área de Trabalho/plots/solution_time_{}.png'.forma
 plt.clf()
 
 """
-for i in loads:
-	print(i)
+#for i in loads:
+#	print(i)
