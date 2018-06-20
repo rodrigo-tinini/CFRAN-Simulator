@@ -494,6 +494,28 @@ plt.savefig('/home/hextinini/Área de Trabalho/nfv_cp/power{}.png'.format(number
 #plt.show()
 plt.clf()
 
+#Logging
+#power consumption
+with open('/home/hextinini/Área de Trabalho/nfv_cp/logs/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in total_average_batch_power)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in total_average_inc_power)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
+    filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th2))
+    filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power2)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th3))
+    filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power3)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
+    filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power4)
+    filehandle.write("\n")
+
 #plot for activated nodes
 plt.plot(inc_nodes_mean,marker='o', label = "No-nfvLB")
 plt.plot(inc_batch_nodes_mean, marker='v',label = "nfvLB Threshold = {}".format(old_th))
