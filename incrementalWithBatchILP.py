@@ -1529,15 +1529,13 @@ class Util(object):
 		batch_count = 0
 
 	#compute which nodes are active (cloud or fog, and how many of them are active)
-	def countNodes(self, ilp):
-		count_cloud = 0
-		count_fog = 0
+	def countNodes(self, ilp, clount_clouds, count_fogs):
 		for i in range(len(ilp.nodeState)):
 			if ilp.nodeState[i] == 1:
 				if i == 0:
-					count_cloud += 1
+					count_clouds += 1
 				else:
-					count_fog += 1
+					count_fogs += 1
 
 
 util = Util()
