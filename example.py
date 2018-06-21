@@ -101,6 +101,22 @@ total_inc_batch_proc_usage2 = []
 total_inc_batch_proc_usage3 = []
 total_inc_batch_proc_usage4 = []
 
+#lists of cloud use mean
+total_inc_cloud = []
+total_batch_cloud = []
+total_inc_batch_cloud = []
+total_inc_batch_cloud2 = []
+total_inc_batch_cloud3 = []
+total_inc_batch_cloud4 = []
+
+#lists of fog use mean
+total_inc_fog = []
+total_batch_fog = []
+total_inc_batch_fog = []
+total_inc_batch_fog2 = []
+total_inc_batch_fog3 = []
+total_inc_batch_fog4 = []
+
 #lists
 exec_number = 20
 util = sim.Util()
@@ -136,6 +152,8 @@ for i in range(exec_number):
 	total_batch_migrations.append(sim.avg_external_migrations)
 	total_batch_lambda_usage.append(sim.avg_lambda_usage)
 	total_batch_proc_usage.append(sim.avg_proc_usage)
+	total_batch_cloud.append(sim.avg_act_cloud)
+	total_batch_fog.append(sim.avg_act_fog)
 	util.resetParams()
 
 for i in range(exec_number):
@@ -165,6 +183,8 @@ for i in range(exec_number):
 	total_inc_migrations.append(sim.avg_external_migrations)
 	total_inc_lambda_usage.append(sim.avg_lambda_usage)
 	total_inc_proc_usage.append(sim.avg_proc_usage)
+	total_inc_cloud.append(sim.avg_act_cloud)
+	total_inc_fog.append(sim.avg_act_fog)
 	util.resetParams()
 
 #batch simulation
@@ -196,6 +216,8 @@ for i in range(exec_number):
 	total_inc_batch_migrations.append(sim.avg_external_migrations)
 	total_inc_batch_lambda_usage.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage.append(sim.avg_proc_usage)
+	total_inc_batch_cloud.append(sim.avg_act_cloud)
+	total_inc_batch_fog.append(sim.avg_act_fog)
 	util.resetParams()
 
 	#batch simulation
@@ -230,6 +252,8 @@ for i in range(exec_number):
 	total_inc_batch_migrations2.append(sim.avg_external_migrations)
 	total_inc_batch_lambda_usage2.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage2.append(sim.avg_proc_usage)
+	total_inc_batch_cloud2.append(sim.avg_act_cloud)
+	total_inc_batch_fog2.append(sim.avg_act_fog)
 	util.resetParams()
 
 sim.network_threshold = 0.4
@@ -237,7 +261,7 @@ sim.count_rrhs = 0
 old_th2 = 0.6
 #sim.load_threshold = 5
 for i in range(exec_number):
-	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("STARTING INC BATCH SIMULATION 3---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
 	cp = sim.Control_Plane(env, util, "load_inc_batch")
@@ -263,6 +287,8 @@ for i in range(exec_number):
 	total_inc_batch_migrations3.append(sim.avg_external_migrations)
 	total_inc_batch_lambda_usage3.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage3.append(sim.avg_proc_usage)
+	total_inc_batch_cloud3.append(sim.avg_act_cloud)
+	total_inc_batch_fog3.append(sim.avg_act_fog)
 	util.resetParams()
 
 sim.network_threshold = 0.2
@@ -270,7 +296,7 @@ sim.count_rrhs = 0
 old_th3 = 0.4
 #sim.load_threshold = 5
 for i in range(exec_number):
-	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
+	print("STARTING INC BATCH SIMULATION 4---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
 	cp = sim.Control_Plane(env, util, "load_inc_batch")
@@ -296,6 +322,8 @@ for i in range(exec_number):
 	total_inc_batch_migrations4.append(sim.avg_external_migrations)
 	total_inc_batch_lambda_usage4.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage4.append(sim.avg_proc_usage)
+	total_inc_batch_cloud4.append(sim.avg_act_cloud)
+	total_inc_batch_fog4.append(sim.avg_act_fog)
 	util.resetParams()
 
 
@@ -325,6 +353,20 @@ print(batch_standard_deviations)
 
 
 #means
+#cloud usage
+avg_total_inc_cloud = [float(sum(col))/len(col) for col in zip(*total_inc_cloud)]
+avg_total_batch_cloud = [float(sum(col))/len(col) for col in zip(*total_batch_cloud)]
+avg_total_inc_batch_cloud = [float(sum(col))/len(col) for col in zip(*total_inc_batch_cloud)]
+avg_total_inc_batch_cloud2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_cloud2)]
+avg_total_inc_batch_cloud3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_cloud3)]
+avg_total_inc_batch_cloud4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_cloud4)]
+#fog usage
+avg_total_inc_fog = [float(sum(col))/len(col) for col in zip(*total_inc_fog)]
+avg_total_batch_fog = [float(sum(col))/len(col) for col in zip(*total_batch_fog)]
+avg_total_inc_batch_fog = [float(sum(col))/len(col) for col in zip(*total_inc_batch_fog)]
+avg_total_inc_batch_fog2 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_fog2)]
+avg_total_inc_batch_fog3 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_fog3)]
+avg_total_inc_batch_fog4 = [float(sum(col))/len(col) for col in zip(*total_inc_batch_fog4)]
 #lambdas usage
 avg_total_inc_lambda_usage = [float(sum(col))/len(col) for col in zip(*total_inc_lambda_usage)]
 avg_total_batch_lambda_usage = [float(sum(col))/len(col) for col in zip(*total_batch_lambda_usage)]
@@ -401,6 +443,7 @@ inc_batch_redir_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch
 inc_batch_switches_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_switches4)]
 inc_batch_blocked_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_blocked4)]
 inc_batch_time_mean4=	[float(sum(col))/len(col) for col in zip(*total_inc_batch_time4)]
+
 
 
 

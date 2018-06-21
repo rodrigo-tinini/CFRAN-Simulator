@@ -35,6 +35,13 @@ served_requests = 0
 inc_block = 0
 batch_block = 0
 count = 0
+
+#to count the activation of cloud and fog
+act_cloud = []
+act_fog = []
+avg_act_cloud = []
+avg_act_fog = []
+
 #timestamp to change the load
 change_time = 3600
 #the next time
@@ -349,7 +356,21 @@ class Traffic_Generator(object):
 		global external_migrations
 		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
-		
+		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
+
+		#count the averages (sometimes sums) of metrics
+		if act_cloud:
+			avg_act_cloud.append(sum(act_cloud))
+			act_cloud = []
+		else:
+			avg_act_cloud.append(0)
+
+		if act_fog:
+			avg_act_fog.append(sum(act_fog))
+			act_fog = []
+		else:
+			avg_act_fog.append(0)
+
 		if lambda_usage:
 			avg_lambda_usage.append(numpy.mean(lambda_usage))
 			lambda_usage = []
@@ -451,8 +472,38 @@ class Traffic_Generator(object):
 		global count_cloud
 		global count_fog
 		global inc_blocking
+		global avg_external_migrations
+		global avg_internal_migrations
+		global external_migrations
+		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
-		
+		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
+
+		#count the averages (sometimes sums) of metrics
+		if act_cloud:
+			avg_act_cloud.append(sum(act_cloud))
+			act_cloud = []
+		else:
+			avg_act_cloud.append(0)
+
+		if act_fog:
+			avg_act_fog.append(sum(act_fog))
+			act_fog = []
+		else:
+			avg_act_fog.append(0)
+
+		if external_migrations:
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			avg_external_migrations.append(0)
+
+		if internal_migrations:
+			avg_internal_migrations.append(internal_migrations)
+			external_migrations = 0
+		else:
+			avg_internal_migrations.append(0)
+
 		if lambda_usage:
 			avg_lambda_usage.append(numpy.mean(lambda_usage))
 			lambda_usage = []
@@ -539,8 +590,38 @@ class Traffic_Generator(object):
 		global b_count_fog
 		global batch_rrhs_wait_time
 		global batch_blocking
+		global avg_external_migrations
+		global avg_internal_migrations
+		global external_migrations
+		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
-		
+		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
+
+		#count the averages (sometimes sums) of metrics
+		if act_cloud:
+			avg_act_cloud.append(sum(act_cloud))
+			act_cloud = []
+		else:
+			avg_act_cloud.append(0)
+
+		if act_fog:
+			avg_act_fog.append(sum(act_fog))
+			act_fog = []
+		else:
+			avg_act_fog.append(0)
+
+		if external_migrations:
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			avg_external_migrations.append(0)
+
+		if internal_migrations:
+			avg_internal_migrations.append(internal_migrations)
+			external_migrations = 0
+		else:
+			avg_internal_migrations.append(0)
+
 		if lambda_usage:
 			avg_lambda_usage.append(numpy.mean(lambda_usage))
 			lambda_usage = []
@@ -911,6 +992,7 @@ class Control_Plane(object):
 				antenas.remove(i)
 				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			#count the activeresources
+			self.countNodes(ilp_module)
 			if solution_values.var_k:
 				redirected_rrhs.append(len(solution_values.var_k))
 			else:
@@ -979,6 +1061,8 @@ class Control_Plane(object):
 			else:
 				b_redirected_rrhs.append(0)
 			#counts the current activated nodes, lambdas, DUs and switches
+			self.countNodes(ilp_module)
+			self.extMigrations(plp, copy_state)#to take the external migrations when some RRHs is blocked
 			for i in ilp_module.nodeState:
 				if i == 1:
 					count_nodes += 1
@@ -1064,6 +1148,7 @@ class Control_Plane(object):
 		count_dus = 0
 		count_switches = 0
 		incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+		self.countNodes(ilp_module)
 		for i in ilp_module.nodeState:
 			if i == 1:
 				count_nodes += 1
@@ -1095,6 +1180,7 @@ class Control_Plane(object):
 		count_switches = 0
 		batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 		#counts the current activated nodes, lambdas, DUs and switches
+		self.countNodes(ilp_module)
 		for i in ilp_module.nodeState:
 			if i == 1:
 				count_nodes += 1
@@ -1128,6 +1214,7 @@ class Control_Plane(object):
 		#print("Calling Incremental")
 		inc_batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 		#count the activeresources
+		self.countNodes(ilp_module)
 		for i in ilp_module.nodeState:
 			if i == 1:
 				count_nodes += 1
@@ -1337,6 +1424,12 @@ class Util(object):
 		avg_external_migrations = []
 		avg_internal_migrations = []
 		served_requests = 0
+		
+		act_cloud = []
+		act_fog = []
+		avg_act_cloud = []
+		avg_act_fog = []
+
 		count = 0
 		#timestamp to change the load
 		change_time = 3600
@@ -1529,13 +1622,14 @@ class Util(object):
 		batch_count = 0
 
 	#compute which nodes are active (cloud or fog, and how many of them are active)
-	def countNodes(self, ilp, clount_clouds, count_fogs):
+	def countNodes(self, ilp):
+		global act_cloud, act_fog
 		for i in range(len(ilp.nodeState)):
 			if ilp.nodeState[i] == 1:
 				if i == 0:
-					count_clouds += 1
+					act_cloud.append(1)
 				else:
-					count_fogs += 1
+					act_fog.append(1)
 
 
 util = Util()
