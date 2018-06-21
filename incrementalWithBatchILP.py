@@ -319,6 +319,8 @@ class Traffic_Generator(object):
 				self.countIncBatchAverages()
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print(avg_act_cloud)
+			print(avg_act_fog)
 			#print("Was served {}".format(served_requests))
 			served_requests = 0
 			#print("Total Node Migrations: {}".format(avg_external_migrations))
@@ -720,6 +722,15 @@ class Control_Plane(object):
 			self.load_balancing = self.env.process(self.monitorLoad())
 			#self.cloud_balancing = self.env.process(self.cloudMonitor())
 
+	#compute which nodes are active (cloud or fog, and how many of them are active)
+	def countNodes(self, ilp):
+		global act_cloud, act_fog
+		for i in range(len(ilp.nodeState)):
+			if ilp.nodeState[i] == 1:
+				if i == 0:
+					act_cloud.append(1)
+				else:
+					act_fog.append(1)
 
 	#count external migrations
 	def extMigrations(self, plp, copy_nodeState):
@@ -917,8 +928,8 @@ class Control_Plane(object):
 		#counts the active DUs
 		for i in range(len(plp.du_state)):
 			du_usage += sum(plp.du_state[i])*dus_capacity[i]
-		print("Active DUs {}".format(plp.du_state))
-		print("Processing Usage {}".format(du_usage))
+		#print("Active DUs {}".format(plp.du_state))
+		#print("Processing Usage {}".format(du_usage))
 		return du_usage
 			
 	#take requests and tries to allocate on a RRH
@@ -1045,6 +1056,8 @@ class Control_Plane(object):
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 		else:
+			#take a snapshot of the node states to account the migrations
+			copy_state = copy.copy(plp.nodeState)
 			#print(solution.solve_details.time)
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
@@ -1622,14 +1635,14 @@ class Util(object):
 		batch_count = 0
 
 	#compute which nodes are active (cloud or fog, and how many of them are active)
-	def countNodes(self, ilp):
-		global act_cloud, act_fog
-		for i in range(len(ilp.nodeState)):
-			if ilp.nodeState[i] == 1:
-				if i == 0:
-					act_cloud.append(1)
-				else:
-					act_fog.append(1)
+	#def countNodes(self, ilp):
+	#	global act_cloud, act_fog
+	#	for i in range(len(ilp.nodeState)):
+	#		if ilp.nodeState[i] == 1:
+	#			if i == 0:
+	#				act_cloud.append(1)
+	#			else:
+	#				act_fog.append(1)
 
 
 util = Util()
