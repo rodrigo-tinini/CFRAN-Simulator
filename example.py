@@ -102,7 +102,7 @@ total_inc_batch_proc_usage3 = []
 total_inc_batch_proc_usage4 = []
 
 #lists
-exec_number = 10
+exec_number = 20
 util = sim.Util()
 #sim.load_threshold = 10
 #incremental simulation

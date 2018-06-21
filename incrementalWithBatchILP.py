@@ -30,7 +30,7 @@ dus_capacity = [5,1,1]
 
 network_threshold = 0.8
 traffic_quocient = 50
-rrhs_quantity = 10
+rrhs_quantity = 25
 served_requests = 0
 inc_block = 0
 batch_block = 0
