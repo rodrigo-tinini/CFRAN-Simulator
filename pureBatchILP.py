@@ -479,8 +479,8 @@ class ILP(object):
 		]
 
 		switch_cost = [15.0, 15.0, 15.0]
-		switchBandwidth = [10000.0,10000.0,10000.0]
-		wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+		switchBandwidth = [5000.0,5000.0,5000.0]
+		wavelength_capacity = [5000.0, 5000.0, 5000.0, 5000.0, 5000.0]
 		RRHband = 614.4;
 		#lc_cost = 20
 		B = 1000000
@@ -775,8 +775,8 @@ lc_cost = [
 ]
 
 switch_cost = [15.0, 15.0, 15.0]
-switchBandwidth = [10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+switchBandwidth = [5000.0,5000.0,5000.0]
+wavelength_capacity = [5000.0, 5000.0, 5000.0, 5000.0, 5000.0]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000

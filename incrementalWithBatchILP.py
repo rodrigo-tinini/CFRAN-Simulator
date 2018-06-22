@@ -36,6 +36,8 @@ inc_block = 0
 batch_block = 0
 count = 0
 
+#total migrations on the day
+daily_migrations = 0
 #to count the activation of cloud and fog
 act_cloud = []
 act_fog = []
@@ -272,9 +274,9 @@ class Traffic_Generator(object):
 				#total_period_requests +=1
 				#np.shuffle(rrhs)
 			else:
-				#pass
+				pass
 				#total_period_requests +=1
-				print("All RRHs are active!")
+				#print("All RRHs are active!")
 			#else:
 			#	print("No RRHs!")
 			#yield self.env.timeout(0.05)
@@ -319,8 +321,8 @@ class Traffic_Generator(object):
 				self.countIncBatchAverages()
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
-			print(avg_act_cloud)
-			print(avg_act_fog)
+			#print(avg_act_cloud)
+			#print(avg_act_fog)
 			#print("Was served {}".format(served_requests))
 			served_requests = 0
 			#print("Total Node Migrations: {}".format(avg_external_migrations))
@@ -385,15 +387,21 @@ class Traffic_Generator(object):
 		else:
 			avg_proc_usage.append(0.0)
 
-		if external_migrations:
-			avg_external_migrations.append(external_migrations/served_requests)
+		if external_migrations > 0:
+			avg_external_migrations.append(external_migrations)
 			external_migrations = 0
 		else:
 			avg_external_migrations.append(0)
 
+		#if external_migrations:
+		#	avg_external_migrations.append(external_migrations/served_requests)
+		#	external_migrations = 0
+		#else:
+		#	avg_external_migrations.append(0)
+
 		if internal_migrations:
 			avg_internal_migrations.append(internal_migrations)
-			external_migrations = 0
+			internal_migrations = 0
 		else:
 			avg_internal_migrations.append(0)
 		
@@ -494,15 +502,21 @@ class Traffic_Generator(object):
 		else:
 			avg_act_fog.append(0)
 
-		if external_migrations:
-			avg_external_migrations.append(external_migrations/served_requests)
+		if external_migrations > 0:
+			avg_external_migrations.append(external_migrations)
 			external_migrations = 0
 		else:
 			avg_external_migrations.append(0)
 
+		#if external_migrations:
+		#	avg_external_migrations.append(external_migrations/served_requests)
+		#	external_migrations = 0
+		#else:
+		#	avg_external_migrations.append(0)
+
 		if internal_migrations:
 			avg_internal_migrations.append(internal_migrations)
-			external_migrations = 0
+			internal_migrations = 0
 		else:
 			avg_internal_migrations.append(0)
 
@@ -612,15 +626,21 @@ class Traffic_Generator(object):
 		else:
 			avg_act_fog.append(0)
 
-		if external_migrations:
-			avg_external_migrations.append(external_migrations/served_requests)
+		if external_migrations > 0:
+			avg_external_migrations.append(external_migrations)
 			external_migrations = 0
 		else:
 			avg_external_migrations.append(0)
 
+		#if external_migrations:
+		#	avg_external_migrations.append(external_migrations/served_requests)
+		#	external_migrations = 0
+		#else:
+		#	avg_external_migrations.append(0)
+
 		if internal_migrations:
 			avg_internal_migrations.append(internal_migrations)
-			external_migrations = 0
+			internal_migrations = 0
 		else:
 			avg_internal_migrations.append(0)
 
@@ -722,6 +742,10 @@ class Control_Plane(object):
 			self.load_balancing = self.env.process(self.monitorLoad())
 			#self.cloud_balancing = self.env.process(self.cloudMonitor())
 
+	#calculates the mean service average time, i.e., the average total time where RRHs where processing
+	def meanTotalServiceTime(self):
+		pass
+
 	#compute which nodes are active (cloud or fog, and how many of them are active)
 	def countNodes(self, ilp):
 		global act_cloud, act_fog
@@ -735,8 +759,10 @@ class Control_Plane(object):
 	#count external migrations
 	def extMigrations(self, plp, copy_nodeState):
 		global external_migrations
+		global daily_migrations
 		if copy_nodeState != plp.nodeState:
 			external_migrations += 1
+			daily_migrations += 1
 
 	#monitors the network and triggers the load balancing
 	def cloudMonitor(self):
@@ -1275,7 +1301,78 @@ class Control_Plane(object):
 			if self.type == "inc":
 				self.count_inc_resources(plp, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
 			elif self.type == "batch":
-				self.count_batch_resources(plp,batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
+				count_nodes = 0
+				count_lambdas = 0
+				count_dus = 0
+				count_switches = 0
+				block = 0
+				#print("Calling Batch")
+				batch_list = copy.copy(actives)
+				#batch_list.append(r)
+				#actives.append(r)
+				self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas)
+				self.ilp.resetValues()
+				solution = self.ilp.run()
+				if solution == None:
+				#	rrhs.append(r)
+				#	actives.remove(r)
+				#	np.shuffle(rrhs)
+					print("Batch Blocking")
+					print("Cant Schedule {} RRHs".format(len(actives)))
+					batch_power_consumption.append(self.util.getPowerConsumption(plp))
+					batch_blocking.append(1)
+				else:
+					copy_state = copy.copy(plp.nodeState)
+					#print(solution.solve_details.time)
+					solution_values = self.ilp.return_solution_values()
+					self.ilp.updateValues(solution_values)
+					batch_time.append(solution.solve_details.time)
+					time_b.append(solution.solve_details.time)
+				#	r.updateWaitTime(self.env.now+solution.solve_details.time)
+					#print("Gen is {} ".format(r.generationTime))
+					#print("NOW {} ".format(r.waitingTime))
+				#	self.env.process(r.run())
+					#print("After Load balancing")
+					#print(plp.nodeState)
+					#print(len(actives))
+					#print("Nodes actives are: {}".format(plp.nodeState))
+					#print("Lambdas actives are: {}".format(plp.lambda_node))
+					#print("DUs load are: {}".format(plp.du_processing))
+					#print("Load is {} in {}".format(proc_loads[i], i))
+					#print("########")
+					#counts the external migrations
+					self.extMigrations(plp, copy_state)
+					batch_power_consumption.append(self.util.getPowerConsumption(plp))
+					batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
+					if solution_values.var_k:
+						b_redirected_rrhs.append(len(solution_values.var_k))
+					else:
+						b_redirected_rrhs.append(0)
+					#counts the current activated nodes, lambdas, DUs and switches
+					for i in plp.nodeState:
+						if i == 1:
+							count_nodes += 1
+					b_activated_nodes.append(count_nodes)
+					for i in plp.lambda_state:
+						if i == 1:
+							count_lambdas += 1
+					b_activated_lambdas.append(count_lambdas)
+					for i in plp.du_state:
+						for j in i:
+							if j == 1:
+								count_dus += 1
+					b_activated_dus.append(count_dus)
+					for i in plp.switch_state:
+						if i == 1:
+							count_switches += 1
+					b_activated_switchs.append(count_switches)
+					#batch_done = True
+					#count DUs and lambdas usage
+					if count_lambdas > 0:
+						lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+					if count_dus > 0:
+						proc_usage.append(len(actives)/self.getProcUsage(plp))
+				#self.count_batch_resources(plp,batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
 			elif self.type == "inc_batch":
 				self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
 		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
@@ -1426,6 +1523,7 @@ class Util(object):
 		global inc_blocking, total_inc_blocking, batch_blocking, total_batch_blocking, inc_batch_blocking, total_inc_batch_blocking
 		global external_migrations, internal_migrations, avg_external_migrations, avg_internal_migrations, served_requests
 		global lambda_usage, avg_lambda_usage,proc_usage, avg_proc_usage
+		global act_cloud, act_fog, avg_act_cloud, avg_act_fog, daily_migrations
 		
 		lambda_usage = []
 		avg_lambda_usage = []
@@ -1438,6 +1536,8 @@ class Util(object):
 		avg_internal_migrations = []
 		served_requests = 0
 		
+		daily_migrations = 0
+
 		act_cloud = []
 		act_fog = []
 		avg_act_cloud = []
