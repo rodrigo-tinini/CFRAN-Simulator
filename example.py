@@ -118,7 +118,7 @@ total_inc_batch_fog3 = []
 total_inc_batch_fog4 = []
 
 #lists
-exec_number = 20
+exec_number = 10
 util = sim.Util()
 #sim.load_threshold = 10
 #incremental simulation
@@ -126,6 +126,7 @@ util = sim.Util()
 number_of_rrhs = sim.rrhs_quantity
 
 for i in range(exec_number):
+	b_mig = []
 	print("STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -154,9 +155,11 @@ for i in range(exec_number):
 	total_batch_proc_usage.append(sim.avg_proc_usage)
 	total_batch_cloud.append(sim.avg_act_cloud)
 	total_batch_fog.append(sim.avg_act_fog)
-	total_batch_migrations = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	print(sim.avg_external_migrations)
-	print(total_batch_migrations)
+	b_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	total_batch_migrations.append(copy.copy(b_mig))
+	print(sum(sim.avg_external_migrations))
+	print(sim.daily_migrations)
+	#print(total_batch_migrations)
 	util.resetParams()
 
 for i in range(exec_number):
@@ -194,6 +197,7 @@ for i in range(exec_number):
 #batch simulation
 
 for i in range(exec_number):
+	ib_mig = []
 	print("STARTING INC BATCH SIMULATION 1 ---STARTING BATCH SIMULATION 1 ---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -218,7 +222,8 @@ for i in range(exec_number):
 	total_inc_batch_blocked.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time.append(sim.avg_time_inc_batch)
 	#total_inc_batch_migrations.append(sim.avg_external_migrations)
-	total_inc_batch_migrations = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	ib_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	total_inc_batch_migrations.append(copy.copy(ib_mig))
 	total_inc_batch_lambda_usage.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage.append(sim.avg_proc_usage)
 	total_inc_batch_cloud.append(sim.avg_act_cloud)
@@ -231,6 +236,7 @@ sim.count_rrhs = 0
 old_th = 0.8
 #sim.load_threshold = 5
 for i in range(exec_number):
+	ib_mig2 = []
 	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -255,7 +261,9 @@ for i in range(exec_number):
 	total_inc_batch_blocked2.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time2.append(sim.avg_time_inc_batch)
 	#total_inc_batch_migrations2.append(sim.avg_external_migrations)
-	total_inc_batch_migrations2 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations2 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	ib_mig2 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	total_inc_batch_migrations2.append(copy.copy(ib_mig2))
 	total_inc_batch_lambda_usage2.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage2.append(sim.avg_proc_usage)
 	total_inc_batch_cloud2.append(sim.avg_act_cloud)
@@ -267,6 +275,7 @@ sim.count_rrhs = 0
 old_th2 = 0.6
 #sim.load_threshold = 5
 for i in range(exec_number):
+	ib_mig3 = []
 	print("STARTING INC BATCH SIMULATION 3---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -291,7 +300,9 @@ for i in range(exec_number):
 	total_inc_batch_blocked3.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time3.append(sim.avg_time_inc_batch)
 	#total_inc_batch_migrations3.append(sim.avg_external_migrations)
-	total_inc_batch_migrations3 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations3 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	ib_mig3 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	total_inc_batch_migrations3.append(copy.copy(ib_mig3))
 	total_inc_batch_lambda_usage3.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage3.append(sim.avg_proc_usage)
 	total_inc_batch_cloud3.append(sim.avg_act_cloud)
@@ -303,6 +314,7 @@ sim.count_rrhs = 0
 old_th3 = 0.4
 #sim.load_threshold = 5
 for i in range(exec_number):
+	ib_mig4 = []
 	print("STARTING INC BATCH SIMULATION 4---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
@@ -327,7 +339,9 @@ for i in range(exec_number):
 	total_inc_batch_blocked4.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time4.append(sim.avg_time_inc_batch)
 	#total_inc_batch_migrations4.append(sim.avg_external_migrations)
-	total_inc_batch_migrations4 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations4 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	ib_mig4 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	total_inc_batch_migrations4.append(copy.copy(ib_mig4))
 	total_inc_batch_lambda_usage4.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage4.append(sim.avg_proc_usage)
 	total_inc_batch_cloud4.append(sim.avg_act_cloud)
@@ -346,18 +360,18 @@ def mean_confidence_interval(data, confidence=0.95):
 
 #print("CI for Batch")
 #print(ci2)
-'''
+
 #standard deviations
-inc_standard_deviations = [numpy.std(col, ddof=1) for col in zip(*total_inc_power)]
-batch_standard_deviations = [numpy.std(col,ddof=1) for col in zip(*total_batch_power)]
-print("STD INC---------------")
-print(inc_standard_deviations)
-print("CI for INC")
-print(ci)
-print("############################################")
-print("STD Batch---------------")
-print(batch_standard_deviations)
-'''
+#inc_standard_deviations = [numpy.std(col, ddof=1) for col in zip(*total_inc_power)]
+#batch_standard_deviations = [numpy.std(col,ddof=1) for col in zip(*total_batch_power)]
+#print("STD INC---------------")
+#print(inc_standard_deviations)
+#print("CI for INC")
+#print(ci)
+#print("############################################")
+#print("STD Batch---------------")
+#print(batch_standard_deviations)
+
 
 
 #means
@@ -511,8 +525,8 @@ plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/procs_usage{}.png'.format(num
 plt.clf()
 
 #plot for external migrations
-plt.plot(avg_total_inc_migrations,marker='o', label = "No-nfvLB")
-#plt.plot(avg_total_inc_batch_migrations,marker='v', label = "nfvLB Threshold = {}".format(old_th))
+#plt.plot(avg_total_inc_migrations,marker='o', label = "No-nfvLB")
+plt.plot(avg_total_inc_batch_migrations,marker='v', label = "nfvLB Threshold = {}".format(old_th))
 plt.plot(avg_total_inc_batch_migrations2,marker='v', label = "nfvLB Threshold = {}".format(old_th2))
 plt.plot(avg_total_inc_batch_migrations3,marker='v', label = "nfvLB Threshold = {}".format(old_th3))
 plt.plot(avg_total_inc_batch_migrations4,marker='v', label = "nfvLB Threshold = {}".format(sim.network_threshold))

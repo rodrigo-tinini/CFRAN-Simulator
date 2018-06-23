@@ -757,10 +757,10 @@ class Control_Plane(object):
 					act_fog.append(1)
 
 	#count external migrations
-	def extMigrations(self, plp, copy_nodeState):
+	def extMigrations(self, ilp_module, copy_nodeState):
 		global external_migrations
 		global daily_migrations
-		if copy_nodeState != plp.nodeState:
+		if copy_nodeState != ilp_module.nodeState:
 			external_migrations += 1
 			daily_migrations += 1
 
@@ -1055,7 +1055,7 @@ class Control_Plane(object):
 			if count_lambdas > 0:
 				lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 			if count_dus > 0:
-				proc_usage.append(len(actives)/self.getProcUsage(plp))
+				proc_usage.append(len(actives)/self.getProcUsage(ilp_module))
 			return solution
 
 	#batch scheduling
@@ -1071,6 +1071,8 @@ class Control_Plane(object):
 		batch_list.append(r)
 		actives.append(r)
 		self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas)
+		#take a snapshot of the node states to account the migrations
+		copy_state = copy.copy(plp.nodeState)
 		self.ilp.resetValues()
 		solution = self.ilp.run()
 		if solution == None:
@@ -1082,8 +1084,6 @@ class Control_Plane(object):
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 		else:
-			#take a snapshot of the node states to account the migrations
-			copy_state = copy.copy(plp.nodeState)
 			#print(solution.solve_details.time)
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
@@ -1101,7 +1101,7 @@ class Control_Plane(object):
 				b_redirected_rrhs.append(0)
 			#counts the current activated nodes, lambdas, DUs and switches
 			self.countNodes(ilp_module)
-			self.extMigrations(plp, copy_state)#to take the external migrations when some RRHs is blocked
+			self.extMigrations(ilp_module, copy_state)
 			for i in ilp_module.nodeState:
 				if i == 1:
 					count_nodes += 1
@@ -1123,7 +1123,7 @@ class Control_Plane(object):
 			if count_lambdas > 0:
 				lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 			if count_dus > 0:
-				proc_usage.append(len(actives)/self.getProcUsage(plp))
+				proc_usage.append(len(actives)/self.getProcUsage(ilp_module))
 			return solution
 
 	#calculates the average waiting time of RRHs to be scheduled
@@ -1275,7 +1275,7 @@ class Control_Plane(object):
 		if count_lambdas > 0:
 			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 		if count_dus > 0:
-			proc_usage.append(len(actives)/self.getProcUsage(plp))
+			proc_usage.append(len(actives)/self.getProcUsage(ilp_module))
 
 	#starts the deallocation of a request
 	def depart_request(self):
@@ -1311,6 +1311,8 @@ class Control_Plane(object):
 				#batch_list.append(r)
 				#actives.append(r)
 				self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas)
+				#copy the actual state of nodes to account the possible migrations
+				copy_state = copy.copy(plp.nodeState)
 				self.ilp.resetValues()
 				solution = self.ilp.run()
 				if solution == None:
@@ -1322,7 +1324,6 @@ class Control_Plane(object):
 					batch_power_consumption.append(self.util.getPowerConsumption(plp))
 					batch_blocking.append(1)
 				else:
-					copy_state = copy.copy(plp.nodeState)
 					#print(solution.solve_details.time)
 					solution_values = self.ilp.return_solution_values()
 					self.ilp.updateValues(solution_values)
