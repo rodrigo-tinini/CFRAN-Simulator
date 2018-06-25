@@ -118,7 +118,7 @@ total_inc_batch_fog3 = []
 total_inc_batch_fog4 = []
 
 #lists
-exec_number = 10
+exec_number = 30
 util = sim.Util()
 #sim.load_threshold = 10
 #incremental simulation
@@ -150,13 +150,13 @@ for i in range(exec_number):
 	total_batch_switches.append(sim.b_average_act_switch)
 	total_batch_blocked.append(sim.total_batch_blocking)
 	total_batch_time.append(sim.avg_time_b)
-	#total_batch_migrations.append(sim.avg_external_migrations)
+	total_batch_migrations.append(sim.avg_external_migrations)
 	total_batch_lambda_usage.append(sim.avg_lambda_usage)
 	total_batch_proc_usage.append(sim.avg_proc_usage)
 	total_batch_cloud.append(sim.avg_act_cloud)
 	total_batch_fog.append(sim.avg_act_fog)
-	b_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	total_batch_migrations.append(copy.copy(b_mig))
+	#b_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_batch_migrations.append(copy.copy(b_mig))
 	print(sum(sim.avg_external_migrations))
 	print(sim.daily_migrations)
 	#print(total_batch_migrations)
@@ -221,9 +221,9 @@ for i in range(exec_number):
 	total_inc_batch_switches.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time.append(sim.avg_time_inc_batch)
-	#total_inc_batch_migrations.append(sim.avg_external_migrations)
-	ib_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	total_inc_batch_migrations.append(copy.copy(ib_mig))
+	total_inc_batch_migrations.append(sim.avg_external_migrations)
+	#ib_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations.append(copy.copy(ib_mig))
 	total_inc_batch_lambda_usage.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage.append(sim.avg_proc_usage)
 	total_inc_batch_cloud.append(sim.avg_act_cloud)
@@ -260,10 +260,10 @@ for i in range(exec_number):
 	total_inc_batch_switches2.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked2.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time2.append(sim.avg_time_inc_batch)
-	#total_inc_batch_migrations2.append(sim.avg_external_migrations)
+	total_inc_batch_migrations2.append(sim.avg_external_migrations)
 	#total_inc_batch_migrations2 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	ib_mig2 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	total_inc_batch_migrations2.append(copy.copy(ib_mig2))
+	#ib_mig2 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations2.append(copy.copy(ib_mig2))
 	total_inc_batch_lambda_usage2.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage2.append(sim.avg_proc_usage)
 	total_inc_batch_cloud2.append(sim.avg_act_cloud)
@@ -299,10 +299,10 @@ for i in range(exec_number):
 	total_inc_batch_switches3.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked3.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time3.append(sim.avg_time_inc_batch)
-	#total_inc_batch_migrations3.append(sim.avg_external_migrations)
+	total_inc_batch_migrations3.append(sim.avg_external_migrations)
 	#total_inc_batch_migrations3 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	ib_mig3 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	total_inc_batch_migrations3.append(copy.copy(ib_mig3))
+	#ib_mig3 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations3.append(copy.copy(ib_mig3))
 	total_inc_batch_lambda_usage3.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage3.append(sim.avg_proc_usage)
 	total_inc_batch_cloud3.append(sim.avg_act_cloud)
@@ -338,10 +338,10 @@ for i in range(exec_number):
 	total_inc_batch_switches4.append(sim.inc_batch_average_act_switch)
 	total_inc_batch_blocked4.append(sim.total_inc_batch_blocking)
 	total_inc_batch_time4.append(sim.avg_time_inc_batch)
-	#total_inc_batch_migrations4.append(sim.avg_external_migrations)
+	total_inc_batch_migrations4.append(sim.avg_external_migrations)
 	#total_inc_batch_migrations4 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	ib_mig4 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
-	total_inc_batch_migrations4.append(copy.copy(ib_mig4))
+	#ib_mig4 = [i/sim.daily_migrations for i in sim.avg_external_migrations]
+	#total_inc_batch_migrations4.append(copy.copy(ib_mig4))
 	total_inc_batch_lambda_usage4.append(sim.avg_lambda_usage)
 	total_inc_batch_proc_usage4.append(sim.avg_proc_usage)
 	total_inc_batch_cloud4.append(sim.avg_act_cloud)

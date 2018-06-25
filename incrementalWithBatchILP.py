@@ -387,17 +387,17 @@ class Traffic_Generator(object):
 		else:
 			avg_proc_usage.append(0.0)
 
-		if external_migrations > 0:
-			avg_external_migrations.append(external_migrations)
-			external_migrations = 0
-		else:
-			avg_external_migrations.append(0)
-
-		#if external_migrations:
-		#	avg_external_migrations.append(external_migrations/served_requests)
+		#if external_migrations > 0:
+		#	avg_external_migrations.append(external_migrations)
 		#	external_migrations = 0
 		#else:
 		#	avg_external_migrations.append(0)
+
+		if external_migrations:
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			avg_external_migrations.append(0)
 
 		if internal_migrations:
 			avg_internal_migrations.append(internal_migrations)
@@ -502,17 +502,17 @@ class Traffic_Generator(object):
 		else:
 			avg_act_fog.append(0)
 
-		if external_migrations > 0:
-			avg_external_migrations.append(external_migrations)
-			external_migrations = 0
-		else:
-			avg_external_migrations.append(0)
-
-		#if external_migrations:
-		#	avg_external_migrations.append(external_migrations/served_requests)
+		#if external_migrations > 0:
+		#	avg_external_migrations.append(external_migrations)
 		#	external_migrations = 0
 		#else:
 		#	avg_external_migrations.append(0)
+
+		if external_migrations:
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			avg_external_migrations.append(0)
 
 		if internal_migrations:
 			avg_internal_migrations.append(internal_migrations)
@@ -626,17 +626,17 @@ class Traffic_Generator(object):
 		else:
 			avg_act_fog.append(0)
 
-		if external_migrations > 0:
-			avg_external_migrations.append(external_migrations)
-			external_migrations = 0
-		else:
-			avg_external_migrations.append(0)
-
-		#if external_migrations:
-		#	avg_external_migrations.append(external_migrations/served_requests)
+		#if external_migrations > 0:
+		#	avg_external_migrations.append(external_migrations)
 		#	external_migrations = 0
 		#else:
 		#	avg_external_migrations.append(0)
+
+		if external_migrations:
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			avg_external_migrations.append(0)
 
 		if internal_migrations:
 			avg_internal_migrations.append(internal_migrations)
@@ -885,6 +885,7 @@ class Control_Plane(object):
 			#batch_list.append(r)
 			#actives.append(r)
 			self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas)
+			copy_state = copy.copy(plp.nodeState)
 			self.ilp.resetValues()
 			solution = self.ilp.run()
 			if solution == None:
@@ -896,7 +897,7 @@ class Control_Plane(object):
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				batch_blocking.append(1)
 			else:
-				copy_state = copy.copy(plp.nodeState)
+				#copy_state = copy.copy(plp.nodeState)
 				#print(solution.solve_details.time)
 				solution_values = self.ilp.return_solution_values()
 				self.ilp.updateValues(solution_values)
