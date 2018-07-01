@@ -107,6 +107,9 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
+		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
+		#self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes))
+
 		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes))
 		
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
@@ -479,8 +482,8 @@ class ILP(object):
 		]
 
 		switch_cost = [15.0, 15.0, 15.0]
-		switchBandwidth = [5000.0,5000.0,5000.0]
-		wavelength_capacity = [5000.0, 5000.0, 5000.0, 5000.0, 5000.0]
+		switchBandwidth = [10000.0,10000.0,10000.0]
+		wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 		RRHband = 614.4;
 		#lc_cost = 20
 		B = 1000000
@@ -775,8 +778,8 @@ lc_cost = [
 ]
 
 switch_cost = [15.0, 15.0, 15.0]
-switchBandwidth = [5000.0,5000.0,5000.0]
-wavelength_capacity = [5000.0, 5000.0, 5000.0, 5000.0, 5000.0]
+switchBandwidth = [10000.0,10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000

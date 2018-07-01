@@ -9,11 +9,24 @@ import matplotlib.pyplot as plt
 import batch_teste as lp
 import pureBatchILP as plp
 import copy
+import sys
+#to count the availability of the service
+total_service_availability = []
+avg_service_availability = []
+
+#count the total of requested RRHs
+total_requested = []
+
+#count allocated requests
+sucs_reqs = 0
+total_allocated = []
+avg_total_allocated = []
 
 external_migrations = 0
 internal_migrations = 0
 avg_external_migrations = []
 avg_internal_migrations = []
+count_ext_migrations = []
 
 lambda_usage = []
 avg_lambda_usage = []
@@ -30,7 +43,7 @@ dus_capacity = [5,1,1]
 
 network_threshold = 0.8
 traffic_quocient = 50
-rrhs_quantity = 25
+rrhs_quantity = 35
 served_requests = 0
 inc_block = 0
 batch_block = 0
@@ -63,7 +76,7 @@ actives = []
 stamps = 24
 hours_range = range(1, stamps+1)
 for i in range(stamps):
-	x = norm.pdf(i, 12, 4)
+	x = norm.pdf(i, 12, 3)
 	x *= traffic_quocient
 	#x= round(x,4)
 	#if x != 0:
@@ -261,7 +274,7 @@ class Traffic_Generator(object):
 			#if rrhs:
 			#if total_period_requests <= maximum_load:
 			yield self.env.timeout(self.dist(self))
-			total_period_requests +=1
+			#total_period_requests +=1
 			self.req_count += 1
 			#takes the first turned off RRH
 			if rrhs:
@@ -271,7 +284,7 @@ class Traffic_Generator(object):
 				self.cp.requests.put(r)
 				r.updateGenTime(self.env.now)
 				r.enabled = True
-				#total_period_requests +=1
+				total_period_requests +=1
 				#np.shuffle(rrhs)
 			else:
 				pass
@@ -296,6 +309,7 @@ class Traffic_Generator(object):
 			global incremental_blocking
 			global batch_blocking
 			global served_requests
+			global sucs_reqs
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -310,8 +324,10 @@ class Traffic_Generator(object):
 			#incremental_blocking = 0
 			#batch_blocking = 0
 			#count averages for the batch case
+			#print("Departed{} Requested {} Accepted {}".format(served_requests,total_period_requests, sucs_reqs))
 			if self.cp.type == "inc":
 				self.countIncAverages()
+				print("Blocked were {}".format(total_inc_blocking))
 			#count averages for the batch case
 			elif self.cp.type == "batch":
 				self.countBatchAverages()
@@ -319,15 +335,18 @@ class Traffic_Generator(object):
 				self.countIncBatchAverages()
 			elif self.cp.type == "load_inc_batch":
 				self.countIncBatchAverages()
+				print("Blocked were {}".format(total_inc_batch_blocking))
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			total_requested.append(total_period_requests)
 			#print(avg_act_cloud)
 			#print(avg_act_fog)
 			#print("Was served {}".format(served_requests))
-			served_requests = 0
+			#served_requests = 0
 			#print("Total Node Migrations: {}".format(avg_external_migrations))
 			#print("Total In Node Migrations: {}".format(avg_internal_migrations))
 			total_period_requests = 0
+			sucs_reqs = 0
 
 	#count averages consumptions and active resources for any case
 	def countAverageResources(self):
@@ -361,16 +380,37 @@ class Traffic_Generator(object):
 		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
 		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
+		global served_requests, avg_total_allocated
+
+		#if external_migrations > 0:
+		#	avg_external_migrations.append(external_migrations)
+		#	external_migrations = 0
+		#else:
+		#	avg_external_migrations.append(0)
+
+		if external_migrations:
+			count_ext_migrations.append(external_migrations)
+			avg_external_migrations.append(external_migrations/served_requests)
+			external_migrations = 0
+		else:
+			count_ext_migrations.append(0)
+			avg_external_migrations.append(0)
+
+		if internal_migrations:
+			avg_internal_migrations.append(internal_migrations)
+			internal_migrations = 0
+		else:
+			avg_internal_migrations.append(0)
 
 		#count the averages (sometimes sums) of metrics
 		if act_cloud:
-			avg_act_cloud.append(sum(act_cloud))
+			avg_act_cloud.append(sum(act_cloud)/served_requests)
 			act_cloud = []
 		else:
 			avg_act_cloud.append(0)
 
 		if act_fog:
-			avg_act_fog.append(sum(act_fog))
+			avg_act_fog.append(sum(act_fog)/served_requests)
 			act_fog = []
 		else:
 			avg_act_fog.append(0)
@@ -387,23 +427,7 @@ class Traffic_Generator(object):
 		else:
 			avg_proc_usage.append(0.0)
 
-		#if external_migrations > 0:
-		#	avg_external_migrations.append(external_migrations)
-		#	external_migrations = 0
-		#else:
-		#	avg_external_migrations.append(0)
-
-		if external_migrations:
-			avg_external_migrations.append(external_migrations/served_requests)
-			external_migrations = 0
-		else:
-			avg_external_migrations.append(0)
-
-		if internal_migrations:
-			avg_internal_migrations.append(internal_migrations)
-			internal_migrations = 0
-		else:
-			avg_internal_migrations.append(0)
+		
 		
 		if inc_batch_blocking:
 			total_inc_batch_blocking.append(sum((inc_batch_blocking)))
@@ -465,6 +489,15 @@ class Traffic_Generator(object):
 		else:
 			inc_batch_average_act_switch.append(0)
 
+		#count the probability o availability of service
+		if served_requests > 0:
+			avg_service_availability.append(served_requests/total_period_requests)
+			avg_total_allocated.append(served_requests)
+			served_requests = 0
+		else:
+			avg_service_availability.append(0)
+			avg_total_allocated.append(0)
+
 	#count average consumptions and activeresources for incremental with batch case
 	def countLoadIncBatchAverages(self):
 		pass
@@ -488,19 +521,7 @@ class Traffic_Generator(object):
 		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
 		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
-
-		#count the averages (sometimes sums) of metrics
-		if act_cloud:
-			avg_act_cloud.append(sum(act_cloud))
-			act_cloud = []
-		else:
-			avg_act_cloud.append(0)
-
-		if act_fog:
-			avg_act_fog.append(sum(act_fog))
-			act_fog = []
-		else:
-			avg_act_fog.append(0)
+		global served_requests, avg_total_allocated
 
 		#if external_migrations > 0:
 		#	avg_external_migrations.append(external_migrations)
@@ -509,9 +530,11 @@ class Traffic_Generator(object):
 		#	avg_external_migrations.append(0)
 
 		if external_migrations:
+			count_ext_migrations.append(external_migrations)
 			avg_external_migrations.append(external_migrations/served_requests)
 			external_migrations = 0
 		else:
+			count_ext_migrations.append(0)
 			avg_external_migrations.append(0)
 
 		if internal_migrations:
@@ -519,6 +542,20 @@ class Traffic_Generator(object):
 			internal_migrations = 0
 		else:
 			avg_internal_migrations.append(0)
+
+		#count the averages (sometimes sums) of metrics
+		if act_cloud:
+			avg_act_cloud.append(sum(act_cloud)/served_requests)
+			act_cloud = []
+		else:
+			avg_act_cloud.append(0)
+
+		if act_fog:
+			avg_act_fog.append(sum(act_fog)/served_requests)
+			act_fog = []
+		else:
+			avg_act_fog.append(0)
+
 
 		if lambda_usage:
 			avg_lambda_usage.append(numpy.mean(lambda_usage))
@@ -592,6 +629,16 @@ class Traffic_Generator(object):
 		else:
 			average_act_switch.append(0)
 
+		#count the probability o availability of service
+		if served_requests > 0:
+			avg_service_availability.append(served_requests/total_period_requests)
+			avg_total_allocated.append(served_requests)
+			served_requests = 0
+		else:
+			avg_service_availability.append(0)
+			avg_total_allocated.append(0)
+
+
 
 	#count average consumptions and active resources for the incremental case
 	def countBatchAverages(self):
@@ -612,19 +659,7 @@ class Traffic_Generator(object):
 		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
 		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
-
-		#count the averages (sometimes sums) of metrics
-		if act_cloud:
-			avg_act_cloud.append(sum(act_cloud))
-			act_cloud = []
-		else:
-			avg_act_cloud.append(0)
-
-		if act_fog:
-			avg_act_fog.append(sum(act_fog))
-			act_fog = []
-		else:
-			avg_act_fog.append(0)
+		global served_requests, avg_total_allocated
 
 		#if external_migrations > 0:
 		#	avg_external_migrations.append(external_migrations)
@@ -633,9 +668,11 @@ class Traffic_Generator(object):
 		#	avg_external_migrations.append(0)
 
 		if external_migrations:
+			count_ext_migrations.append(external_migrations)
 			avg_external_migrations.append(external_migrations/served_requests)
 			external_migrations = 0
 		else:
+			count_ext_migrations.append(0)
 			avg_external_migrations.append(0)
 
 		if internal_migrations:
@@ -643,6 +680,20 @@ class Traffic_Generator(object):
 			internal_migrations = 0
 		else:
 			avg_internal_migrations.append(0)
+
+		#count the averages (sometimes sums) of metrics
+		if act_cloud:
+			avg_act_cloud.append(sum(act_cloud)/served_requests)
+			act_cloud = []
+		else:
+			avg_act_cloud.append(0)
+
+		if act_fog:
+			avg_act_fog.append(sum(act_fog)/served_requests)
+			act_fog = []
+		else:
+			avg_act_fog.append(0)
+
 
 		if lambda_usage:
 			avg_lambda_usage.append(numpy.mean(lambda_usage))
@@ -720,6 +771,16 @@ class Traffic_Generator(object):
 			b_activated_switchs = []
 		else:
 			b_average_act_switch.append(0)
+
+		#count the probability o availability of service
+		if served_requests > 0:
+			avg_service_availability.append(served_requests/total_period_requests)
+			avg_total_allocated.append(served_requests)
+			served_requests = 0
+		else:
+			avg_service_availability.append(0)
+			avg_total_allocated.append(0)
+
 
 
 
@@ -864,7 +925,7 @@ class Control_Plane(object):
 			#	if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False:
 					#call the batch
 			#print("########")
-			print("Load balancing")
+			#print("Load balancing")
 			#print(len(actives))
 			#print(plp.lambda_node)
 			#self.getProcUsage(plp)
@@ -895,7 +956,7 @@ class Control_Plane(object):
 				print("Batch Blocking")
 				print("Cant Schedule {} RRHs".format(len(actives)))
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
-				batch_blocking.append(1)
+				inc_batch_blocking.append(1)
 			else:
 				#copy_state = copy.copy(plp.nodeState)
 				#print(solution.solve_details.time)
@@ -997,19 +1058,20 @@ class Control_Plane(object):
 		self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas)
 		solution = self.ilp.run()
 		if solution == None:
-			#print("Incremental Blocking")
+			print("Incremental Blocking")
 			#print("Nodes actives are: {}".format(plp.nodeState))
 			#print("Lambdas actives are: {}".format(plp.lambda_node))
 			#print("DUs load are: {}".format(plp.du_processing))
 			#verifies if it is the nfv control plane
 			if self.type == "load_inc_batch":
-				s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
+				inc_blocking.append(1)
+				#s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+				#inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
 			else:
 				rrhs.append(r)
 				np.shuffle(rrhs)
 				antenas = []
-				print("Incremental Blocking")
+				#print("Incremental Blocking")
 				inc_blocking.append(1)
 				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 				return solution
@@ -1062,18 +1124,26 @@ class Control_Plane(object):
 	#batch scheduling
 	def batchSched(self, r, ilp_module, batch_power_consumption,b_redirected_rrhs,
 		b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs, batch_blocking):
+		global sucs_reqs
 		count_nodes = 0
 		count_lambdas = 0
 		count_dus = 0
 		count_switches = 0
 		block = 0
 		#print("Calling Batch")
+		#print(len(actives))
+		#print("Nodes state {}".format(ilp_module.nodeState))
+		#print("Lambdas nodes {}".format(ilp_module.lambda_node))
+		#print("DUs load {}".format(ilp_module.du_processing))
+		#print("*****************")
 		batch_list = copy.copy(actives)
 		batch_list.append(r)
 		actives.append(r)
 		self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas)
 		#take a snapshot of the node states to account the migrations
-		copy_state = copy.copy(plp.nodeState)
+		copy_state = copy.copy(ilp_module.nodeState)
+		cp_l =  copy.copy(ilp_module.lambda_node)
+		cp_d = copy.copy(ilp_module.du_processing)
 		self.ilp.resetValues()
 		solution = self.ilp.run()
 		if solution == None:
@@ -1082,9 +1152,13 @@ class Control_Plane(object):
 			np.shuffle(rrhs)
 			print("Batch Blocking")
 			print("Cant Schedule {} RRHs".format(len(actives)))
+			print("Nodes state {}".format(copy_state))
+			print("Lambdas nodes {}".format(cp_l))
+			print("DUs load {}".format(cp_d))
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 		else:
+			sucs_reqs += 1
 			#print(solution.solve_details.time)
 			solution_values = self.ilp.return_solution_values()
 			self.ilp.updateValues(solution_values)
@@ -1443,6 +1517,7 @@ class RRH(object):
 
 	def run(self):
 		t = np.uniform((next_time -self.env.now)/4, next_time -self.env.now)
+		#t = np.expovariate(1/1000)
 		#print("Interval time is {}".format(next_time -self.env.now))
 		#print("Service is {}".format(t))
 		yield self.env.timeout(t)
@@ -1526,7 +1601,16 @@ class Util(object):
 		global external_migrations, internal_migrations, avg_external_migrations, avg_internal_migrations, served_requests
 		global lambda_usage, avg_lambda_usage,proc_usage, avg_proc_usage
 		global act_cloud, act_fog, avg_act_cloud, avg_act_fog, daily_migrations
-		
+		global count_ext_migrations, total_service_availability, avg_service_availability, avg_total_allocated, total_requested
+
+		total_requested = []
+
+		avg_total_allocated = []
+
+		total_service_availability = []
+		avg_service_availability = []
+
+		count_ext_migrations = []
 		lambda_usage = []
 		avg_lambda_usage = []
 		proc_usage = []
@@ -1565,7 +1649,7 @@ class Util(object):
 		stamps = 24
 		hours_range = range(1, stamps+1)
 		for i in range(stamps):
-			x = norm.pdf(i, 12, 4)
+			x = norm.pdf(i, 12, 3)
 			x *= traffic_quocient
 			#x= round(x,4)
 			#if x != 0:
