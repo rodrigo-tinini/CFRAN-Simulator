@@ -10,6 +10,8 @@ fog_capacity = 5 * cpri_line
 #cloud capacity
 cloud_capacity = 25 *cpri_line
 #node power costs
+fog_cost = 300
+cloud_cost = 0
 costs = {}
 costs["f1"] = 300
 costs["f2"] = 300
@@ -26,34 +28,52 @@ class RRH(object):
         self.cpri_line = cpri_line
 
 #create graph
-G.add_edges_from([("s", "v1", {'capacity': 614, 'weight': 0}),
-                    ("s", "v2", {'capacity': 614, 'weight': 0}),
-                    ("v1", "f1", {'capacity': fog_capacity, 'weight': 300}),
-                   ("v1", "bridge", {'capacity': 10000, 'weight': 0}),
-                   ("bridge", "c", {'capacity': cloud_capacity, 'weight': 0}),
-                   ("v2", "f2", {'capacity': fog_capacity, 'weight': 300}),
-                   ("v2", "bridge", {'capacity': 10000, 'weight': 0}),
-                   ("f1", "d", {'capacity': 10000, 'weight': 0}),
-                   ("f2", "d", {'capacity': 10000, 'weight': 0}),
-                   ("c", "d", {'capacity': cloud_capacity, 'weight': 0}),
+G.add_edges_from([("s", "r1", {'capacity': 614, 'weight': 0}),
+                  ("s", "r2", {'capacity': 614, 'weight': 0}),
+                  ("s", "r3", {'capacity': 614, 'weight': 0}),
+                  ("s", "r4", {'capacity': 614, 'weight': 0}),
+                  ("r1", "f1", {'capacity': 10000, 'weight': fog_cost}),
+                  ("r2", "f1", {'capacity': 10000, 'weight': fog_cost}),
+                  ("r3", "f2", {'capacity': 10000, 'weight': fog_cost}),
+                  ("r4", "f2", {'capacity': 10000, 'weight': fog_cost}),
+                  ("r1", "b", {'capacity': 10000, 'weight': cloud_cost}),
+                  ("r2", "b", {'capacity': 10000, 'weight': cloud_cost}),
+                  ("r3", "b", {'capacity': 10000, 'weight': cloud_cost}),
+                  ("r4", "b", {'capacity': 10000, 'weight': cloud_cost}),
+                  ("b", "c", {'capacity': 2456, 'weight': 0}),
+                  ("c", "d", {'capacity': 2456, 'weight': 0}),
+                  ("f1", "d", {'capacity': 10000, 'weight': 0}),
+                  ("f2", "d", {'capacity': 10000, 'weight': 0}),
+                  ("f3", "d", {'capacity': 10000, 'weight': 0}),
+                  ("f4", "d", {'capacity': 10000, 'weight': 0}),
+                  ("s", "r5", {'capacity': 614, 'weight': 0}),
+                  ("r5", "f1", {'capacity': 10000, 'weight': 0}),
+                  ("r5", "b", {'capacity': 614, 'weight': 0}),
                    ])
 
 mincostFlow = nx.max_flow_min_cost(G, "s", "d")
 #print(mincostFlow)
+#for i in mincostFlow:
+  #print(i, mincostFlow[i])
 
 def getPowerConsumption():
     power_cost = 0
     for i in mincostFlow:
-        print("{}: {}".format(i, mincostFlow[i]))
+        #print("{}: {}".format(i, mincostFlow[i]))
         for j in mincostFlow[i]:
             if j == "d" and mincostFlow[i][j] > 0:
-                print(i)
-                #print("Node {}: Flow: {}".format(j,mincostFlow[i][j]))
-                print("{} put traffic on d".format(i))
                 power_cost += costs[i]
+            if mincostFlow[i][j] > 0:
+                  #print(i)
+                  #print("Node {}: Flow: {}".format(j,mincostFlow[i][j]))
+              print("{} put traffic on {}".format(i,j))
     return power_cost
+
 power_cost = getPowerConsumption()
 print(power_cost)
+#example of modifying edge attribute
+print(nx.edges(G,["d"]))
+print(G["s"]["r1"]['capacity'])
 #mincost = nx.cost_of_flow(G, mincostFlow)
 #mincost
 #from networkx.algorithms.flow import maximum_flow
