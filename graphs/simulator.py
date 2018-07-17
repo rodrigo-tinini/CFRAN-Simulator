@@ -163,10 +163,11 @@ class Control_Plane(object):
 			r = yield self.requests.get()
 			print("Got {}".format(r.id))
 			g.actives_rrhs.append(r)
-			g.startNode(gp, r.id)
+			g.startNode(self.graph, r.id)
 			self.env.process(r.run())
 			g.assignVPON(self.graph)
-
+			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
+			print(mincostFlow)
 
 	#starts the deallocation of a request
 	def depart_request(self):
@@ -283,7 +284,7 @@ env.run(until = 86401)
 #for i in range(len(g.actives_rrhs)):
 #	print(gp["s"]["RRH{}".format(i)]["capacity"])
 #	print(nx.edges(gp, "RRH{}".format(i)))
-#print(nx.edges(gp))
+print(nx.edges(gp))
 #print(gp["fog0"]["d"]["capacity"])
 #neighbors = g.nx.all_neighbors(gp, "s")
 #for i in neighbors:

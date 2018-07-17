@@ -104,27 +104,43 @@ def assignVPON(graph):
       traffic = len(actives_rrhs) * cpri_line
       #verify if the cloud alone can support this traffic
       if traffic <= graph["cloud"]["d"]["capacity"]:
-        print("Fronthaul")
-        #calculate the VPONs necessaries and put them on the fronthaul
-        num_vpons = 0
-        num_vpons = math.ceil(traffic/lambda_capacity)
-        for i in range(num_vpons):
-          graph["bridge"]["cloud"]["capacity"] += 9830.4
-          allocated_vpons.append(available_vpons.pop())
+        #verify if the fronthaul has lambda. If so, does nothing, otherwise, put the necessary vpons
+        if graph["bridge"]["cloud"]["capacity"] == 0 or traffic > graph["bridge"]["cloud"]["capacity"]:
+          print("Putting VPONs on Fronthaul")
+          #calculate the VPONs necessaries and put them on the fronthaul
+          #num_vpons = 0
+          #num_vpons = math.ceil(traffic/lambda_capacity)
+          #for i in range(num_vpons):
+          #  graph["bridge"]["cloud"]["capacity"] += 9830.4
+          #  allocated_vpons.append(available_vpons.pop())
+          #this ways seems better than the above method
+          while graph["bridge"]["cloud"]["capacity"] < traffic:
+            if available_vpons:
+              graph["bridge"]["cloud"]["capacity"] += 9830.4
+              allocated_vpons.append(available_vpons.pop())
+            else:
+              print("No VPON available!")
       else:
-        print("Fronthaul and Fog")
+        print("Putting VPONs on Fronthaul and Fog")
         #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
-        #calculate the VPONs necessaries and put them on the fronthaul
         num_vpons = 0
         num_vpons = math.ceil(traffic/lambda_capacity)
         while graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"] :
-          graph["bridge"]["cloud"]["capacity"] += 9830.4
-          allocated_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
-        for i in range(num_vpons):
-          graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9830.4 
-          allocated_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          if available_vpons:
+            graph["bridge"]["cloud"]["capacity"] += 9830.4
+            allocated_vpons.append(available_vpons.pop())
+            num_vpons -= num_vpons
+          else:
+              print("No VPON available!")
+        #First-Fit Fog VPON Allocation - When there is VPON, put it on the next Fog Node
+        while available_vpons:
+          for i in range(fogs):#this is the First-Fit Fog VPON Allocation
+            if available_vpons:
+              graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9830.4 
+              allocated_vpons.append(available_vpons.pop())
+              num_vpons -= num_vpons
+            else:
+                print("No VPON available!")
       #return traffic
 
 def getPowerConsumption():
