@@ -86,7 +86,7 @@ class Traffic_Generator(object):
 			if g.rrhs:
 				r = g.rrhs.pop()
 				self.cp.requests.put(r)
-				print("Took {}".format(r.id))
+				#print("Took {}".format(r.id))
 				#r.updateGenTime(self.env.now)
 				#r.enabled = True
 				total_period_requests +=1
@@ -167,27 +167,37 @@ class Control_Plane(object):
 			#turn the RRH on
 			g.startNode(self.graph, r.id)
 			g.actives_rrhs.append(r.id)
-			print(self.graph["s"][r.id]["capacity"])
+			#print(self.graph["s"][r.id]["capacity"])
 			#calls the allocation of VPONs
 			g.assignVPON(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
 			if mincostFlow != None:
 				self.env.process(r.run())
+				#print("##########################################################")
 				#print(mincostFlow)
+				#print("##########################################################")
+				print(len(g.actives_rrhs))
+				print(self.graph["bridge"]["cloud"]["capacity"])
+				#print(g.getPowerConsumption(mincostFlow))
+				#print(g.getBandwidthPower(self.graph))
+				#add the RRH to the list of activated RRHs connected to its fog node
+				g.addActivated(r.id)
 				g.getProcessingNodes(self.graph, mincostFlow, r.id)
-				print(g.load_node)
+				#print(g.load_node)
 			else:
 				print("No flow was found!")
+				g.endNode(self.graph, r.id)
 				g.actives_rrhs.remove(r.id)
 
 	#starts the deallocation of a request
 	def depart_request(self):
 		while True:
 			r = yield self.departs.get()
-			print("Departing {}".format(r.id))
+			#print("Departing {}".format(r.id))
 			g.actives_rrhs.remove(r.id)
 			g.removeRRHNode(r.id)
+			g.minusActivated(r.id)
 			g.rrhs.append(r)
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
@@ -293,6 +303,8 @@ g.addFogNodes(gp, g.fogs)
 #10 rrhs per fog node
 g.addRRHs(gp, 0, 5, "0")
 g.addRRHs(gp, 5, 10, "1")
+g.addRRHs(gp, 10, 15, "2")
+g.addRRHs(gp, 15, 20, "3")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
