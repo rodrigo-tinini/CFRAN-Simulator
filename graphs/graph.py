@@ -45,6 +45,8 @@ for i in range(10):
   vpons_capacity[i] = 10000
 #this dictionary keeps the rrhs indexed by its fog node
 fog_rrhs = {}
+#this dictionary keeps the amount of activated RRHs on each fog node
+fog_activated_rrhs = {}
 #initialize the lists
 for i in range(fogs):
   fog_rrhs["fog{}".format(i)] = []
