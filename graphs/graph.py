@@ -4,6 +4,8 @@ import math
 import time
 
 G = nx.DiGraph()
+#number of RRHs
+rrhs_amount = 10
 #keeps the power cost
 power_cost = 0
 #cpri line rate
@@ -17,21 +19,17 @@ cloud_capacity = 80 *cpri_line
 #node power costs
 fog_cost = 300
 cloud_cost = 0
+#number of fogs
+fogs = 5
 #nodes costs
 costs = {}
-costs["fog0"] = 300
-costs["fog1"] = 300
-costs["fog2"] = 300
-costs["fog3"] = 300
-costs["fog4"] = 300
+for i in range(fogs):
+  costs["fog{}".format(i)] = 300
 costs["cloud"] = 600
 #nodes capacities
 capacities = {}
-capacities["fog0"] = fog_capacity
-capacities["fog1"] = fog_capacity
-capacities["fog2"] = fog_capacity
-capacities["fog3"] = fog_capacity
-capacities["fog4"] = fog_capacity
+for i in range(fogs):
+  capacities["fog{}".format(i)] = fog_capacity
 capacities["cloud"] = cloud_capacity
 #list of all rrhs
 rrhs = []
@@ -45,6 +43,26 @@ allocated_vpons = []
 vpons_capacity = {}
 for i in range(10):
   vpons_capacity[i] = 10000
+#this dictionary keeps the rrhs indexed by its fog node
+fog_rrhs = {}
+#initialize the lists
+for i in range(fogs):
+  fog_rrhs["fog{}".format(i)] = []
+#dict that keeps the fog of each RRH
+rrhs_fog = {}
+#dict that keeps the processing node of each RRH
+rrhs_proc_node = {}
+for i in range(rrhs_amount):
+  rrhs_proc_node["RRH{}".format(i)] = None
+#this dictionary keeps track of bandwidth (vpons) allocated to each fog node
+fogs_vpons = {}
+#this list keeps track of the vpons allocated to the cloud
+cloud_vpons = []
+#this dict keeps the load on each processing node
+load_node = {}
+load_node["cloud"] = 0
+for i in range(fogs):
+  load_node["fog_bridge{}".format(i)] = 0
 
 #rrh
 class RRH(object):
@@ -52,9 +70,13 @@ class RRH(object):
         self.cpri_line = cpri_line
         self.id = "RRH{}".format(rrhId)
 
+#update load on processing node
+def update_node_load(node, load):
+  load_node[node] += load 
+
 #create rrhs
-def createRRHs(amount):
-  for i in range(amount):
+def createRRHs():
+  for i in range(rrhs_amount):
     rrhs.append(RRH(cpri_line, i))
 
 #create graph
@@ -74,6 +96,11 @@ def addNodesEdgesSet(graph, node, fog_bridge):
       (node, "fog_bridge{}".format(fog_bridge), { 'weight': 0}),
       (node, "bridge", { 'weight': 0}),
       ])
+    indexRRH(node, fog_bridge)
+
+#index RRH to each correspondent fog node
+def indexRRH(node, fog_bridge):
+  fog_rrhs["fog{}".format(fog_bridge)].append(node)    
 
 def addFogNodes(graph, fogs):
     for i in range(fogs):
@@ -84,6 +111,7 @@ def addFogNodes(graph, fogs):
 def addRRHs(graph, bottom, rrhs, fog):
     for i in range(bottom,rrhs):
       addNodesEdgesSet(graph, "RRH{}".format(i), "{}".format(fog))
+      rrhs_fog["RRH{}".format(i)] = "fog_bridge{}".format(fog)
 
 def addRRH(graph, rrh, fog):
     addNodesEdgesSet(graph, rrh, fog)
@@ -96,6 +124,18 @@ def endNode(graph, node):
 
 def updateCapacity(graph, node1, node2, value):
   graph[node1][node2]["capacity"] = value
+
+#clear the load on nodes after traffic change
+def clearLoad():
+  global load_node
+  for i in load_node:
+    load_node[i] = 0
+
+#remove traffic from RRH from its processing node
+def removeRRHNode(rrh):
+  global load_node, rrhs_proc_node
+  load_node[rrhs_proc_node[rrh]] -= cpri_line
+  rrhs_proc_node[rrh] = None
 
 #heuristic to assign VPONs to nodes- cloud first
 def assignVPON(graph):
@@ -143,7 +183,30 @@ def assignVPON(graph):
                 print("No VPON available!")
       #return traffic
 
-def getPowerConsumption():
+#check in which node the rrhs is being processed
+def getProcessingNodes(graph, mincostFlow, rrh):
+  #now, iterate over the flow of each neighbor of the RRH
+  if mincostFlow[rrh][rrhs_fog[rrh]] != 0:
+    update_node_load(rrhs_fog[rrh], cpri_line)
+    rrhs_proc_node[rrh] = rrhs_fog[rrh]
+  elif mincostFlow[rrh]["bridge"] != 0:
+    update_node_load("cloud", cpri_line)
+    rrhs_proc_node[rrh] = "cloud"
+  #print(mincostFlow[actives_rrhs[i]]["bridge"])
+
+def OLDgetProcessingNodes(graph, mincostFlow):
+  #check the outcoming flow of each RRH and where it is put (bridge or fog bridge)
+  for i in range(len(actives_rrhs)):
+    #now, iterate over the flow of each neighbor of the RRH
+    if mincostFlow[actives_rrhs[i]][rrhs_fog[actives_rrhs[i]]] != 0:
+      update_node_load(rrhs_fog[actives_rrhs[i]], cpri_line)
+      rrhs_proc_node[actives_rrhs[i]] = rrhs_fog[actives_rrhs[i]]
+    elif mincostFlow[actives_rrhs[i]]["bridge"] != 0:
+      update_node_load("cloud", cpri_line)
+      rrhs_proc_node[actives_rrhs[i]] = "cloud"
+    #print(mincostFlow[actives_rrhs[i]]["bridge"])
+
+def getPowerConsumption(mincostFlow):
     power_cost = 0
     for i in mincostFlow:
         #print("{}: {}".format(i, mincostFlow[i]))

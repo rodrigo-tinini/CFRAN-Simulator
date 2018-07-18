@@ -121,6 +121,8 @@ class Traffic_Generator(object):
 			arrival_rate = loads.pop()/change_time
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			#clear the load on the processing nodes
+			g.clearLoad()
 			total_requested.append(total_period_requests)
 			#print(avg_act_cloud)
 			#print(avg_act_fog)
@@ -145,7 +147,7 @@ class Control_Plane(object):
 	#create rrhs
 	def createRRHs(self, amount, env):
 		for i in range(amount):
-   			g.rrhs.append(RRH(cpri_line, i, self,self.env))
+   			g.rrhs.append(RRH(cpri_line, i, self, self.env))
 			
 	#take requests and tries to allocate on a RRH
 	def run(self):
@@ -161,20 +163,31 @@ class Control_Plane(object):
 		global count_rrhs
 		while True:
 			r = yield self.requests.get()
-			print("Got {}".format(r.id))
-			g.actives_rrhs.append(r)
+			#print("Got {}".format(r.id))
+			#turn the RRH on
 			g.startNode(self.graph, r.id)
-			self.env.process(r.run())
+			g.actives_rrhs.append(r.id)
+			print(self.graph["s"][r.id]["capacity"])
+			#calls the allocation of VPONs
 			g.assignVPON(self.graph)
+			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
-			print(mincostFlow)
+			if mincostFlow != None:
+				self.env.process(r.run())
+				#print(mincostFlow)
+				g.getProcessingNodes(self.graph, mincostFlow, r.id)
+				print(g.load_node)
+			else:
+				print("No flow was found!")
+				g.actives_rrhs.remove(r.id)
 
 	#starts the deallocation of a request
 	def depart_request(self):
 		while True:
 			r = yield self.departs.get()
 			print("Departing {}".format(r.id))
-			g.actives_rrhs.remove(r)
+			g.actives_rrhs.remove(r.id)
+			g.removeRRHNode(r.id)
 			g.rrhs.append(r)
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
@@ -272,21 +285,24 @@ cp = Control_Plane(env, "Graph", gp)
 #traffic generator
 tg = Traffic_Generator(env,distribution, None, cp)
 #create the rrhs
-cp.createRRHs(10,env)
+cp.createRRHs(g.rrhs_amount,env)
+np.shuffle(g.rrhs)
 #create fog nodes
-g.addFogNodes(gp, 2)
+g.addFogNodes(gp, g.fogs)
 #add RRHs to the graph
 #10 rrhs per fog node
 g.addRRHs(gp, 0, 5, "0")
 g.addRRHs(gp, 5, 10, "1")
+#print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
 #for i in range(len(g.actives_rrhs)):
 #	print(gp["s"]["RRH{}".format(i)]["capacity"])
 #	print(nx.edges(gp, "RRH{}".format(i)))
-print(nx.edges(gp))
+#print(nx.edges(gp))
 #print(gp["fog0"]["d"]["capacity"])
 #neighbors = g.nx.all_neighbors(gp, "s")
 #for i in neighbors:
 #	print(i)
 #print("Cost is {}".format(g.assignVPON(gp)))
+#print(g.fog_rrhs)
