@@ -122,7 +122,7 @@ class Traffic_Generator(object):
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			#clear the load on the processing nodes
-			g.clearLoad()
+			#g.clearLoad()
 			total_requested.append(total_period_requests)
 			#print(avg_act_cloud)
 			#print(avg_act_fog)

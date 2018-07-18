@@ -60,9 +60,9 @@ fogs_vpons = {}
 cloud_vpons = []
 #this dict keeps the load on each processing node
 load_node = {}
-load_node["cloud"] = 0
+load_node["cloud"] = 0.0
 for i in range(fogs):
-  load_node["fog_bridge{}".format(i)] = 0
+  load_node["fog_bridge{}".format(i)] = 0.0
 
 #rrh
 class RRH(object):
@@ -72,7 +72,8 @@ class RRH(object):
 
 #update load on processing node
 def update_node_load(node, load):
-  load_node[node] += load 
+  load_node[node] += load
+  load_node[node] = round(load_node[node],1)
 
 #create rrhs
 def createRRHs():
@@ -120,7 +121,7 @@ def startNode(graph, node):
   graph["s"][node]["capacity"] = cpri_line
 
 def endNode(graph, node):
-  graph["s"][node]["capacity"] = 0
+  graph["s"][node]["capacity"] = 0.0
 
 def updateCapacity(graph, node1, node2, value):
   graph[node1][node2]["capacity"] = value
@@ -129,7 +130,7 @@ def updateCapacity(graph, node1, node2, value):
 def clearLoad():
   global load_node
   for i in load_node:
-    load_node[i] = 0
+    load_node[i] = 0.0
 
 #remove traffic from RRH from its processing node
 def removeRRHNode(rrh):
