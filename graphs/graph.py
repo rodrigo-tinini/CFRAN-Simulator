@@ -5,7 +5,7 @@ import time
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 14
+rrhs_amount = 20
 #consumption of a line card + a DU
 line_card_consumption = 25
 #keeps the power cost
@@ -256,7 +256,7 @@ def getBandwidthPower(graph):
   return bandwidth_power
 
 #testes
-'''
+
 g = createGraph()
 createRRHs()
 for i in rrhs:
@@ -265,26 +265,27 @@ addFogNodes(g, 5)
 addRRHs(g, 0, 5, "0")
 addRRHs(g, 5, 10, "1")
 addRRHs(g, 10, 15, "2")
-#addRRHs(g, 15, 20, "3")
+addRRHs(g, 15, 20, "3")
 for i in range(len(rrhs)):
   startNode(g, "RRH{}".format(i))
+  actives_rrhs.append("RRH{}".format(i))
 #for i in range(len(rrhs)):
 #  print(g["s"]["RRH{}".format(i)]["capacity"])
-#assignVPON(g)
-g["bridge"]["cloud"]["capacity"] = 5000.0
-print(nx.edges(g, "RRH14"))
+assignVPON(g)
+print(g["bridge"]["cloud"]["capacity"])
+#g["bridge"]["cloud"]["capacity"] = 20000.0
 #print([i for i in nx.edges(g)])
 #G["s"]["RRH0"]["capacity"] = 10
 #print(G["s"])
 #startNode(G, "RRH11")
 start_time = time.clock()
 mincostFlow = nx.max_flow_min_cost(g, "s", "d")
-print(mincostFlow)
-#for i in mincostFlow:
-#  print(i, mincostFlow[i])
-#print("Time lapsed: {}".format(time.clock() - start_time))
+#print(mincostFlow)
+for i in mincostFlow:
+  print(i, mincostFlow[i])
+print("Time lapsed: {}".format(time.clock() - start_time))
 
-
+'''
 def getPowerConsumption():
     power_cost = 0
     for i in mincostFlow:
