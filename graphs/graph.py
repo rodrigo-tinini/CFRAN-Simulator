@@ -219,6 +219,13 @@ def removeVPON(graph):
         while fogs_vpons["fog{}".format(i)]:
           print("Poping")
           available_vpons.append(fogs_vpons["fog{}".format(i)].pop())
+    #release the VPONs of the fronthaul until only the necessary to support current traffic is reached
+    num_vpons = 0
+    num_vpons = (math.ceil(traffic/lambda_capacity))*9824
+    while graph["bridge"]["cloud"]["capacity"] > num_vpons:
+      print("Releasing the cloud")
+      graph["bridge"]["cloud"]["capacity"] -= 9824
+      available_vpons.append(cloud_vpons.pop())
 
 #return the total available bandwidth on all network links
 def getTotalBandwidth(graph):

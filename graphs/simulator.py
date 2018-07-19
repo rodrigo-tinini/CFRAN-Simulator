@@ -124,18 +124,10 @@ class Traffic_Generator(object):
 			print("====================================================================")
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			print("Cloud VPONs: {}".format(g.cloud_vpons))
-			#print("Fogs VPONs: {}".format(g.fogs_vpons))
+			print("Fogs VPONs: {}".format(g.fogs_vpons))
 			print(g.getTotalBandwidth(cp.graph))
 			print("====================================================================")
-			#clear the load on the processing nodes
-			#g.clearLoad()
 			total_requested.append(total_period_requests)
-			#print(avg_act_cloud)
-			#print(avg_act_fog)
-			#print("Was served {}".format(served_requests))
-			#served_requests = 0
-			#print("Total Node Migrations: {}".format(avg_external_migrations))
-			#print("Total In Node Migrations: {}".format(avg_internal_migrations))
 			total_period_requests = 0
 			sucs_reqs = 0
 
@@ -173,26 +165,14 @@ class Control_Plane(object):
 			#turn the RRH on
 			g.startNode(self.graph, r.id)
 			g.actives_rrhs.append(r.id)
-			#print(self.graph["s"][r.id]["capacity"])
 			#calls the allocation of VPONs
 			g.assignVPON(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
 			if mincostFlow != None:
 				self.env.process(r.run())
-				#print("##########################################################")
-				#print(mincostFlow)
-				#print("##########################################################")
-				#print(len(g.actives_rrhs))
-				#print(self.graph["bridge"]["cloud"]["capacity"])
-				#print(g.getPowerConsumption(mincostFlow))
-				#print(g.getBandwidthPower(self.graph))
-				#add the RRH to the list of activated RRHs connected to its fog node
 				g.addActivated(r.id)
 				g.getProcessingNodes(self.graph, mincostFlow, r.id)
-				#print("Fogs VPONs: {}".format(g.fogs_vpons))
-				#print(g.load_node)
-				print(g.getTotalBandwidth(self.graph))
 			else:
 				print("No flow was found!")
 				g.endNode(self.graph, r.id)
@@ -210,6 +190,8 @@ class Control_Plane(object):
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
 			g.removeVPON(self.graph)
+			print("Departed Request")
+			print("Cloud is {}".format(g.cloud_vpons))
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
