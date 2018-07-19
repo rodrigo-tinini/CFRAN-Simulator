@@ -18,7 +18,7 @@ total_requested = []
 sucs_reqs = 0
 total_allocated = []
 network_threshold = 0.8
-traffic_quocient = 50
+traffic_quocient = 200
 rrhs_quantity = 35
 served_requests = 0
 #timestamp to change the load
@@ -120,7 +120,13 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
 			self.action = self.env.process(self.run())
+			print("traffic: {}".format(len(g.actives_rrhs)*g.cpri_line))
+			print("====================================================================")
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print("Cloud VPONs: {}".format(g.cloud_vpons))
+			#print("Fogs VPONs: {}".format(g.fogs_vpons))
+			print(g.getTotalBandwidth(cp.graph))
+			print("====================================================================")
 			#clear the load on the processing nodes
 			#g.clearLoad()
 			total_requested.append(total_period_requests)
@@ -177,14 +183,16 @@ class Control_Plane(object):
 				#print("##########################################################")
 				#print(mincostFlow)
 				#print("##########################################################")
-				print(len(g.actives_rrhs))
-				print(self.graph["bridge"]["cloud"]["capacity"])
+				#print(len(g.actives_rrhs))
+				#print(self.graph["bridge"]["cloud"]["capacity"])
 				#print(g.getPowerConsumption(mincostFlow))
 				#print(g.getBandwidthPower(self.graph))
 				#add the RRH to the list of activated RRHs connected to its fog node
 				g.addActivated(r.id)
 				g.getProcessingNodes(self.graph, mincostFlow, r.id)
+				#print("Fogs VPONs: {}".format(g.fogs_vpons))
 				#print(g.load_node)
+				print(g.getTotalBandwidth(self.graph))
 			else:
 				print("No flow was found!")
 				g.endNode(self.graph, r.id)
@@ -201,6 +209,7 @@ class Control_Plane(object):
 			g.rrhs.append(r)
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
+			g.removeVPON(self.graph)
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
@@ -301,10 +310,11 @@ np.shuffle(g.rrhs)
 g.addFogNodes(gp, g.fogs)
 #add RRHs to the graph
 #10 rrhs per fog node
-g.addRRHs(gp, 0, 5, "0")
-g.addRRHs(gp, 5, 10, "1")
-g.addRRHs(gp, 10, 15, "2")
-g.addRRHs(gp, 15, 20, "3")
+g.addRRHs(gp, 0, 20, "0")
+g.addRRHs(gp, 20, 40, "1")
+g.addRRHs(gp, 40, 60, "2")
+g.addRRHs(gp, 60, 80, "3")
+g.addRRHs(gp, 80, 100, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
