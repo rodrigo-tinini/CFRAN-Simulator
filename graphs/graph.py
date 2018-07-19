@@ -5,7 +5,7 @@ import time
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 20
+rrhs_amount = 2
 #consumption of a line card + a DU
 line_card_consumption = 25
 #keeps the power cost
@@ -397,6 +397,29 @@ def sortFogLeastLoaded():
  least_loaded = sorted(load_node,key=load_node.__getitem__)
  return least_loaded
 
+#get all incoming traffic
+def getIncomingTraffic():
+  return cpri_line * (len(actives_rrhs))
+
+#get all transmitted traffic from source to destination
+def getTransmittedTraffic(mincostFlow):
+  transmitted = 0.0
+  transmitted += mincostFlow["cloud"]["d"]
+  for i in range(fogs):
+    transmitted += mincostFlow["fog{}".format(i)]["d"]
+  return transmitted
+
+#get the blocking probability of each
+def getBlockingProbability(mincostFlow):
+  lost_traffic = (len(actives_rrhs)*cpri_line) - getTransmittedTraffic(mincostFlow)
+  blocking_probability = lost_traffic/(len(actives_rrhs)*cpri_line)
+  return blocking_probability
+
+#verify if there were traffic that could not be allocated to a node
+def getTrafficLost(mincostFlow):
+  lost_traffic = 0.0
+  lost_traffic = (len(actives_rrhs)*cpri_line) - getTransmittedTraffic(mincostFlow)
+  return lost_traffic
 #testes
 
 g = createGraph()
@@ -404,17 +427,17 @@ createRRHs()
 #for i in rrhs:
 #  print(i.id)
 addFogNodes(g, 5)
-addRRHs(g, 0, 5, "0")
-addRRHs(g, 5, 10, "1")
-addRRHs(g, 10, 15, "2")
-addRRHs(g, 15, 20, "3")
+addRRHs(g, 0, 2, "0")
+#addRRHs(g, 5, 10, "1")
+#addRRHs(g, 10, 15, "2")
+#addRRHs(g, 15, 20, "3")
 for i in range(len(rrhs)):
   startNode(g, "RRH{}".format(i))
   actives_rrhs.append("RRH{}".format(i))
 #for i in range(len(rrhs)):
 #  print(g["s"]["RRH{}".format(i)]["capacity"])
 assignVPON(g)
-print(g["bridge"]["cloud"]["capacity"])
+#print(g["bridge"]["cloud"]["capacity"])
 #g["bridge"]["cloud"]["capacity"] = 20000.0
 #print([i for i in nx.edges(g)])
 #G["s"]["RRH0"]["capacity"] = 10
@@ -423,6 +446,7 @@ print(g["bridge"]["cloud"]["capacity"])
 start_time = time.clock()
 mincostFlow = nx.max_flow_min_cost(g, "s", "d")
 #print(mincostFlow)
+#print(mincostFlow["cloud"]["d"])
 #for i in mincostFlow:
 #  print(i, mincostFlow[i])
 print("Time lapsed: {}".format(time.clock() - start_time))
@@ -432,9 +456,11 @@ for i in range(len(rrhs)):
 #sort.reverse()
 #print(sort)
 #print(load_node)
-print(sortFogMostLoaded())
-print(sortFogLeastLoaded())
-
+#print(sortFogMostLoaded())
+#print(sortFogLeastLoaded())
+print(getTransmittedTraffic(mincostFlow))
+print(getBlockingProbability(mincostFlow))
+print(getTrafficLost(mincostFlow))
 '''
 def getPowerConsumption():
     power_cost = 0
