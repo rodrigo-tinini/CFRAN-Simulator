@@ -5,12 +5,12 @@ import time
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 20
+rrhs_amount = 100
 #consumption of a line card + a DU
 line_card_consumption = 25
 #keeps the power cost
 power_cost = 0
-#cpri line rate
+#cpri line rate - it is round to 614 because float 614.4 was unexplained causing no flow to be found (even with as free capacity as needed)
 cpri_line = 614
 #capacity of a vopn
 lambda_capacity = 16 * cpri_line
@@ -62,6 +62,8 @@ for i in range(rrhs_amount):
   rrhs_proc_node["RRH{}".format(i)] = None
 #this dictionary keeps track of bandwidth (vpons) allocated to each fog node
 fogs_vpons = {}
+for i in range(fogs):
+  fogs_vpons["fog{}".format(i)] = []
 #this list keeps track of the vpons allocated to the cloud
 cloud_vpons = []
 #this dict keeps the load on each processing node
@@ -160,51 +162,71 @@ def assignVPON(graph):
       traffic = len(actives_rrhs) * cpri_line
       #verify if the cloud alone can support this traffic
       if traffic <= graph["cloud"]["d"]["capacity"]:
-        print("Cloud Can Handle It!")
+        #print("Cloud Can Handle It!")
         #verify if the fronthaul has lambda. If so, does nothing, otherwise, put the necessary vpons
         if graph["bridge"]["cloud"]["capacity"] == 0 or traffic > graph["bridge"]["cloud"]["capacity"]:
-          print("Putting VPONs on Fronthaul")
+          #print("Putting VPONs on Fronthaul")
           #calculate the VPONs necessaries and put them on the fronthaul
           #num_vpons = 0
           #num_vpons = math.ceil(traffic/lambda_capacity)
           #for i in range(num_vpons):
-          #  graph["bridge"]["cloud"]["capacity"] += 9830.4
+          #  graph["bridge"]["cloud"]["capacity"] += 9824
           #  allocated_vpons.append(available_vpons.pop())
           #this ways seems better than the above method
           while graph["bridge"]["cloud"]["capacity"] < traffic:
             if available_vpons:
-              graph["bridge"]["cloud"]["capacity"] += 9830.4
-              allocated_vpons.append(available_vpons.pop())
+              graph["bridge"]["cloud"]["capacity"] += 9824
+              cloud_vpons.append(available_vpons.pop())
             else:
               print("No VPON available!")
         else:
-          print("OKKKK")
-      else:
-        print("Putting VPONs on Fronthaul and Fog")
-        #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
-        num_vpons = 0
-        num_vpons = math.ceil(traffic/lambda_capacity)
-        while graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"] :
-          if available_vpons:
-            graph["bridge"]["cloud"]["capacity"] += 9830.4
-            allocated_vpons.append(available_vpons.pop())
-            num_vpons -= num_vpons
-          else:
-              print("No VPON available!")
-        #First-Fit Fog VPON Allocation - When there is VPON, put it on the next Fog Node
-        while available_vpons:
-          for i in range(fogs):#this is the First-Fit Fog VPON Allocation
+          pass#print("OKKKK")
+      elif traffic > graph["cloud"]["d"]["capacity"]:
+        if available_vpons:
+          print("Putting VPONs on Fronthaul and Fog")
+          #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
+          num_vpons = 0
+          num_vpons = math.ceil(traffic/lambda_capacity)
+          while graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"] :
             if available_vpons:
-              graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9830.4 
-              allocated_vpons.append(available_vpons.pop())
+              graph["bridge"]["cloud"]["capacity"] += 9824
+              cloud_vpons.append(available_vpons.pop())
               num_vpons -= num_vpons
             else:
                 print("No VPON available!")
+          #First-Fit Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on the next Fog Node
+          while available_vpons:
+            for i in range(fogs):#this is the First-Fit Fog VPON Allocation
+              if available_vpons:
+                graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9824 
+                fogs_vpons["fog{}".format(i)].append(available_vpons.pop())
+                num_vpons -= num_vpons
+              else:
+                  print("No VPON available!")
+        #else: print('No available VPONs')
       #return traffic
 
 #remove unnecessary bandwidth(VPONs) from the links (fronthaul and fog nodes)
 def removeVPON(graph):
-  pass
+  #first, verify if the traffic can be handled only by the cloud
+  #if fog has VPONs, deallocate them
+  traffic = len(actives_rrhs) * cpri_line
+  if traffic <= graph["cloud"]["d"]["capacity"] and traffic <= graph["bridge"]["cloud"]["capacity"]:
+    #cloud can handle the traffic, if there are VPONs on fogs, release them
+    for i in range(fogs):
+      if graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] > 0:
+        graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] = 0
+        while fogs_vpons["fog{}".format(i)]:
+          print("Poping")
+          available_vpons.append(fogs_vpons["fog{}".format(i)].pop())
+
+#return the total available bandwidth on all network links
+def getTotalBandwidth(graph):
+  total = 0.0
+  total += graph["bridge"]["cloud"]["capacity"]
+  for i in range(fogs):
+    total += graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"]
+  return total
 
 #check in which node the rrhs is being processed
 def getProcessingNodes(graph, mincostFlow, rrh):
@@ -248,15 +270,15 @@ def getBandwidthPower(graph):
   bandwidth_power = 0.0
   #first get the consumption of the fronthaul
   if graph["bridge"]["cloud"]["capacity"] > 0:
-    bandwidth_power += (graph["bridge"]["cloud"]["capacity"] / 9830.4) * line_card_consumption
+    bandwidth_power += (graph["bridge"]["cloud"]["capacity"] / 9824) * line_card_consumption
   #now, if there are VPONs on the fog nodes, calculates their power consumption
   for i in range(fogs):
     if graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] > 0:
-      bandwidth_power += (graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] / 9830.4) * line_card_consumption
+      bandwidth_power += (graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] / 9824) * line_card_consumption
   return bandwidth_power
 
 #testes
-
+'''
 g = createGraph()
 createRRHs()
 for i in rrhs:
@@ -285,7 +307,7 @@ for i in mincostFlow:
   print(i, mincostFlow[i])
 print("Time lapsed: {}".format(time.clock() - start_time))
 
-'''
+
 def getPowerConsumption():
     power_cost = 0
     for i in mincostFlow:
