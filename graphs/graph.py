@@ -6,7 +6,7 @@ import random
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 2
+rrhs_amount = 100
 #consumption of a line card + a DU
 line_card_consumption = 25
 #keeps the power cost
@@ -21,7 +21,7 @@ fog_capacity = 16 * cpri_line
 cloud_capacity = 80 *cpri_line
 #node power costs
 fog_cost = 300
-cloud_cost = 0
+cloud_cost = 1
 #number of fogs
 fogs = 5
 #nodes costs
@@ -55,6 +55,7 @@ for i in range(fogs):
   fog_rrhs["fog_bridge{}".format(i)] = []
 for i in range(fogs):
   fog_activated_rrhs["fog_bridge{}".format(i)] = 0
+#this list keeps the amount of 
 #dict that keeps the fog of each RRH
 rrhs_fog = {}
 #dict that keeps the processing node of each RRH
@@ -72,6 +73,16 @@ load_node = {}
 load_node["cloud"] = 0.0
 for i in range(fogs):
   load_node["fog_bridge{}".format(i)] = 0.0
+#keeps the cost of the nodes
+nodes_costs = {}
+nodes_costs["cloud"] = cloud_cost
+for i in range(fogs):
+  nodes_costs["fog{}".format(i)] = fog_cost
+#keeps the ratio between power consumption and activated RRHs on each processing node
+nodes_ratio_cost_rrhs = {}
+nodes_ratio_cost_rrhs["cloud"] = 0.0
+for i in range(fogs):
+  nodes_ratio_cost_rrhs["fog{}".format(i)] = 0.0
 
 #rrh
 class RRH(object):
@@ -160,7 +171,7 @@ def removeRRHNode(rrh):
 #The following heuristics are all Cloud-First and then have different policies to put VPONs on the Fog
 #Regardless of the cost of the Fog, all of them put VPONs first on the cloud
 #Cloud-First and Random Fog VPON Assignment
-def randomFogVPON(graph)
+def randomFogVPON(graph):
   traffic = 0
   #calculate the total incoming traffic
   traffic = len(actives_rrhs) * cpri_line
@@ -383,15 +394,45 @@ def assignLeastLoadedVPON(graph):
 
 ################################################################################################################
 
+#updates nodes ratio between cost and activated RRHs
+def updateRatio():
+  traffic = getIncomingTraffic()
+  #updates the ratio of the cloud
+  if traffic > 0:
+    nodes_ratio_cost_rrhs["cloud"] = nodes_costs["cloud"]/traffic
+  for i in range(fogs):
+    if fog_activated_rrhs["fog_bridge{}".format(i)] > 0:
+      total_fog_traffic = fog_activated_rrhs["fog_bridge{}".format(i)] * cpri_line
+      nodes_ratio_cost_rrhs["fog{}".format(i)] = nodes_costs["fog{}".format(i)]/total_fog_traffic
+
+#sort and get nodes by least cost
+def getLeastCostNodes():
+  least_cost = sorted(nodes_costs, key = nodes_costs.__getitem__)
+  return least_cost
+
+#sort and get nodes sorted by least ratio between node cost and activated RRHs
+def getLeastActCost():
+  least_cost = sorted(nodes_ratio_cost_rrhs, key = nodes_ratio_cost_rrhs.__getitem__)
+  return least
+
 #The following heuristic puts the VPONs on the least cost node, regardless if it is the cloud or the fogs
 #it sorts the nodes in ascending order of costs and then assign the VPONs until the demanded traffic is less or equal than the available bandwidth
 def leastCostNodeVPON(graph):
-  pass
+  #keeps the sorted nodes
+  least_cost = sorted(nodes_costs, key = nodes_costs.__getitem__)
 
 #The following heuristic puts the VPONs on the least cost node order, but, it also sorts the fog node considering the number of active RRHs in each fog node
 #It also re-assign VPONs if the costs changes or if the number of active RRHs on each fog node changes
 def leastCostLoadedVPON(graph):
   pass
+
+#update the cost of a node
+def updateNodeCost(node, cost):
+  nodes_costs[node] = cost
+
+#get the cost of a node
+def getNodeCost(node):
+  return nodes_costs[node]
 
 #get the fog bridge of a fog node
 def getFogBridge(graph, fog):
@@ -443,9 +484,11 @@ def getProcessingNodes(graph, mincostFlow, rrh):
   if mincostFlow[rrh][rrhs_fog[rrh]] != 0:
     update_node_load(rrhs_fog[rrh], cpri_line)
     rrhs_proc_node[rrh] = rrhs_fog[rrh]
+    print("Inserted on fog")
   elif mincostFlow[rrh]["bridge"] != 0:
     update_node_load("cloud", cpri_line)
     rrhs_proc_node[rrh] = "cloud"
+    print("Inserted on cloud")
   #print(mincostFlow[actives_rrhs[i]]["bridge"])
 
 
@@ -543,13 +586,15 @@ def getTrafficLost(mincostFlow):
   lost_traffic = (len(actives_rrhs)*cpri_line) - getTransmittedTraffic(mincostFlow)
   return lost_traffic
 #testes
-
+'''
 g = createGraph()
 createRRHs()
 #for i in rrhs:
 #  print(i.id)
 addFogNodes(g, 5)
-addRRHs(g, 0, 2, "0")
+addRRHs(g, 0, 5, "0")
+addRRHs(g, 5, 10, "1")
+addRRHs(g, 10, 15, "2")
 #addRRHs(g, 5, 10, "1")
 #addRRHs(g, 10, 15, "2")
 #addRRHs(g, 15, 20, "3")
@@ -574,17 +619,24 @@ mincostFlow = nx.max_flow_min_cost(g, "s", "d")
 print("Time lapsed: {}".format(time.clock() - start_time))
 for i in range(len(rrhs)):
   getProcessingNodes(g, mincostFlow, "RRH{}".format(i))
+activatedFogRRHs(g)
+updateRatio()
+print(fog_activated_rrhs)
+print(getLeastActivatedRRHsFog(g))
+updateRatio()
+print(nodes_ratio_cost_rrhs)
 #sort = sorted(load_node,key=load_node.__getitem__)
 #sort.reverse()
 #print(sort)
 #print(load_node)
 #print(sortFogMostLoaded())
 #print(sortFogLeastLoaded())
-print(getTransmittedTraffic(mincostFlow))
-print(getBlockingProbability(mincostFlow))
-print(getTrafficLost(mincostFlow))
-print(getFogBridge(g, "fog1"))
-'''
+#print(getTransmittedTraffic(mincostFlow))
+#print(getBlockingProbability(mincostFlow))
+#print(getTrafficLost(mincostFlow))
+#print(getFogBridge(g, "fog1"))
+
+
 def getPowerConsumption():
     power_cost = 0
     for i in mincostFlow:

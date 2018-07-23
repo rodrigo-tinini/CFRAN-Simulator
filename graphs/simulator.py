@@ -172,7 +172,9 @@ class Control_Plane(object):
 			if mincostFlow != None:
 				self.env.process(r.run())
 				g.addActivated(r.id)
-				g.getProcessingNodes(self.graph, mincostFlow, r.id)
+				g.getProcessingNodes(self.graph, mincostFlow, r.id)#USAR ESSE METODO PARA VER SE FOI POSSÍVEL COLOCAR O FLUXO DO RRH EM ALGUM NÓ (MODIFICAR A GETpROCESSING PRA RETORNAR O NÓ QUE ELE FOI POSTO)
+				print("Inserted {}".format(r.id))
+				print(mincostFlow[r.id])
 			else:
 				print("No flow was found!")
 				g.endNode(self.graph, r.id)
@@ -184,6 +186,7 @@ class Control_Plane(object):
 			r = yield self.departs.get()
 			#print("Departing {}".format(r.id))
 			g.actives_rrhs.remove(r.id)
+			print("Removing {} from {}".format(r.id, g.rrhs_proc_node[r.id]))
 			g.removeRRHNode(r.id)
 			g.minusActivated(r.id)
 			g.rrhs.append(r)
@@ -191,7 +194,7 @@ class Control_Plane(object):
 			np.shuffle(g.rrhs)
 			g.removeVPON(self.graph)
 			print("Departed Request")
-			print("Cloud is {}".format(g.cloud_vpons))
+			#print("Cloud is {}".format(g.cloud_vpons))
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
