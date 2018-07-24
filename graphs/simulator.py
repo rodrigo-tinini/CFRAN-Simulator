@@ -166,19 +166,25 @@ class Control_Plane(object):
 			g.startNode(self.graph, r.id)
 			g.actives_rrhs.append(r.id)
 			#calls the allocation of VPONs
-			g.assignVPON(self.graph)
+			g.assignMostLoadedVPON(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
-			if mincostFlow != None:
+			if g.getProcessingNodes(self.graph, mincostFlow, r.id):
 				self.env.process(r.run())
 				g.addActivated(r.id)
-				g.getProcessingNodes(self.graph, mincostFlow, r.id)#USAR ESSE METODO PARA VER SE FOI POSSÍVEL COLOCAR O FLUXO DO RRH EM ALGUM NÓ (MODIFICAR A GETpROCESSING PRA RETORNAR O NÓ QUE ELE FOI POSTO)
-				print("Inserted {}".format(r.id))
-				print(mincostFlow[r.id])
+				print("++++++++++++++++++++++++++++++")
+				print(g.fog_activated_rrhs)
+				print(g.activatedFogRRHs())
+				print("++++++++++++++++++++++++++++++")
+				#g.getProcessingNodes(self.graph, mincostFlow, r.id)#USAR ESSE METODO PARA VER SE FOI POSSÍVEL COLOCAR O FLUXO DO RRH EM ALGUM NÓ (MODIFICAR A GETpROCESSING PRA RETORNAR O NÓ QUE ELE FOI POSTO)
+				#print("Inserted {}".format(r.id))
+				#print(mincostFlow[r.id])
 			else:
 				print("No flow was found!")
 				g.endNode(self.graph, r.id)
 				g.actives_rrhs.remove(r.id)
+				g.rrhs.append(r)
+				np.shuffle(g.rrhs)
 
 	#starts the deallocation of a request
 	def depart_request(self):
@@ -186,14 +192,14 @@ class Control_Plane(object):
 			r = yield self.departs.get()
 			#print("Departing {}".format(r.id))
 			g.actives_rrhs.remove(r.id)
-			print("Removing {} from {}".format(r.id, g.rrhs_proc_node[r.id]))
+			#print("Removing {} from {}".format(r.id, g.rrhs_proc_node[r.id]))
 			g.removeRRHNode(r.id)
 			g.minusActivated(r.id)
 			g.rrhs.append(r)
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
 			g.removeVPON(self.graph)
-			print("Departed Request")
+			#print("Departed Request")
 			#print("Cloud is {}".format(g.cloud_vpons))
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
