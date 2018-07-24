@@ -6,7 +6,7 @@ import random
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 15
+rrhs_amount = 100
 #consumption of a line card + a DU
 line_card_consumption = 25
 #keeps the power cost
@@ -585,6 +585,17 @@ def getPowerConsumption(mincostFlow):
               #print("{} put traffic on {}".format(i,j))
     return power_cost
 
+#calculate the power consumption considering as active every node that has a VPON assigned, regardless if it is transmitting traffic or not
+def overallPowerConsumption(graph):
+  power_cost = 0.0
+  if graph["bridge"]["cloud"]["capacity"] > 0:
+    power_cost += costs["cloud"]
+  for i in range(fogs):
+    if graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] > 0:
+      power_cost += costs["fog{}".format(i)]
+  power_cost += getBandwidthPower(graph)
+  return power_cost
+
 #calculate the power consumed by active VPONs
 def getBandwidthPower(graph):
   bandwidth_power = 0.0
@@ -631,19 +642,25 @@ def getTrafficLost(mincostFlow):
   lost_traffic = 0.0
   lost_traffic = (len(actives_rrhs)*cpri_line) - getTransmittedTraffic(mincostFlow)
   return lost_traffic
-#testes
 
+#testes
+'''
 g = createGraph()
 createRRHs()
 #for i in rrhs:
 #  print(i.id)
 addFogNodes(g, 5)
-addRRHs(g, 0, 5, "0")
-addRRHs(g, 5, 10, "1")
-addRRHs(g, 10, 15, "2")
+#addRRHs(g, 0, 5, "0")
+#addRRHs(g, 5, 10, "1")
+#addRRHs(g, 10, 15, "2")
 #addRRHs(g, 5, 10, "1")
 #addRRHs(g, 10, 15, "2")
 #addRRHs(g, 15, 20, "3")
+addRRHs(g, 0, 20, "0")
+addRRHs(g, 20, 40, "1")
+addRRHs(g, 40, 60, "2")
+addRRHs(g, 60, 80, "3")
+addRRHs(g, 80, 100, "4")
 for i in range(len(rrhs)):
   startNode(g, "RRH{}".format(i))
   actives_rrhs.append("RRH{}".format(i))
@@ -671,11 +688,11 @@ updateRatio()
 #print(getLeastActivatedRRHsFog())
 #updateRatio()
 #print(nodes_ratio_cost_rrhs)
-print(getBridgeFog(g, "fog_bridge0"))
-print(getFogBridge(g, getBridgeFog(g, "fog_bridge0")))
-print(getRRHsFogLoad(g, "fog1"))
-print(getFogBandwidth(g, "fog1"))
-print(getMidhaulBandiwdth(g))
+#print(getBridgeFog(g, "fog_bridge0"))
+#print(getFogBridge(g, getBridgeFog(g, "fog_bridge0")))
+#print(getRRHsFogLoad(g, "fog1"))
+#print(getFogBandwidth(g, "fog1"))
+#print(getMidhaulBandiwdth(g))
 #sort = sorted(load_node,key=load_node.__getitem__)
 #sort.reverse()
 #print(sort)
@@ -686,8 +703,9 @@ print(getMidhaulBandiwdth(g))
 #print(getBlockingProbability(mincostFlow))
 #print(getTrafficLost(mincostFlow))
 #print(getFogBridge(g, "fog1"))
-'''
+print(overallPowerConsumption(g))
 
+#old/first power consumption calculation I made for testing
 def getPowerConsumption():
     power_cost = 0
     for i in mincostFlow:
