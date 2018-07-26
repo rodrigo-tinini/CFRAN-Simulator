@@ -6,7 +6,7 @@ import random
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 100
+rrhs_amount = 160
 #consumption of a line card + a DU
 line_card_consumption = 25
 #keeps the power cost
@@ -23,7 +23,7 @@ cloud_capacity = 80 *cpri_line
 fog_cost = 300
 cloud_cost = 1
 #number of fogs
-fogs = 5
+fogs = 4
 #nodes costs
 costs = {}
 for i in range(fogs):
