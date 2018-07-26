@@ -166,7 +166,7 @@ class Control_Plane(object):
 			g.startNode(self.graph, r.id)
 			g.actives_rrhs.append(r.id)
 			#calls the allocation of VPONs
-			g.assignMostLoadedVPON(self.graph)
+			g.assignLeastLoadedVPON(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
 			if g.getProcessingNodes(self.graph, mincostFlow, r.id):
@@ -301,11 +301,11 @@ np.shuffle(g.rrhs)
 g.addFogNodes(gp, g.fogs)
 #add RRHs to the graph
 #10 rrhs per fog node
-g.addRRHs(gp, 0, 20, "0")
-g.addRRHs(gp, 20, 40, "1")
-g.addRRHs(gp, 40, 60, "2")
-g.addRRHs(gp, 60, 80, "3")
-g.addRRHs(gp, 80, 100, "4")
+g.addRRHs(gp, 0, 40, "0")
+g.addRRHs(gp, 40, 80, "1")
+g.addRRHs(gp, 80, 120, "2")
+g.addRRHs(gp, 120, 160, "3")
+#g.addRRHs(gp, 80, 100, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
