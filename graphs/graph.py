@@ -184,9 +184,38 @@ def removeRRHNode(rrh):
 def allRandomVPON(graph):
   pass
 
-#Fog-First heuristic
+#Fog-First heuristic - Put one VPON per fog first and, if the fogs capacities are exhausted, put other VPONs on the cloud
 def fogFirst(graph):
-  pass
+  traffic = 0
+  #calculate the total incoming traffic
+  traffic = len(actives_rrhs) * cpri_line
+  #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
+  num_vpons = 0
+  num_vpons = math.ceil(traffic/lambda_capacity)
+  #check each fog node and put VPON on it if it has traffic - Use the cloud only when the fog is exhausted
+  for i in range(fogs):
+    fog_traffic = getRRHsFogLoad(graph, "fog{}".format(i))
+    print("FT {}".format(fog_traffic))
+    if (fog_traffic > 0 and fog_traffic > graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] 
+      and graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] < graph["fog{}".format(i)]["d"]["capacity"]) :
+      print("AQUIII")
+      if available_vpons:
+        graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] += 9824
+        num_vpons -= 1
+        fogs_vpons["fog{}".format(i)].append(available_vpons.pop())
+      else:
+        print("No VPON available")
+  total_bd = getTotalBandwidth(graph)
+  print("TOTAL BD {}".format(total_bd))
+  while traffic > total_bd:
+    if available_vpons:
+      if graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"]:
+        graph["bridge"]["cloud"]["capacity"] += 9824
+        cloud_vpons.append(available_vpons.pop())
+        num_vpons -= 1
+        total_bd = getTotalBandwidth(graph)
+  print("Cloud VPONs: {}".format(cloud_vpons))
+  print("Fogs VPONs: {}".format(fogs_vpons))
 
 ############################################################################################
 #The following heuristics are all Cloud-First and then have different policies to put VPONs on the Fog
@@ -228,7 +257,7 @@ def randomFogVPON(graph):
           if available_vpons:
             graph["bridge"]["cloud"]["capacity"] += 9824
             cloud_vpons.append(available_vpons.pop())
-            num_vpons -= num_vpons
+            num_vpons -= 1
           else:
               print("No VPON available!")
       #Random Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on a random fog node
@@ -247,7 +276,7 @@ def randomFogVPON(graph):
           print(fog)
           graph[bridge][fog]["capacity"] += 9824
           fogs_vpons[fog].append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
         else:
               print("No VPON available!")
@@ -289,7 +318,7 @@ def assignVPON(graph):
         if available_vpons:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
         else:
             print("No VPON available!")
       #First-Fit Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on the next Fog Node
@@ -298,7 +327,7 @@ def assignVPON(graph):
           if available_vpons:
             graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9824 
             fogs_vpons["fog{}".format(i)].append(available_vpons.pop())
-            num_vpons -= num_vpons
+            num_vpons -= 1
           else:
               print("No VPON available!")
     #else: print('No available VPONs')
@@ -342,7 +371,7 @@ def assignMostLoadedVPON(graph):
         if available_vpons:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
         else:
             print("No VPON available!")
       #calculate the total available bandwidth
@@ -356,7 +385,7 @@ def assignMostLoadedVPON(graph):
           fog = getBridgeFog(graph, bridge)
           graph[bridge][fog]["capacity"] += 9824
           fogs_vpons[fog].append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
         else:
               print("No VPON available!")
@@ -401,7 +430,7 @@ def assignLeastLoadedVPON(graph):
         if available_vpons:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
         else:
             print("No VPON available!")
       #calculate the total available bandwidth
@@ -415,7 +444,7 @@ def assignLeastLoadedVPON(graph):
           fog = getBridgeFog(graph, bridge)
           graph[bridge][fog]["capacity"] += 9824
           fogs_vpons[fog].append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
         else:
               print("No VPON available!")
@@ -487,7 +516,7 @@ def leastCostNodeVPON(graph):
         if graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"]:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
       else: # it is a fog node
         print(graph[bridge][fog]["capacity"])
@@ -495,7 +524,7 @@ def leastCostNodeVPON(graph):
         if graph[bridge][fog]["capacity"] < graph[fog]["d"]["capacity"]:
           graph[bridge][fog]["capacity"] += 9824
           fogs_vpons[fog].append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
           #print("PUT VPON ON FOG and NOW TRAFFIC IS {} TOTAL BD IS {}".format(traffic,total_bd))
       total_bd = getTotalBandwidth(graph)
@@ -522,7 +551,7 @@ def leastCostLoadedVPON(graph):
         if graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"]:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
       else: # it is a fog node
         print(graph[bridge][fog]["capacity"])
@@ -530,7 +559,7 @@ def leastCostLoadedVPON(graph):
         if graph[bridge][fog]["capacity"] < graph[fog]["d"]["capacity"]:
           graph[bridge][fog]["capacity"] += 9824
           fogs_vpons[fog].append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
           total_bd = getTotalBandwidth(graph)
           #print("PUT VPON ON FOG and NOW TRAFFIC IS {} TOTAL BD IS {}".format(traffic,total_bd))
       total_bd = getTotalBandwidth(graph)
@@ -574,7 +603,7 @@ def assignMostLoadedVPONBand(graph):
         if available_vpons:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
         else:
             print("No VPON available!")
       #calculate the total available bandwidth
@@ -589,7 +618,7 @@ def assignMostLoadedVPONBand(graph):
           if graph[bridge][fog]["capacity"] < graph[fog]["d"]["capacity"]:
             graph[bridge][fog]["capacity"] += 9824
             fogs_vpons[fog].append(available_vpons.pop())
-            num_vpons -= num_vpons
+            num_vpons -= 1
             total_bd = getTotalBandwidth(graph)
         else:
               print("No VPON available!")
@@ -634,7 +663,7 @@ def assignLeastLoadedVPONBand(graph):
         if available_vpons:
           graph["bridge"]["cloud"]["capacity"] += 9824
           cloud_vpons.append(available_vpons.pop())
-          num_vpons -= num_vpons
+          num_vpons -= 1
         else:
             print("No VPON available!")
       #calculate the total available bandwidth
@@ -649,7 +678,7 @@ def assignLeastLoadedVPONBand(graph):
           if graph[bridge][fog]["capacity"] < graph[fog]["d"]["capacity"]:
             graph[bridge][fog]["capacity"] += 9824
             fogs_vpons[fog].append(available_vpons.pop())
-            num_vpons -= num_vpons
+            num_vpons -= 1
             total_bd = getTotalBandwidth(graph)
         else:
               print("No VPON available!")
@@ -701,6 +730,30 @@ def removeVPON(graph):
       #print("Releasing the cloud")
       graph["bridge"]["cloud"]["capacity"] -= 9824
       available_vpons.append(cloud_vpons.pop())
+
+#remove unnecessary bandwidth first from the cloud and then from the fog nodes - The name of thhis method refers to the name of heuristic fog first
+#This method is specific for the Fog First VPON assignment heuristic, as this heuristic considers only 1 vpon per fog node
+#so, for another more sophisticated fog first heuristic, a new remove method must be created
+def removeFogFirstVPON(graph):
+  #get the bandwidth available on midhaul
+  traffic = getIncomingTraffic()
+  midhaul_bd = 0.0
+  md = getMidhaulBandiwdth(graph)
+  for i in range(fogs):
+    midhaul_bd += md["fog{}".format(i)]
+  #check if the midhaul can handle the traffic
+  if traffic <= midhaul_bd:
+    #turn the VPONs of cloud off
+    while graph["bridge"]["cloud"]["capacity"] > 0:
+      graph["bridge"]["cloud"]["capacity"] -= 9824
+      available_vpons.append(cloud_vpons.pop())
+  #now, check if some fog node must be turned off
+  for i in range(fogs):
+    fog_traffic = getRRHsFogLoad(graph, "fog{}".format(i))
+    if fog_traffic == 0 and graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] > 0:
+      print("CLEANING FOG NODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] = 0
+      available_vpons.append(fogs_vpons["fog{}".format(i)].pop())
 
 #return the total available bandwidth on all network links
 def getTotalBandwidth(graph):
