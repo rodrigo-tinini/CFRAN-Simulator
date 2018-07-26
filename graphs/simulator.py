@@ -176,13 +176,14 @@ class Control_Plane(object):
 			#turn the RRH on
 			g.startNode(self.graph, r.id)
 			g.actives_rrhs.append(r.id)
+			g.addActivated(r.id)
 			#calls the allocation of VPONs
-			g.assignMostLoadedVPONBand(self.graph)
+			g.fogFirst(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
 			if g.getProcessingNodes(self.graph, mincostFlow, r.id):
 				self.env.process(r.run())
-				g.addActivated(r.id)
+				#g.addActivated(r.id)
 				#print("++++++++++++++++++++++++++++++")
 				#print(g.fog_activated_rrhs)
 				#print(g.activatedFogRRHs())
@@ -192,6 +193,7 @@ class Control_Plane(object):
 				#print(mincostFlow[r.id])
 			else:
 				print("No flow was found!")
+				g.minusActivated(r.id)
 				g.endNode(self.graph, r.id)
 				g.actives_rrhs.remove(r.id)
 				g.rrhs.append(r)
@@ -209,7 +211,8 @@ class Control_Plane(object):
 			g.rrhs.append(r)
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
-			g.removeVPON(self.graph)
+			#g.removeVPON(self.graph)
+			g.removeFogFirstVPON(self.graph)
 			#print("Departed Request")
 			#print("Cloud is {}".format(g.cloud_vpons))
 
