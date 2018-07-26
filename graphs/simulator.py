@@ -10,6 +10,17 @@ import copy
 import sys
 import graph as g
 import networkx as nx
+
+
+#keeps the blocking probability
+blocking_prob = []
+average_blocking_prob = []
+#keeps the power consumption
+power_consumption = []
+average_power_consumption = []
+#keeps the average delay on each node
+proc_nodes_delay = []
+average_proc_nodes_delay = []
 #cpri line rate
 cpri_line = 614.4
 #count the total of requested RRHs
@@ -120,12 +131,12 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
 			self.action = self.env.process(self.run())
-			print("traffic: {}".format(len(g.actives_rrhs)*g.cpri_line))
+			#print("traffic: {}".format(len(g.actives_rrhs)*g.cpri_line))
 			print("====================================================================")
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
-			print("Cloud VPONs: {}".format(g.cloud_vpons))
-			print("Fogs VPONs: {}".format(g.fogs_vpons))
-			print(g.getTotalBandwidth(cp.graph))
+			#print("Cloud VPONs: {}".format(g.cloud_vpons))
+			#print("Fogs VPONs: {}".format(g.fogs_vpons))
+			#print(g.getTotalBandwidth(cp.graph))
 			print("====================================================================")
 			total_requested.append(total_period_requests)
 			total_period_requests = 0
@@ -166,16 +177,16 @@ class Control_Plane(object):
 			g.startNode(self.graph, r.id)
 			g.actives_rrhs.append(r.id)
 			#calls the allocation of VPONs
-			g.assignLeastLoadedVPON(self.graph)
+			g.assignMostLoadedVPONBand(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
 			if g.getProcessingNodes(self.graph, mincostFlow, r.id):
 				self.env.process(r.run())
 				g.addActivated(r.id)
-				print("++++++++++++++++++++++++++++++")
-				print(g.fog_activated_rrhs)
-				print(g.activatedFogRRHs())
-				print("++++++++++++++++++++++++++++++")
+				#print("++++++++++++++++++++++++++++++")
+				#print(g.fog_activated_rrhs)
+				#print(g.activatedFogRRHs())
+				#print("++++++++++++++++++++++++++++++")
 				#g.getProcessingNodes(self.graph, mincostFlow, r.id)#USAR ESSE METODO PARA VER SE FOI POSSÍVEL COLOCAR O FLUXO DO RRH EM ALGUM NÓ (MODIFICAR A GETpROCESSING PRA RETORNAR O NÓ QUE ELE FOI POSTO)
 				#print("Inserted {}".format(r.id))
 				#print(mincostFlow[r.id])
@@ -301,14 +312,15 @@ np.shuffle(g.rrhs)
 g.addFogNodes(gp, g.fogs)
 #add RRHs to the graph
 #10 rrhs per fog node
-g.addRRHs(gp, 0, 40, "0")
-g.addRRHs(gp, 40, 80, "1")
-g.addRRHs(gp, 80, 120, "2")
-g.addRRHs(gp, 120, 160, "3")
-#g.addRRHs(gp, 80, 100, "4")
+g.addRRHs(gp, 0, 32, "0")
+g.addRRHs(gp, 32, 64, "1")
+g.addRRHs(gp, 64, 96, "2")
+g.addRRHs(gp, 96, 128, "3")
+g.addRRHs(gp, 128, 160, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
+
 #for i in range(len(g.actives_rrhs)):
 #	print(gp["s"]["RRH{}".format(i)]["capacity"])
 #	print(nx.edges(gp, "RRH{}".format(i)))
