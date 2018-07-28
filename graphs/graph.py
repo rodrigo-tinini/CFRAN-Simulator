@@ -90,12 +90,21 @@ delay_costs = {}
 delay_costs["cloud"] = cloud_delay
 for i in range(fogs):
   delay_costs["fog{}".format(i)] = fog_delay
+#keeps the cloud and fog links to random VPON assignment
+random_nodes = []
+random_nodes.append("cloud")
+for i in range(fogs):
+  random_nodes.append("fog{}".format(i))
 
 #rrh
 class RRH(object):
     def __init__(self, cpri_line, rrhId):
         self.cpri_line = cpri_line
         self.id = "RRH{}".format(rrhId)
+
+#gets a random node
+def getRandomNode():
+  return random_nodes[random.choice(range(len(random_nodes)))]
 
 #get the fog from RRHs connected bridge
 def getBridgeFog(graph, bridge):
@@ -182,7 +191,54 @@ def removeRRHNode(rrh):
 ############################################################################################
 #Totally random heuristic
 def allRandomVPON(graph):
-  pass
+  #take the traffic, calculate how many VPONs are necessary and random allocate them on the links of the network
+  traffic = getIncomingTraffic()
+  total_bd = getTotalBandwidth(graph)
+  while traffic > total_bd:
+    #random get a processing node
+    node = getRandomNode()
+    if node == "cloud":
+      if available_vpons:
+        graph["bridge"][node]["capacity"] += 9824
+        cloud_vpons.append(available_vpons.pop())
+        total_bd = getTotalBandwidth(graph)
+        print("PUT VPON IN CLOUD")
+    else:
+      bridge = getFogBridge(graph, node)
+      if available_vpons:
+        graph[bridge][node]["capacity"] += 9824
+        fogs_vpons[node].append(available_vpons.pop())
+        total_bd = getTotalBandwidth(graph)
+        print("PUT VPON IN {}".format(node))
+  print("Cloud VPONs: {}".format(cloud_vpons))
+  print("Fogs VPONs: {}".format(fogs_vpons))
+
+#Totally random remove VPONs
+def randomRemoveVPONs(graph):
+  #gets the traffic
+  traffic = getIncomingTraffic()
+  total_bd = getTotalBandwidth(graph)
+  need_vpons = math.ceil(traffic/lambda_capacity)
+  current_vpons = round(total_bd/lambda_capacity)
+  #now, removes the VPONs until the available bandwidth is equal to
+  while current_vpons > need_vpons:
+    print("Try to remove")
+    node = getRandomNode()
+    if node == "cloud":
+      if graph["bridge"]["cloud"]["capacity"] > 0:
+        graph["bridge"]["cloud"]["capacity"] -= 9824
+        available_vpons.append(cloud_vpons.pop())
+        total_bd = getTotalBandwidth(graph)
+        current_vpons = round(total_bd/lambda_capacity)
+        print("Removing {}".format(node))
+    else:
+      bridge = getFogBridge(graph, node)
+      if graph[bridge][node]["capacity"] > 0:
+        graph[bridge][node]["capacity"] -= 9824
+        available_vpons.append(fogs_vpons[node].pop())
+        total_bd = getTotalBandwidth(graph)
+        current_vpons = round(total_bd/lambda_capacity)
+        print("Removing {}".format(node))
 
 #Fog-First heuristic - Put one VPON per fog first and, if the fogs capacities are exhausted, put other VPONs on the cloud
 def fogFirst(graph):
@@ -747,11 +803,12 @@ def removeFogFirstVPON(graph):
     while graph["bridge"]["cloud"]["capacity"] > 0:
       graph["bridge"]["cloud"]["capacity"] -= 9824
       available_vpons.append(cloud_vpons.pop())
+      print("CLEANING CLOUD")
   #now, check if some fog node must be turned off
   for i in range(fogs):
     fog_traffic = getRRHsFogLoad(graph, "fog{}".format(i))
     if fog_traffic == 0 and graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] > 0:
-      print("CLEANING FOG NODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      print("CLEANING FOG{}".format(i))
       graph[getFogBridge(graph, "fog{}".format(i))]["fog{}".format(i)]["capacity"] = 0
       available_vpons.append(fogs_vpons["fog{}".format(i)].pop())
 
@@ -891,6 +948,7 @@ def getTrafficLost(mincostFlow):
 
 #testes
 '''
+#print(getRandomNode())
 g = createGraph()
 createRRHs()
 #for i in rrhs:
