@@ -13,7 +13,7 @@ import networkx as nx
 
 
 #keeps the blocking probability
-blocking_prob = []
+blocking_prob = 0
 average_blocking_prob = []
 #keeps the power consumption
 power_consumption = []
@@ -131,9 +131,12 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
 			self.action = self.env.process(self.run())
+			cp.countAverages()
 			#print("traffic: {}".format(len(g.actives_rrhs)*g.cpri_line))
 			print("====================================================================")
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print("Power consumption is {}".format(average_power_consumption))
+			print("Blocking probability is {}".format(average_blocking_prob))
 			#print("Cloud VPONs: {}".format(g.cloud_vpons))
 			#print("Fogs VPONs: {}".format(g.fogs_vpons))
 			#print(g.getTotalBandwidth(cp.graph))
@@ -144,7 +147,7 @@ class Traffic_Generator(object):
 
 #control plane that controls the allocations and deallocations
 class Control_Plane(object):
-	def __init__(self, env, type, graph):
+	def __init__(self, env, type, graph, vpon_scheduling, vpon_remove):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
@@ -152,7 +155,24 @@ class Control_Plane(object):
 		self.deallocation = self.env.process(self.depart_request())
 		self.type = type
 		self.graph = graph
+		self.vpon_scheduling = vpon_scheduling
+		self.vpon_remove = vpon_remove
 		
+	#account the metrics of the simulation
+	def countAverages(self):
+		global blocking_prob, power_consumption
+		
+		if blocking_prob != 0:
+			average_blocking_prob.append(blocking_prob)
+		else:
+			average_blocking_prob.append(0)
+		blocking_prob = 0
+		if power_consumption:
+			average_power_consumption.append(numpy.mean(power_consumption))
+		else:
+			average_power_consumption.append(0)
+		power_consumption = []
+
 	#create rrhs
 	def createRRHs(self, amount, env):
 		for i in range(amount):
@@ -160,16 +180,8 @@ class Control_Plane(object):
 			
 	#take requests and tries to allocate on a RRH
 	def run(self):
-		global total_aloc
-		global total_nonaloc
-		global no_allocated
-		global count
-		global actives
-		global incremental_blocking
-		#global batch_blocking
-		global inc_block
-		global batch_block
-		global count_rrhs
+		global blocking_prob
+
 		while True:
 			r = yield self.requests.get()
 			#print("Got {}".format(r.id))
@@ -178,11 +190,33 @@ class Control_Plane(object):
 			g.actives_rrhs.append(r.id)
 			g.addActivated(r.id)
 			#calls the allocation of VPONs
-			g.allRandomVPON(self.graph)
+			#all random vpon scheduling
+			if self.vpon_scheduling == "all_random":
+				g.allRandomVPON(self.graph)
+			elif self.vpon_scheduling == "fog_first":
+				g.fogFirst(self.graph)
+			elif self.vpon_scheduling == "cloud_first_all_fogs":
+				g.assignVPON(self.graph)
+			elif self.vpon_scheduling == "cloud_first_random_fogs":
+				g.randomFogVPON(self.graph)
+			elif self.vpon_scheduling == "most_loaded":
+				g.assignMostLoadedVPON(self.graph)
+			elif self.vpon_scheduling == "least_loaded":
+				g.assignLeastLoadedVPON(self.graph)
+			elif self.vpon_scheduling == "least_cost":
+				g.leastCostNodeVPON(self.graph)
+			elif self.vpon_scheduling == "least_cost_active_ratio":
+				g.leastCostLoadedVPON(self.graph)
+			#most and least loaded that considers the bandwidth available on each node midhaul
+			elif self.vpon_scheduling == "most_loaded_bandwidth":
+				g.assignMostLoadedVPONBand(self.graph)
+			elif self.vpon_scheduling == "least_loaded_bandwidth":
+				g.assignLeastLoadedVPONBand(self.graph)
 			#execute the max cost min flow heuristic
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
 			if g.getProcessingNodes(self.graph, mincostFlow, r.id):
 				self.env.process(r.run())
+				power_consumption.append(g.overallPowerConsumption(self.graph))
 				#g.addActivated(r.id)
 				#print("++++++++++++++++++++++++++++++")
 				#print(g.fog_activated_rrhs)
@@ -192,12 +226,14 @@ class Control_Plane(object):
 				#print("Inserted {}".format(r.id))
 				#print(mincostFlow[r.id])
 			else:
-				print("No flow was found!")
+				blocking_prob += 1
+				#print("No flow was found!")
 				g.minusActivated(r.id)
 				g.endNode(self.graph, r.id)
 				g.actives_rrhs.remove(r.id)
 				g.rrhs.append(r)
 				np.shuffle(g.rrhs)
+				power_consumption.append(g.overallPowerConsumption(self.graph))
 
 	#starts the deallocation of a request
 	def depart_request(self):
@@ -211,9 +247,14 @@ class Control_Plane(object):
 			g.rrhs.append(r)
 			g.endNode(self.graph, r.id)
 			np.shuffle(g.rrhs)
-			#g.removeVPON(self.graph)
-			#g.removeFogFirstVPON(self.graph)
-			g.randomRemoveVPONs(self.graph)
+			#choose the heuristic to remove VPONs
+			if self.vpon_remove == "fog_first":
+				g.removeVPON(self.graph)
+			if self.vpon_remove == "cloud_first":
+				g.removeFogFirstVPON(self.graph)
+			if self.vpon_remove == "random_remove":
+				g.randomRemoveVPONs(self.graph)
+			power_consumption.append(g.overallPowerConsumption(self.graph))
 			#print("Departed Request")
 			#print("Cloud is {}".format(g.cloud_vpons))
 
@@ -306,7 +347,7 @@ env = simpy.Environment()
 #create the graph
 gp = g.createGraph()
 #create the control plane
-cp = Control_Plane(env, "Graph", gp)
+cp = Control_Plane(env, "Graph", gp, "all_random", "fog_first")
 #traffic generator
 tg = Traffic_Generator(env,distribution, None, cp)
 #create the rrhs

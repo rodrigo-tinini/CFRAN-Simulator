@@ -202,16 +202,16 @@ def allRandomVPON(graph):
         graph["bridge"][node]["capacity"] += 9824
         cloud_vpons.append(available_vpons.pop())
         total_bd = getTotalBandwidth(graph)
-        print("PUT VPON IN CLOUD")
+        #print("PUT VPON IN CLOUD")
     else:
       bridge = getFogBridge(graph, node)
       if available_vpons:
         graph[bridge][node]["capacity"] += 9824
         fogs_vpons[node].append(available_vpons.pop())
         total_bd = getTotalBandwidth(graph)
-        print("PUT VPON IN {}".format(node))
-  print("Cloud VPONs: {}".format(cloud_vpons))
-  print("Fogs VPONs: {}".format(fogs_vpons))
+        #print("PUT VPON IN {}".format(node))
+  #print("Cloud VPONs: {}".format(cloud_vpons))
+  #print("Fogs VPONs: {}".format(fogs_vpons))
 
 #Totally random remove VPONs
 def randomRemoveVPONs(graph):
@@ -222,7 +222,7 @@ def randomRemoveVPONs(graph):
   current_vpons = round(total_bd/lambda_capacity)
   #now, removes the VPONs until the available bandwidth is equal to
   while current_vpons > need_vpons:
-    print("Try to remove")
+    #print("Try to remove")
     node = getRandomNode()
     if node == "cloud":
       if graph["bridge"]["cloud"]["capacity"] > 0:
@@ -230,7 +230,7 @@ def randomRemoveVPONs(graph):
         available_vpons.append(cloud_vpons.pop())
         total_bd = getTotalBandwidth(graph)
         current_vpons = round(total_bd/lambda_capacity)
-        print("Removing {}".format(node))
+        #print("Removing {}".format(node))
     else:
       bridge = getFogBridge(graph, node)
       if graph[bridge][node]["capacity"] > 0:
@@ -238,7 +238,7 @@ def randomRemoveVPONs(graph):
         available_vpons.append(fogs_vpons[node].pop())
         total_bd = getTotalBandwidth(graph)
         current_vpons = round(total_bd/lambda_capacity)
-        print("Removing {}".format(node))
+        #print("Removing {}".format(node))
 
 #Fog-First heuristic - Put one VPON per fog first and, if the fogs capacities are exhausted, put other VPONs on the cloud
 def fogFirst(graph):
