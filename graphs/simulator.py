@@ -136,7 +136,7 @@ class Traffic_Generator(object):
 			self.cp.countAverages()
 			#print("traffic: {}".format(len(g.actives_rrhs)*g.cpri_line))
 			#print("====================================================================")
-			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			#print("Power consumption is {}".format(average_power_consumption))
 			#print("Blocking probability is {}".format(average_blocking_prob))
 			#print("Cloud VPONs: {}".format(g.cloud_vpons))
@@ -219,6 +219,10 @@ class Control_Plane(object):
 				g.assignMostLoadedVPONBand(self.graph)
 			elif self.vpon_scheduling == "least_loaded_bandwidth":
 				g.assignLeastLoadedVPONBand(self.graph)
+			elif self.vpon_scheduling == "big_ratio":
+				g.assignBigRatioVPON(self.graph)
+			elif self.vpon_scheduling == "small_ratio":
+				g.assignSmallRatioVPON(self.graph)
 			#execute the max cost min flow heuristic
 			start_time = time.clock()
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
@@ -350,14 +354,14 @@ class RRH(object):
 		rrhs_amount = 100
 		#list of rrhs of the network
 		rrhs = []
-'''
+
 #starts simulation
 #simulation environment
 env = simpy.Environment()
 #create the graph
 gp = g.createGraph()
 #create the control plane
-cp = Control_Plane(env, "Graph", gp, "all_random", "fog_first")
+cp = Control_Plane(env, "Graph", gp, "big_ratio", "fog_first")
 #traffic generator
 tg = Traffic_Generator(env,distribution, None, cp)
 #create the rrhs
@@ -375,7 +379,7 @@ g.addRRHs(gp, 128, 160, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
-'''
+
 #for i in range(len(g.actives_rrhs)):
 #	print(gp["s"]["RRH{}".format(i)]["capacity"])
 #	print(nx.edges(gp, "RRH{}".format(i)))
