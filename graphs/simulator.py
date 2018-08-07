@@ -11,7 +11,9 @@ import sys
 import graph as g
 import networkx as nx
 
-
+#keeps the execution time
+execution_time = []
+average_execution_time = []
 #keeps the blocking probability
 blocking_prob = 0
 average_blocking_prob = []
@@ -131,16 +133,16 @@ class Traffic_Generator(object):
 			traffics.append(total_period_requests)
 			arrival_rate = loads.pop()/change_time
 			self.action = self.env.process(self.run())
-			cp.countAverages()
+			self.cp.countAverages()
 			#print("traffic: {}".format(len(g.actives_rrhs)*g.cpri_line))
-			print("====================================================================")
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
-			print("Power consumption is {}".format(average_power_consumption))
-			print("Blocking probability is {}".format(average_blocking_prob))
+			#print("====================================================================")
+			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			#print("Power consumption is {}".format(average_power_consumption))
+			#print("Blocking probability is {}".format(average_blocking_prob))
 			#print("Cloud VPONs: {}".format(g.cloud_vpons))
 			#print("Fogs VPONs: {}".format(g.fogs_vpons))
 			#print(g.getTotalBandwidth(cp.graph))
-			print("====================================================================")
+			#print("====================================================================")
 			total_requested.append(total_period_requests)
 			total_period_requests = 0
 			sucs_reqs = 0
@@ -160,7 +162,7 @@ class Control_Plane(object):
 		
 	#account the metrics of the simulation
 	def countAverages(self):
-		global blocking_prob, power_consumption
+		global blocking_prob, power_consumption, execution_time
 		
 		if blocking_prob != 0:
 			average_blocking_prob.append(blocking_prob)
@@ -172,6 +174,11 @@ class Control_Plane(object):
 		else:
 			average_power_consumption.append(0)
 		power_consumption = []
+		if execution_time:
+			average_execution_time.append(numpy.mean(execution_time))
+		else:
+			average_execution_time.append(0)
+		execution_time = []
 
 	#create rrhs
 	def createRRHs(self, amount, env):
@@ -213,10 +220,13 @@ class Control_Plane(object):
 			elif self.vpon_scheduling == "least_loaded_bandwidth":
 				g.assignLeastLoadedVPONBand(self.graph)
 			#execute the max cost min flow heuristic
+			start_time = time.clock()
 			mincostFlow = g.nx.max_flow_min_cost(self.graph, "s", "d")
+			running_time = time.clock() - start_time
 			if g.getProcessingNodes(self.graph, mincostFlow, r.id):
 				self.env.process(r.run())
 				power_consumption.append(g.overallPowerConsumption(self.graph))
+				execution_time.append(running_time)
 				#g.addActivated(r.id)
 				#print("++++++++++++++++++++++++++++++")
 				#print(g.fog_activated_rrhs)
@@ -340,7 +350,7 @@ class RRH(object):
 		rrhs_amount = 100
 		#list of rrhs of the network
 		rrhs = []
-
+'''
 #starts simulation
 #simulation environment
 env = simpy.Environment()
@@ -365,7 +375,7 @@ g.addRRHs(gp, 128, 160, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
-
+'''
 #for i in range(len(g.actives_rrhs)):
 #	print(gp["s"]["RRH{}".format(i)]["capacity"])
 #	print(nx.edges(gp, "RRH{}".format(i)))
