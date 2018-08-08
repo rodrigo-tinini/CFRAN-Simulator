@@ -337,8 +337,30 @@ class Util(object):
 		for w in lambda_state:
 			if w == 1:
 				netCost += 20.0
-		return netCost	
+		return netCost
 
+	#------------------------------------------------------------------------------------------#
+	#--------------------------Methods for the static case-------------------------------------#
+
+	#set matrix according to the processing capacity of each fog node
+	def staticSetMatrix(self, rrhs):
+		pass
+
+	#another create rrhs method to be used on the static case
+	#it creates the rrhs-fog matrix according to the amount of processing nodes declared
+	def staticCreateRRHs(self, nodes, rrhs_amount):	
+		#create the list to represent the connections of each rrh and its fog
+		fog_matrix = []
+		for i in nodes:
+			fog_matrix.append(0)
+			fog_matrix[0] = 1
+		#now, create the rrhs
+		rrhs = []
+		for i in range(rrhs_amount):
+			r = RRH(i, fog_matrix)
+			rrhs.append(r)
+		self.staticSetMatrix(rrhs)
+		return rrhs
 
 
 
@@ -431,10 +453,15 @@ nodes = range(0, 3)
 #number of lambdas
 lambdas = range(0, 5)
 
-amount = 45
-antenas = []
-for i in range(amount):
-	antenas = util.newCreateRRHs(amount)
-ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
-s = ilp.run()
-print(s.objective_value)
+#runs experiments
+exec_number = 10
+for i in range(exec_number):
+	#increment
+	amount = 45
+	antenas = []
+	for i in range(amount):
+		antenas = util.newCreateRRHs(amount)
+	ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
+	s = ilp.run()
+	print(s.objective_value)
+	print(s.solve_details.time)
