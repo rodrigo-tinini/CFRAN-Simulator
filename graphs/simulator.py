@@ -361,7 +361,7 @@ env = simpy.Environment()
 #create the graph
 gp = g.createGraph()
 #create the control plane
-cp = Control_Plane(env, "Graph", gp, "big_ratio", "fog_first")
+cp = Control_Plane(env, "Graph", gp, "small_ratio", "fog_first")
 #traffic generator
 tg = Traffic_Generator(env,distribution, None, cp)
 #create the rrhs
@@ -370,12 +370,16 @@ np.shuffle(g.rrhs)
 #create fog nodes
 g.addFogNodes(gp, g.fogs)
 #add RRHs to the graph
-#10 rrhs per fog node
 g.addRRHs(gp, 0, 32, "0")
 g.addRRHs(gp, 32, 64, "1")
 g.addRRHs(gp, 64, 96, "2")
 g.addRRHs(gp, 96, 128, "3")
 g.addRRHs(gp, 128, 160, "4")
+#g.addRRHs(gp, 0, 5, "0")
+#g.addRRHs(gp, 5, 10, "1")
+#g.addRRHs(gp, 10, 15, "2")
+#g.addRRHs(gp, 15, 20, "3")
+#g.addRRHs(gp, 20, 25, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
