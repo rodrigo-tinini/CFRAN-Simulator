@@ -177,14 +177,14 @@ def assignBigRatioVPON(graph):
       #First-Fit Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on the next Fog Node
       #place VPONs on fogs following least-activated RRHs order
       big_ratio_fogs = getBigActBandRatio()
-      print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-      print("Actives {}".format(fog_activated_rrhs))
-      print("Ratio {}".format(fog_nodes_ratio_act_band))
-      print("Fogs {}".format(big_ratio_fogs))
+      #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+      #print("Actives {}".format(fog_activated_rrhs))
+      #print("Ratio {}".format(fog_nodes_ratio_act_band))
+      #print("Fogs {}".format(big_ratio_fogs))
       while traffic > total_bd:
         if available_vpons:
           fog = big_ratio_fogs.pop()
-          print("Took {}".format(fog))
+          #print("Took {}".format(fog))
           bridge = getFogBridge(graph, fog)
           if graph[bridge][fog]["capacity"] < graph[fog]["d"]["capacity"]:
             graph[bridge][fog]["capacity"] += 9824
@@ -196,9 +196,9 @@ def assignBigRatioVPON(graph):
     #else: print('No available VPONs')
   #return traffic
   #print(fog_nodes_ratio_act_band)
-  print("Cloud VPONs: {}".format(cloud_vpons))
-  print("Fogs VPONs: {}".format(fogs_vpons))
-  print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+  #print("Cloud VPONs: {}".format(cloud_vpons))
+  #print("Fogs VPONs: {}".format(fogs_vpons))
+  #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 #cloud first and fog on sort of the nodes with greatest ratio between activated RRHs and available midhaul bandwidth
 def assignSmallRatioVPON(graph):
@@ -245,14 +245,14 @@ def assignSmallRatioVPON(graph):
       #First-Fit Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on the next Fog Node
       #place VPONs on fogs following least-activated RRHs order
       small_ratio_fogs = getSmallActBandRatio()
-      print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-      print("Actives {}".format(fog_activated_rrhs))
-      print("Ratio {}".format(fog_nodes_ratio_act_band))
-      print("Fogs {}".format(small_ratio_fogs))
+      #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+      #print("Actives {}".format(fog_activated_rrhs))
+      #print("Ratio {}".format(fog_nodes_ratio_act_band))
+      #print("Fogs {}".format(small_ratio_fogs))
       while traffic > total_bd:
         if available_vpons:
           fog = small_ratio_fogs.pop()
-          print("Took {}".format(fog))
+          #print("Took {}".format(fog))
           bridge = getFogBridge(graph, fog)
           if graph[bridge][fog]["capacity"] < graph[fog]["d"]["capacity"]:
             graph[bridge][fog]["capacity"] += 9824
@@ -264,9 +264,9 @@ def assignSmallRatioVPON(graph):
     #else: print('No available VPONs')
   #return traffic
   #print(fog_nodes_ratio_act_band)
-  print("Cloud VPONs: {}".format(cloud_vpons))
-  print("Fogs VPONs: {}".format(fogs_vpons))
-  print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+  #print("Cloud VPONs: {}".format(cloud_vpons))
+  #print("Fogs VPONs: {}".format(fogs_vpons))
+  #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 ##############################################################################################################################################
 
@@ -363,6 +363,7 @@ def allRandomVPON(graph):
   traffic = getIncomingTraffic()
   total_bd = getTotalBandwidth(graph)
   while traffic > total_bd:
+    #print("INFINITE LOOP ALLLL")
     #random get a processing node
     node = getRandomNode()
     if node == "cloud":
@@ -370,6 +371,8 @@ def allRandomVPON(graph):
         graph["bridge"][node]["capacity"] += 9824
         cloud_vpons.append(available_vpons.pop())
         total_bd = getTotalBandwidth(graph)
+      else:
+        break
         #print("PUT VPON IN CLOUD")
     else:
       bridge = getFogBridge(graph, node)
@@ -377,6 +380,8 @@ def allRandomVPON(graph):
         graph[bridge][node]["capacity"] += 9824
         fogs_vpons[node].append(available_vpons.pop())
         total_bd = getTotalBandwidth(graph)
+      else:
+        break
         #print("PUT VPON IN {}".format(node))
   #print("Cloud VPONs: {}".format(cloud_vpons))
   #print("Fogs VPONs: {}".format(fogs_vpons))

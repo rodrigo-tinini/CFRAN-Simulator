@@ -354,7 +354,7 @@ class RRH(object):
 		rrhs_amount = 100
 		#list of rrhs of the network
 		rrhs = []
-
+'''
 #starts simulation
 #simulation environment
 env = simpy.Environment()
@@ -383,7 +383,7 @@ g.addRRHs(gp, 128, 160, "4")
 #print(g.rrhs_fog)
 #starts the simulation
 env.run(until = 86401)
-
+'''
 #for i in range(len(g.actives_rrhs)):
 #	print(gp["s"]["RRH{}".format(i)]["capacity"])
 #	print(nx.edges(gp, "RRH{}".format(i)))
