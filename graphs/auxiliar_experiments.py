@@ -127,7 +127,7 @@ def reloadGraphModule():
 #general function to reload modules
 def reloadModule(aModule):
     importlib.reload(aModule)
-'''
+
 for i in sched_pol:
 	print("Executions of heuristic {}".format(i))
 	#begin the experiments
@@ -237,8 +237,8 @@ plt.grid()
 plt.savefig('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/plots/blocking_probability{}_remove_ff.png'.format(g.rrhs_amount), bbox_inches='tight')
 #plt.show()
 plt.clf()
-'''
 
+'''
 resetMarkers()
 resetLists()
 
@@ -351,7 +351,7 @@ plt.grid()
 plt.savefig('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/plots/blocking_probability{}_remove_cf.png'.format(g.rrhs_amount), bbox_inches='tight')
 #plt.show()
 plt.clf()
-'''
+
 resetMarkers()
 resetLists()
 

@@ -237,7 +237,7 @@ plt.grid()
 plt.savefig('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/plots/blocking_probability{}_remove_ff.png'.format(g.rrhs_amount), bbox_inches='tight')
 #plt.show()
 plt.clf()
-'''
+
 
 resetMarkers()
 resetLists()
@@ -464,7 +464,7 @@ plt.grid()
 plt.savefig('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/plots/blocking_probability{}_remove_random.png'.format(g.rrhs_amount), bbox_inches='tight')
 #plt.show()
 plt.clf()
-'''
+
 
 '''
 #Logging
