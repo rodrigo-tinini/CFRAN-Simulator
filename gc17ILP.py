@@ -10,6 +10,110 @@ import matplotlib.pyplot as plt
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
+#log variables
+power_consumption = []
+execution_time = []
+
+#to keep the amount of RRHs being processed on each node
+rrhs_on_nodes = [0,0,0,0,0,0]
+
+cpri_rate = 614.4
+
+node_capacity = [30720, 12288, 12288, 12288, 12288, 12288]
+
+#du cost of each node
+cost_du = [100.0, 50.0, 50.0, 50.0, 50.0, 50.0]
+
+#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
+lambda_node = [
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+]
+
+#to test if the rrh can be allcoated to the node
+fog = [
+[1,1,0,0,0,0,1,0,0,0],
+[1,1,0,0,0,0,0,0,0,0],
+[1,1,0,0,0,0,0,0,0,0],
+]
+
+du_processing = [
+[16.0, 16.0, 16.0, 16.0, 16.0],
+[4, 4, 4, 4, 4],
+[4, 4, 4, 4, 4],
+[4, 4, 4, 4, 4],
+[4, 4, 4, 4, 4],
+[4, 4, 4, 4, 4],
+]
+
+du_state = [
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0],
+]
+
+nodeState = [0,0,0,0,0,0]
+
+nodeCost = [
+600.0,
+300.0,
+300.0,
+300.0,
+300.0,
+300.0,
+]
+
+du_cost = [
+[100.0, 100.0, 100.0, 100.0, 100.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0],
+]
+
+lc_cost = [
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+]
+
+
+#switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0]
+#switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+RRHband = 614.4;
+#lc_cost = 20
+B = 1000000
+cloud_du_capacity = 9.0
+fog_du_capacity = 1.0
+lambda_state = [0,0,0,0,0,0,0,0,0,0]
+#switch_state = [0,0,0,0,0]
+#number of rrhs
+rrhs = range(0,1)
+#number of nodes
+nodes = range(0, 6)
+#number of lambdas
+lambdas = range(0, 10)
+
 #create the ilp class
 class ILP(object):
 	def __init__(self, rrh, rrhs, nodes, lambdas):
@@ -288,8 +392,6 @@ class Solution(object):
 		self.var_xn = var_xn
 		self.var_z = var_z
 
-
-
 #this class represents a RRH containing its possible processing nodes
 class RRH(object):
 	def __init__(self, aId, rrhs_matrix):
@@ -297,21 +399,37 @@ class RRH(object):
 		self.rrhs_matrix = rrhs_matrix
 		self.var_x = None
 
-
 #Utility class
 class Util(object):
-	
 
-	#create a list of RRHs with its own connected processing nodes
+	#compute the power consumption at the moment
+	def getPowerConsumption(self):
+		netCost = 0.0
+		#compute all activated nodes
+		for i in range(len(nodeState)):
+			if nodeState[i] == 1:
+				if i == 0:
+					netCost += 600.0
+				else:
+					netCost += 300.0
+		#compute lambda and switch costs
+		for w in lambda_state:
+			if w == 1:
+				netCost += 20.0
+		return netCost
+
+	#------------------------------------------------------------------------------------------#
+	#--------------------------Methods for the dynamic case-------------------------------------#
+	#create a list of RRHs with its own connected processing nodes - for the dynamic case
 	def newCreateRRHs(self, amount):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0])
+			r = RRH(i, [1,0,0,0,0])
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
 
-	#set the rrhs_matrix for each rrh created
+	#set the rrhs_matrix for each rrh created - for the dynamic case
 	def setMatrix(self, rrhs):
 		count = 1
 		for r in rrhs:
@@ -323,136 +441,27 @@ class Util(object):
 				r.rrhs_matrix[count] = 1
 				count += 1
 
-	#compute the power consumption at the moment
-	def getPowerConsumption(self):
-		netCost = 0.0
-		#compute all activated nodes
-		for i in range(len(nodeState)):
-			if nodeState[i] == 1:
-				if i == 0:
-					netCost += 600.0
-				else:
-					netCost += 500.0
-		#compute lambda and switch costs
-		for w in lambda_state:
-			if w == 1:
-				netCost += 20.0
-		return netCost
-
 	#------------------------------------------------------------------------------------------#
 	#--------------------------Methods for the static case-------------------------------------#
 
-	#set matrix according to the processing capacity of each fog node
-	def staticSetMatrix(self, rrhs):
-		pass
+	#set matrix 
+	def staticSetMatrix(self, rrhs, bottom, top, fog):
+		for i in range(bottom, top):
+			rrhs[i].rrhs_matrix[fog] = 1
 
 	#another create rrhs method to be used on the static case
 	#it creates the rrhs-fog matrix according to the amount of processing nodes declared
-	def staticCreateRRHs(self, nodes, rrhs_amount):	
-		#create the list to represent the connections of each rrh and its fog
-		fog_matrix = []
-		for i in nodes:
-			fog_matrix.append(0)
-			fog_matrix[0] = 1
-		#now, create the rrhs
+	def staticCreateRRHs(self, rrhs_amount):	
+		#create the rrhs
 		rrhs = []
 		for i in range(rrhs_amount):
-			r = RRH(i, fog_matrix)
+			r = RRH(i, [1,0,0,0,0,0])
 			rrhs.append(r)
-		self.staticSetMatrix(rrhs)
 		return rrhs
-
-
 
 #Test
 util = Util()
-
-#to keep the amount of RRHs being processed on each node
-rrhs_on_nodes = [0,0,0]
-
-cpri_rate = 614.4
-
-node_capacity = [15360, 6144, 6144]
-
-#du cost of each node
-cost_du = [100.0, 50.0, 50.0]
-
-#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
-lambda_node = [
-[1,1,1],
-[1,1,1],
-[1,1,1],
-[1,1,1],
-[1,1,1],
-
-]
-
-#to test if the rrh can be allcoated to the node
-fog = [
-[1,1,0,0,0,0,1,0,0,0],
-[1,1,0,0,0,0,0,0,0,0],
-[1,1,0,0,0,0,0,0,0,0],
-]
-du_processing = [
-[5.0, 5.0, 5.0, 5.0, 5.0],
-[2.0, 2.0, 2.0, 2.0, 2.0],
-[2.0, 2.0, 2.0, 2.0, 2.0],
-
-
-
-]
-
-du_state = [
-[0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0],
-
-
-]
-
-nodeState = [0,0,0]
-
-nodeCost = [
-600.0,
-500.0,
-500.0,
-
-]
-
-du_cost = [
-[100.0, 100.0, 100.0, 100.0, 100.0],
-[50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0],
-
-
-]
-lc_cost = [
-20.0,
-20.0,
-20.0,
-20.0,
-20.0,
-
-]
-
-
-switch_cost = [15.0, 15.0, 15.0]
-switchBandwidth = [10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
-RRHband = 614.4;
-#lc_cost = 20
-B = 1000000
-cloud_du_capacity = 9.0
-fog_du_capacity = 1.0
-lambda_state = [0,0,0,0,0]
-switch_state = [0,0,0]
-#number of rrhs
-rrhs = range(0,1)
-#number of nodes
-nodes = range(0, 3)
-#number of lambdas
-lambdas = range(0, 5)
-
+'''
 #runs experiments
 exec_number = 10
 for i in range(exec_number):
@@ -465,3 +474,16 @@ for i in range(exec_number):
 	s = ilp.run()
 	print(s.objective_value)
 	print(s.solve_details.time)
+'''
+amount = 100
+antenas = []
+antenas = util.staticCreateRRHs(amount)
+util.staticSetMatrix(antenas, 0, 32, 1)
+util.staticSetMatrix(antenas, 32, 64, 2)
+util.staticSetMatrix(antenas, 64, 100, 3)
+#util.staticSetMatrix(antenas, 96, 128, 4)
+#util.staticSetMatrix(antenas, 128, 160, 5)
+ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
+s = ilp.run()
+print(s.objective_value)
+print(s.solve_details.time)
