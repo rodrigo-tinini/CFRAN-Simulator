@@ -14,12 +14,15 @@ import matplotlib.pyplot as plt
 power_consumption = []
 execution_time = []
 
+#number of fogs
+fog_amount = 5
+
 #to keep the amount of RRHs being processed on each node
 rrhs_on_nodes = [0,0,0,0,0,0]
 
 cpri_rate = 614.4
 
-node_capacity = [30720, 12288, 12288, 12288, 12288, 12288]
+node_capacity = [30720, 24576, 24576, 24576, 24576, 24576]
 
 #du cost of each node
 cost_du = [100.0, 50.0, 50.0, 50.0, 50.0, 50.0]
@@ -178,6 +181,7 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
+		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes))
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
 		self.mdl.sum(self.z[w,j] * (lc_cost[w] + cost_du[j]) for w in self.lambdas for j in self.nodes) )
 
@@ -215,14 +219,13 @@ class ILP(object):
 			if self.z[i].solution_value >= 1:
 				self.var_z.append(i)
 
-		solution = Solution(self.var_x, self.var_u, self.var_k, self.var_rd, 
-			self.var_s, self.var_e, self.var_y, self.var_g, self.var_xn, self.var_z)
+		solution = Solution(self.var_x, self.var_xn, self.var_z)
 
 		return solution
 
 
 
-	#this class updates the network state based on the result of the ILP solution
+	#this method updates the network state based on the result of the ILP solution
 	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
 	#and also updates the cost and capacity of the lambda used
 	#just remembering, when a lambda is allocated to its node, if this node is not being processed by the ilp, all lambdas allcoated
@@ -459,9 +462,17 @@ class Util(object):
 			rrhs.append(r)
 		return rrhs
 
+	def setExperiment(self, antenas, fogs):
+		divided = int(len(antenas)/fogs)
+		self.staticSetMatrix(antenas, 0, divided, 1)
+		self.staticSetMatrix(antenas,  divided, divided*2, 2)
+		self.staticSetMatrix(antenas,  divided*2, divided*3, 3)
+		self.staticSetMatrix(antenas,  divided*3, divided*4, 4)
+		self.staticSetMatrix(antenas,  divided*4, divided*5, 5)
+
 #Test
-util = Util()
 '''
+util = Util()
 #runs experiments
 exec_number = 10
 for i in range(exec_number):
@@ -475,15 +486,20 @@ for i in range(exec_number):
 	print(s.objective_value)
 	print(s.solve_details.time)
 '''
-amount = 100
+'''
+amount = 50
 antenas = []
 antenas = util.staticCreateRRHs(amount)
-util.staticSetMatrix(antenas, 0, 32, 1)
-util.staticSetMatrix(antenas, 32, 64, 2)
-util.staticSetMatrix(antenas, 64, 100, 3)
+util.setExperiment(len(antenas), fog_amount)
+for i in antenas:
+	print(i.rrhs_matrix)
+#util.staticSetMatrix(antenas, 0, 32, 1)
+#util.staticSetMatrix(antenas, 32, 64, 2)
+#util.staticSetMatrix(antenas, 64, 100, 3)
 #util.staticSetMatrix(antenas, 96, 128, 4)
 #util.staticSetMatrix(antenas, 128, 160, 5)
-ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
-s = ilp.run()
-print(s.objective_value)
-print(s.solve_details.time)
+#ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
+#s = ilp.run()
+#print(s.objective_value)
+#print(s.solve_details.time)
+'''
