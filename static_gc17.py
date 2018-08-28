@@ -4,14 +4,14 @@ import gc17ILP as gc
 
 def genLogs():
 	#power consumption
-	with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/ilp_static/logs/power_consumption_{}.txt'.format(i),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/ilp_static/logs/power_consumption{}.txt'.format(amount-5),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in power_consumption)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/ilp_static/logs/execution_time_{}.txt'.format(i),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/ilp_static/logs/execution_time{}.txt'.format(amount-5),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(i)])
+	    filehandle.writelines("%s\n" % p for p in execution_time)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
 
@@ -25,7 +25,7 @@ util = gc.Util()
 amount = 5
 
 #main loop
-for i in range(32):
+for i in range(40):
 	print("AMOUNT IS {}".format(amount))
 	importlib.reload(gc)
 	antenas = []

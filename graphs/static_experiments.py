@@ -16,12 +16,12 @@ def genLogs():
 	#iterate over each scheduling policy
 	for i in sched_pol:
 		#power consumption
-		with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/static/logs/power_consumption_{}.txt'.format(i),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/static/logs/power_consumption_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(i)])
 		    filehandle.write("\n")
 		    #filehandle.write("\n")
-		with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/static/logs/execution_time_{}.txt'.format(i),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/static/logs/execution_time_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(i)])
 		    filehandle.write("\n")
@@ -68,7 +68,7 @@ for s in sched_pol:
 	g.rrhs_amount = 5
 	rs = g.rrhs_amount
 	print("Executing {}".format(s))
-	for i in range(32):
+	for i in range(40):
 		#print(g.rrhs_amount)
 		importlib.reload(g)
 		g.rrhs_amount = rs
