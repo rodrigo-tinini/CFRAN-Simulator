@@ -18,6 +18,7 @@ def genLogs():
 #logging variables
 power_consumption = []
 execution_time = []
+average_delay = []
 
 #util function
 util = gc.Util()

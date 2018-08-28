@@ -69,7 +69,7 @@ def genLogs(removeHeuristic):
 		    filehandle.write("\n")
 
 #number of executions
-execution_times = 30
+execution_times = 60
 #scheduling policies
 sched_pol = []
 sched_pol.append("all_random")

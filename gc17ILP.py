@@ -13,6 +13,12 @@ import matplotlib.pyplot as plt
 #log variables
 power_consumption = []
 execution_time = []
+average_delay = []
+
+#transmission delay to nodes
+#considering a propagation time of 2*10^8 m/s and a core of mm 50µm
+cloud_delay = 0.0000980654
+fog_delay = 0.0001961308
 
 #number of fogs
 fog_amount = 5
@@ -22,13 +28,23 @@ rrhs_on_nodes = [0,0,0,0,0,0]
 
 cpri_rate = 614.4
 
-node_capacity = [30720, 24576, 24576, 24576, 24576, 24576]
+node_capacity = [92160, 18432, 18432, 18432, 18432, 18432]
 
 #du cost of each node
 cost_du = [100.0, 50.0, 50.0, 50.0, 50.0, 50.0]
 
 #to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 lambda_node = [
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
+[1,1,1,1,1,1],
 [1,1,1,1,1,1],
 [1,1,1,1,1,1],
 [1,1,1,1,1,1],
@@ -68,8 +84,16 @@ du_state = [
 
 nodeState = [0,0,0,0,0,0]
 
+#nodeCost = [
+#600.0,
+#300.0,
+#300.0,
+#300.0,
+#300.0,
+#300.0,
+#]
 nodeCost = [
-600.0,
+0.0,
 300.0,
 300.0,
 300.0,
@@ -97,25 +121,35 @@ lc_cost = [
 20.0,
 20.0,
 20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
+20.0,
 ]
 
 
 #switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0]
 #switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
-lambda_state = [0,0,0,0,0,0,0,0,0,0]
+lambda_state = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 #switch_state = [0,0,0,0,0]
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
 nodes = range(0, 6)
 #number of lambdas
-lambdas = range(0, 10)
+lambdas = range(0, 20)
 
 #create the ilp class
 class ILP(object):
@@ -158,6 +192,8 @@ class ILP(object):
 	#create constraints
 	def setConstraints(self):
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#1
+		#next constraint used for the pure globecom experiments in order to explorer the cpri line rates aggregation into dedicated wavelengths (not vpon, for vpon, remove this line)
+		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for i in self.rrhs ) <= 1 for j in self.nodes for w in self.lambdas)#1
 
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * RRHband for i in self.rrhs for j in self.nodes) <= wavelength_capacity[w] for w in self.lambdas)
 
@@ -405,6 +441,14 @@ class RRH(object):
 #Utility class
 class Util(object):
 
+	#gets the overall delay of the network
+    def overallDelay(self, solution):
+        #search for each rrh on the solution variable and
+        #compute the delay according to the type of the node
+        for key in solution.var_x:
+            node_id = key[1]
+            print(node_id)
+
 	#compute the power consumption at the moment
 	def getPowerConsumption(self):
 		netCost = 0.0
@@ -462,6 +506,7 @@ class Util(object):
 			rrhs.append(r)
 		return rrhs
 
+	#this method distributes RRHs uniformly to the fog nodes (example, 5 antenas, 5 fog nodes, 1 antena connected per fog, 10 antenas, 5 fog, 2 antenas per fog and so on)
 	def setExperiment(self, antenas, fogs):
 		divided = int(len(antenas)/fogs)
 		self.staticSetMatrix(antenas, 0, divided, 1)
@@ -486,20 +531,22 @@ for i in range(exec_number):
 	print(s.objective_value)
 	print(s.solve_details.time)
 '''
-'''
-amount = 50
+util = Util()
+amount = 20
 antenas = []
 antenas = util.staticCreateRRHs(amount)
-util.setExperiment(len(antenas), fog_amount)
-for i in antenas:
-	print(i.rrhs_matrix)
+util.setExperiment(antenas, fog_amount)
+#for i in antenas:
+#	print(i.rrhs_matrix)
 #util.staticSetMatrix(antenas, 0, 32, 1)
 #util.staticSetMatrix(antenas, 32, 64, 2)
 #util.staticSetMatrix(antenas, 64, 100, 3)
 #util.staticSetMatrix(antenas, 96, 128, 4)
 #util.staticSetMatrix(antenas, 128, 160, 5)
-#ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
-#s = ilp.run()
-#print(s.objective_value)
+ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
+s = ilp.run()
+print(s.objective_value)
+sol = ilp.return_solution_values()
+ilp.updateValues(sol)
+print(util.getPowerConsumption())
 #print(s.solve_details.time)
-'''

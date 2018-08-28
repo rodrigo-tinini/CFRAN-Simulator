@@ -10,7 +10,9 @@ import copy
 import sys
 import graph as g
 import networkx as nx
-
+#keeps the transmission delays
+delay_time = []
+average_delay_time = []
 #keeps the execution time
 execution_time = []
 average_execution_time = []

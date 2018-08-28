@@ -47,6 +47,7 @@ sched_pol.append("least_loaded")
 #log variables
 power_consumption = {}
 execution_time = {}
+average_delay = {}
 for i in sched_pol:
 	power_consumption["{}".format(i)] = []
 	execution_time["{}".format(i)] = []

@@ -168,6 +168,7 @@ G.add_edges_from([("s", "r1", {'capacity': 614, 'weight': 0}),
 start_time = time.clock()
 mincostFlow = nx.max_flow_min_cost(G, "s", "d")
 #print(mincostFlow)
+'''
 for i in mincostFlow:
   print(i, mincostFlow[i])
 print("Time lapsed: {}".format(time.clock() - start_time))
@@ -187,6 +188,9 @@ def getPowerConsumption():
 
 power_cost = getPowerConsumption()
 print(power_cost)
+'''
+print(nx.edges(G, ["b","c"]))
+
 #example of modifying edge attribute
 #print(nx.edges(G,["d"]))
 #print(G["s"]["r1"]['capacity'])

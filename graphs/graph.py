@@ -8,7 +8,7 @@ G = nx.DiGraph()
 #number of RRHs
 rrhs_amount = 160
 #consumption of a line card + a DU
-line_card_consumption = 25
+line_card_consumption = 20
 #keeps the power cost
 power_cost = 0
 #cpri line rate - it is round to 614 because float 614.4 was unexplained causing no flow to be found (even with as free capacity as needed)
@@ -16,9 +16,9 @@ cpri_line = 614
 #capacity of a vopn
 lambda_capacity = 16 * cpri_line
 #fog capacity
-fog_capacity = 16 * cpri_line
+fog_capacity = 30 * cpri_line
 #cloud capacity
-cloud_capacity = 80 *cpri_line
+cloud_capacity = 159 *cpri_line
 #node power costs
 fog_cost = 300
 cloud_cost = 1
@@ -39,12 +39,13 @@ rrhs = []
 #list of actives rrhs on the graph
 actives_rrhs =[]
 #list of available VPONs
-available_vpons = [0,1,2,3,4,5,6,7,8,9]
+available_vpons = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+#available_vpons = [0,1,2,3,4,5,6,7,8,9]
 #list of allocated vpons
 allocated_vpons = []
 #capacity of vpons
 vpons_capacity = {}
-for i in range(10):
+for i in range(20):
   vpons_capacity[i] = 10000
 #this dictionary keeps the rrhs indexed by its fog node
 fog_rrhs = {}
@@ -88,8 +89,9 @@ fog_nodes_ratio_act_band = {}
 for i in range(fogs):
   fog_nodes_ratio_act_band["fog{}".format(i)] = 0.0
 #keeps the delay costs of each processing node
-cloud_delay = 0.0
-fog_delay = 0.0
+#considering a propagation time of 2*10^8 m/s and a core of mm 50µm
+cloud_delay = 0.0000980654
+fog_delay = 0.0001961308
 delay_costs = {}
 delay_costs["cloud"] = cloud_delay
 for i in range(fogs):
@@ -1090,6 +1092,23 @@ def sortFogMostLoaded():
  most_loaded.reverse()
  return most_loaded
 
+#calculate the average delay of the network, counting for each RRH its transmission delay considering its processing node
+def overallDelay(graph):
+  total_delay = 0.0
+  average_delay = 0.0
+  #keep the number of transmitting RRHs to calculate the average delay
+  amount = 0
+  for i in rrhs_amount:
+    if graph["RRH{}".format(i)]["bridge"]["capacity"] > 0:
+      total_delay += cloud_delay
+      amount += 1
+    elif graph["RRH{}".format(i)][rrhs_fog["RRH{}".format(i)]]["capacity"] > 0:
+      total_delay = fog_delay
+      amount += 1
+  if amount > 0:
+    average_delay = total_delay/amount
+  return average_delay
+
 #sort fog nodes by Least Loaded
 def sortFogLeastLoaded():
  least_loaded = sorted(load_node,key=load_node.__getitem__)
@@ -1157,6 +1176,11 @@ start_time = time.clock()
 mincostFlow = nx.max_flow_min_cost(g, "s", "d")
 #print(mincostFlow)
 #print(mincostFlow["cloud"]["d"])
+for i in mincostFlow:
+  print(i, mincostFlow[i])
+
+'''
+'''
 #for i in mincostFlow:
 #  print(i, mincostFlow[i])
 print("Time lapsed: {}".format(time.clock() - start_time))
