@@ -796,7 +796,7 @@ lambdas = range(0, 5)
 
 
 
-
+'''
 u = Util()
 antenas = u.newCreateRRHs(40)
 #for i in antenas:
@@ -808,7 +808,7 @@ ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
 #print(dus_total_capacity)
 x = ilp.getProcUsage()
 print(x)
-
+'''
 '''
 print(du_processing)
 print(lambda_node)
