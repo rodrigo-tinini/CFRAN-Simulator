@@ -16,9 +16,9 @@ execution_time = []
 average_delay = []
 
 #transmission delay to nodes
-#considering a propagation time of 2*10^8 m/s and a core of mm 50µm
-cloud_delay = 0.0000980654
-fog_delay = 0.0001961308
+#considering a propagation time of 2*10^8 m/s and a core of mm 50µm - 20km to fog and 40km to cloud
+fog_delay = 0.0000980654
+cloud_delay = 0.0001961308
 
 #number of fogs
 fog_amount = 5
@@ -193,7 +193,7 @@ class ILP(object):
 	def setConstraints(self):
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#1
 		#next constraint used for the pure globecom experiments in order to explorer the cpri line rates aggregation into dedicated wavelengths (not vpon, for vpon, remove this line)
-		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for i in self.rrhs ) <= 1 for j in self.nodes for w in self.lambdas)#1
+		#self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for i in self.rrhs ) <= 1 for j in self.nodes for w in self.lambdas)#1
 
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * RRHband for i in self.rrhs for j in self.nodes) <= wavelength_capacity[w] for w in self.lambdas)
 
@@ -442,12 +442,17 @@ class RRH(object):
 class Util(object):
 
 	#gets the overall delay of the network
-    def overallDelay(self, solution):
-        #search for each rrh on the solution variable and
-        #compute the delay according to the type of the node
-        for key in solution.var_x:
-            node_id = key[1]
-            print(node_id)
+	def overallDelay(self, solution):
+		total_delay = 0.0
+		for key in solution.var_xn:
+			#print(key)
+			if key == 0:
+				total_delay = cloud_delay
+			else:
+				total_delay += fog_delay
+		print(len(solution.var_xn))
+		return (total_delay/len(solution.var_xn))
+
 
 	#compute the power consumption at the moment
 	def getPowerConsumption(self):
@@ -532,7 +537,7 @@ for i in range(exec_number):
 	print(s.solve_details.time)
 '''
 util = Util()
-amount = 20
+amount = 200
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, fog_amount)
@@ -545,8 +550,9 @@ util.setExperiment(antenas, fog_amount)
 #util.staticSetMatrix(antenas, 128, 160, 5)
 ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
 s = ilp.run()
-print(s.objective_value)
+#print(s.objective_value)
 sol = ilp.return_solution_values()
 ilp.updateValues(sol)
 print(util.getPowerConsumption())
 #print(s.solve_details.time)
+print(util.overallDelay(sol))
