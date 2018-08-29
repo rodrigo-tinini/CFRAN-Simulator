@@ -90,8 +90,8 @@ for i in range(fogs):
   fog_nodes_ratio_act_band["fog{}".format(i)] = 0.0
 #keeps the delay costs of each processing node
 #considering a propagation time of 2*10^8 m/s and a core of mm 50µm
-cloud_delay = 0.0000980654
-fog_delay = 0.0001961308
+fog_delay = 0.0000980654
+cloud_delay = 0.0001961308
 delay_costs = {}
 delay_costs["cloud"] = cloud_delay
 for i in range(fogs):
@@ -1092,8 +1092,9 @@ def sortFogMostLoaded():
  most_loaded.reverse()
  return most_loaded
 
+#OLD version that takes the average of delay considering the amount of RRHs that generates delay, i.e., are transmitting
 #calculate the average delay of the network, counting for each RRH its transmission delay considering its processing node
-def overallDelay(graph):
+def OLDoverallDelay(graph):
   total_delay = 0.0
   average_delay = 0.0
   #keep the number of transmitting RRHs to calculate the average delay
@@ -1108,6 +1109,19 @@ def overallDelay(graph):
   if amount > 0:
     average_delay = total_delay/amount
   return average_delay
+
+#calculates the average minimum delay on the network, taking in consider only the delay of the active nodes
+def overallDelay(graph):
+  total_delay = 0.0
+  if graph["bridge"]["cloud"]["capacity"] > 0:
+    total_delay += cloud_delay
+    amount += 1
+  for i in range(fogs):
+    if graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] > 0:
+      total_delay += fog_delay
+      amount += 1
+  total_delay = (total_delay/amount)
+  return total_delay
 
 #sort fog nodes by Least Loaded
 def sortFogLeastLoaded():
