@@ -16,14 +16,19 @@ def genLogs():
 	#iterate over each scheduling policy
 	for i in sched_pol:
 		#power consumption
-		with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/static/logs/power_consumption_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/power_consumption_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(i)])
 		    filehandle.write("\n")
 		    #filehandle.write("\n")
-		with open('/home/tinini/Área de Trabalho/iccSim/CFRAN-Simulator/graphs/static/logs/execution_time_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/execution_time_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(i)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/average_minimum_delay_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(i)])
 		    filehandle.write("\n")
 		    #filehandle.write("\n")
 
@@ -51,7 +56,7 @@ average_delay = {}
 for i in sched_pol:
 	power_consumption["{}".format(i)] = []
 	execution_time["{}".format(i)] = []
-
+	average_delay["{}".format(i)] = []
 def setExperiment(gp, rrhs, fogs):
 	divided = int(rrhs/fogs)
 	g.addRRHs(gp, 0, divided, "0")
@@ -109,9 +114,10 @@ for s in sched_pol:
 		mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
 		execution_time[s].append(g.time.clock() - start_time)
 		power_consumption[s].append(g.overallPowerConsumption(gp))
+		average_delay[s].append(g.overallDelay(gp))
 		g.rrhs_amount += 5
 		rs = g.rrhs_amount
-print(power_consumption)
+#print(power_consumption)
 genLogs()
 
 

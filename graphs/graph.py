@@ -1113,6 +1113,7 @@ def OLDoverallDelay(graph):
 #calculates the average minimum delay on the network, taking in consider only the delay of the active nodes
 def overallDelay(graph):
   total_delay = 0.0
+  amount = 0
   if graph["bridge"]["cloud"]["capacity"] > 0:
     total_delay += cloud_delay
     amount += 1

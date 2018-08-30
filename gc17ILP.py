@@ -215,6 +215,10 @@ class ILP(object):
 		self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.z[w,j] <= lambda_node[w][j] for w in self.lambdas for j in self.nodes)
 
+	#add new constraint
+	def addNewConstraint(self, constraint):
+		self.mdl.add_constraints(constraint)
+
 	#set the objective function
 	def setObjective(self):
 		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes))
@@ -450,7 +454,6 @@ class Util(object):
 				total_delay = cloud_delay
 			else:
 				total_delay += fog_delay
-		print(len(solution.var_xn))
 		return (total_delay/len(solution.var_xn))
 
 
@@ -536,6 +539,7 @@ for i in range(exec_number):
 	print(s.objective_value)
 	print(s.solve_details.time)
 '''
+'''
 util = Util()
 amount = 200
 antenas = []
@@ -556,3 +560,4 @@ ilp.updateValues(sol)
 print(util.getPowerConsumption())
 #print(s.solve_details.time)
 print(util.overallDelay(sol))
+'''
