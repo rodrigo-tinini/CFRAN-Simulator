@@ -2,23 +2,24 @@ import time
 import importlib
 import gc17ILP as gc
 
-def genLogs():
+def genLogs(amount):
 	#power consumption
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/power_consumption{}.txt'.format(amount-5),'a') as filehandle:  
-	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in power_consumption)
-	    filehandle.write("\n")
-	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/execution_time{}.txt'.format(amount-5),'a') as filehandle:  
-	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in execution_time)
-	    filehandle.write("\n")
-	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/minimum_average_delay{}.txt'.format(amount-5),'a') as filehandle:  
-	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in average_delay)
-	    filehandle.write("\n")
-	    #filehandle.write("\n")
+	for policy in lambda_policies:
+		with open('/home/hextinini/Área de Trabalho/iccSIM/CFRAN-Simulator/ilp_static/logs/power_consumption_{}_{}.txt'.format(policy, amount),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(policy)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
+		with open('/home/hextinini/Área de Trabalho/iccSIM/CFRAN-Simulator/ilp_static/logs/execution_time_{}_{}.txt'.format(policy, amount),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(policy)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
+		with open('/home/hextinini/Área de Trabalho/iccSIM/CFRAN-Simulator/ilp_static/logs/minimum_average_delay_{}_{}.txt'.format(policy, amount),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(policy)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
 
 #wavelength assignment policies (GC17 + ISCC)
 lambda_policies = ['vpon', 'rrha', 'ca']
@@ -39,6 +40,7 @@ for i in lambda_policies:
 	average_delay['{}'.format(i)] = []
 
 def reloadDicts():
+	global power_consumption, execution_time, average_delay
 	for i in lambda_policies:
 		power_consumption['{}'.format(i)] = []
 		execution_time['{}'.format(i)] = []
@@ -76,6 +78,7 @@ amount = 15
 #VPONs executions
 #main loop
 #5 aggregation groups
+reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 antenas = []
@@ -90,7 +93,7 @@ ilp.updateValues(sol)
 power_consumption['vpon'].append(util.getPowerConsumption())
 execution_time['vpon'].append(s.solve_details.time)
 average_delay['vpon'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 15
 #RRHA executions - NEED TO ADD THE CONSTRAINT TO AVOID VPON ON THE MODEL
@@ -112,7 +115,7 @@ ilp.updateValues(sol)
 power_consumption['rrha'].append(util.getPowerConsumption())
 execution_time['rrha'].append(s.solve_details.time)
 average_delay['rrha'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 5
 #CA executions - NEED TO ADDTHE COINSTRAINT TO AVOID VPON ON THE MODEL AND CHANGE THE RRH BAND TO THE BAND OF THE ENTIRE AGGREGATION GROUP
@@ -135,7 +138,7 @@ ilp.updateValues(sol)
 power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 ############################################### 10 Aggregation groups 
 #initial amount of rrhs
@@ -143,6 +146,7 @@ amount = 30
 #VPONs executions
 #main loop
 #5 aggregation groups
+reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 antenas = []
@@ -157,7 +161,7 @@ ilp.updateValues(sol)
 power_consumption['vpon'].append(util.getPowerConsumption())
 execution_time['vpon'].append(s.solve_details.time)
 average_delay['vpon'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 30
 #RRHA executions - NEED TO ADD THE CONSTRAINT TO AVOID VPON ON THE MODEL
@@ -179,7 +183,7 @@ ilp.updateValues(sol)
 power_consumption['rrha'].append(util.getPowerConsumption())
 execution_time['rrha'].append(s.solve_details.time)
 average_delay['rrha'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 10
 #CA executions - NEED TO ADDTHE COINSTRAINT TO AVOID VPON ON THE MODEL AND CHANGE THE RRH BAND TO THE BAND OF THE ENTIRE AGGREGATION GROUP
@@ -202,7 +206,7 @@ ilp.updateValues(sol)
 power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 ############################################### 10 Aggregation groups 
 #initial amount of rrhs
@@ -210,6 +214,7 @@ amount = 45
 #VPONs executions
 #main loop
 #5 aggregation groups
+reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 antenas = []
@@ -224,7 +229,7 @@ ilp.updateValues(sol)
 power_consumption['vpon'].append(util.getPowerConsumption())
 execution_time['vpon'].append(s.solve_details.time)
 average_delay['vpon'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 45
 #RRHA executions - NEED TO ADD THE CONSTRAINT TO AVOID VPON ON THE MODEL
@@ -246,7 +251,7 @@ ilp.updateValues(sol)
 power_consumption['rrha'].append(util.getPowerConsumption())
 execution_time['rrha'].append(s.solve_details.time)
 average_delay['rrha'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 15
 #CA executions - NEED TO ADDTHE COINSTRAINT TO AVOID VPON ON THE MODEL AND CHANGE THE RRH BAND TO THE BAND OF THE ENTIRE AGGREGATION GROUP
@@ -269,7 +274,7 @@ ilp.updateValues(sol)
 power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 #################################################---4 RRHs per aggregation groups
 ############################################### 5 Aggregation groups 
@@ -278,6 +283,7 @@ amount = 20
 #VPONs executions
 #main loop
 #5 aggregation groups
+reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 antenas = []
@@ -292,7 +298,7 @@ ilp.updateValues(sol)
 power_consumption['vpon'].append(util.getPowerConsumption())
 execution_time['vpon'].append(s.solve_details.time)
 average_delay['vpon'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 20
 #RRHA executions - NEED TO ADD THE CONSTRAINT TO AVOID VPON ON THE MODEL
@@ -314,7 +320,7 @@ ilp.updateValues(sol)
 power_consumption['rrha'].append(util.getPowerConsumption())
 execution_time['rrha'].append(s.solve_details.time)
 average_delay['rrha'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 5
 #CA executions - NEED TO ADDTHE COINSTRAINT TO AVOID VPON ON THE MODEL AND CHANGE THE RRH BAND TO THE BAND OF THE ENTIRE AGGREGATION GROUP
@@ -337,7 +343,7 @@ ilp.updateValues(sol)
 power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 ############################################### 10 Aggregation groups 
 #initial amount of rrhs
@@ -345,6 +351,7 @@ amount = 40
 #VPONs executions
 #main loop
 #5 aggregation groups
+reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 antenas = []
@@ -359,7 +366,7 @@ ilp.updateValues(sol)
 power_consumption['vpon'].append(util.getPowerConsumption())
 execution_time['vpon'].append(s.solve_details.time)
 average_delay['vpon'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 40
 #RRHA executions - NEED TO ADD THE CONSTRAINT TO AVOID VPON ON THE MODEL
@@ -381,7 +388,7 @@ ilp.updateValues(sol)
 power_consumption['rrha'].append(util.getPowerConsumption())
 execution_time['rrha'].append(s.solve_details.time)
 average_delay['rrha'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 10
 #CA executions - NEED TO ADDTHE COINSTRAINT TO AVOID VPON ON THE MODEL AND CHANGE THE RRH BAND TO THE BAND OF THE ENTIRE AGGREGATION GROUP
@@ -404,7 +411,7 @@ ilp.updateValues(sol)
 power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 ############################################### 10 Aggregation groups 
 #initial amount of rrhs
@@ -412,6 +419,7 @@ amount = 60
 #VPONs executions
 #main loop
 #5 aggregation groups
+reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 antenas = []
@@ -426,7 +434,7 @@ ilp.updateValues(sol)
 power_consumption['vpon'].append(util.getPowerConsumption())
 execution_time['vpon'].append(s.solve_details.time)
 average_delay['vpon'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 60
 #RRHA executions - NEED TO ADD THE CONSTRAINT TO AVOID VPON ON THE MODEL
@@ -448,7 +456,7 @@ ilp.updateValues(sol)
 power_consumption['rrha'].append(util.getPowerConsumption())
 execution_time['rrha'].append(s.solve_details.time)
 average_delay['rrha'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 
 amount = 15
 #CA executions - NEED TO ADDTHE COINSTRAINT TO AVOID VPON ON THE MODEL AND CHANGE THE RRH BAND TO THE BAND OF THE ENTIRE AGGREGATION GROUP
@@ -471,5 +479,5 @@ ilp.updateValues(sol)
 power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
-genLogs()
+genLogs(amount)
 

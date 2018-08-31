@@ -480,7 +480,7 @@ class Util(object):
 	def newCreateRRHs(self, amount):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0,0,0])
+			r = RRH(i, [1,0,0,0,0,0])
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
@@ -559,6 +559,6 @@ s = ilp.run()
 sol = ilp.return_solution_values()
 ilp.updateValues(sol)
 print(util.getPowerConsumption())
-#print(s.solve_details.time)
+print(s.solve_details.time)
 print(util.overallDelay(sol))
 '''

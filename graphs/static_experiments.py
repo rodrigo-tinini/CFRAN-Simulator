@@ -59,6 +59,7 @@ for i in sched_pol:
 	average_delay["{}".format(i)] = []
 
 def reloadDicts():
+	global power_consumption, execution_time, average_delay
 	for i in sched_pol:
 		power_consumption["{}".format(i)] = []
 		execution_time["{}".format(i)] = []
