@@ -131,163 +131,152 @@ genLogs()
 #Experiments for JOCN
 ############################# 3 RRHs per execution - 5 aggregation sites
 #Assign VPON Heuristic simulations
-#add 5 rrhs per execution
-g.rrhs_amount = 3
+g.rrhs_amount = 15
 rs = g.rrhs_amount
 #main loop
 for s in sched_pol:
-	g.rrhs_amount = 3
+	g.rrhs_amount = 15
 	rs = g.rrhs_amount
 	print("Executing {}".format(s))
-	for i in range(5):
-		#print(g.rrhs_amount)
-		importlib.reload(g)
-		g.rrhs_amount = rs
-		gp = g.createGraph()
-		g.createRRHs()
-		g.addFogNodes(gp, fog_amount)
-		setExperiment(gp, g.rrhs_amount, fog_amount)
-		for i in range(len(g.rrhs)):
-			g.startNode(gp, "RRH{}".format(i))
-			g.actives_rrhs.append("RRH{}".format(i))
-		if s == "all_random":
-			g.allRandomVPON(gp)
-		#elif s == "fog_first":
-		#	g.fogFirst(gp)
-		elif s == "cloud_first_all_fogs":
-			g.assignVPON(gp)
-		elif s == "cloud_first_random_fogs":
-			g.randomFogVPON(gp)
-		elif s == "most_loaded":
-			g.assignMostLoadedVPON(gp)
-		elif s == "least_loaded":
-			g.assignLeastLoadedVPON(gp)
-		#elif s == "least_cost":
-		#	g.leastCostNodeVPON(gp)
-		#elif s == "least_cost_active_ratio":
-		#	g.leastCostLoadedVPON(gp)
-		#most and least loaded that considers the bandwidth available on each node midhaul
-		#elif s == "most_loaded_bandwidth":
-		#	g.assignMostLoadedVPONBand(gp)
-		#elif s == "least_loaded_bandwidth":
-		#	g.assignLeastLoadedVPONBand(gp)
-		#elif s == "big_ratio":
-		#	g.assignBigRatioVPON(gp)
-		#elif s == "small_ratio":
-		#	g.assignSmallRatioVPON(gp)
-		start_time = g.time.clock()
-		mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
-		execution_time[s].append(g.time.clock() - start_time)
-		power_consumption[s].append(g.overallPowerConsumption(gp))
-		average_delay[s].append(g.overallDelay(gp))
-		g.rrhs_amount += 5
-		rs = g.rrhs_amount
+	#print(g.rrhs_amount)
+	importlib.reload(g)
+	g.rrhs_amount = rs
+	gp = g.createGraph()
+	g.createRRHs()
+	g.addFogNodes(gp, fog_amount)
+	setExperiment(gp, g.rrhs_amount, fog_amount)
+	for i in range(len(g.rrhs)):
+		g.startNode(gp, "RRH{}".format(i))
+		g.actives_rrhs.append("RRH{}".format(i))
+	if s == "all_random":
+		g.allRandomVPON(gp)
+	#elif s == "fog_first":
+	#	g.fogFirst(gp)
+	elif s == "cloud_first_all_fogs":
+		g.assignVPON(gp)
+	elif s == "cloud_first_random_fogs":
+		g.randomFogVPON(gp)
+	elif s == "most_loaded":
+		g.assignMostLoadedVPON(gp)
+	elif s == "least_loaded":
+		g.assignLeastLoadedVPON(gp)
+	#elif s == "least_cost":
+	#	g.leastCostNodeVPON(gp)
+	#elif s == "least_cost_active_ratio":
+	#	g.leastCostLoadedVPON(gp)
+	#most and least loaded that considers the bandwidth available on each node midhaul
+	#elif s == "most_loaded_bandwidth":
+	#	g.assignMostLoadedVPONBand(gp)
+	#elif s == "least_loaded_bandwidth":
+	#	g.assignLeastLoadedVPONBand(gp)
+	#elif s == "big_ratio":
+	#	g.assignBigRatioVPON(gp)
+	#elif s == "small_ratio":
+	#	g.assignSmallRatioVPON(gp)
+	start_time = g.time.clock()
+	mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
+	execution_time[s].append(g.time.clock() - start_time)
+	power_consumption[s].append(g.overallPowerConsumption(gp))
+	average_delay[s].append(g.overallDelay(gp))
 #print(power_consumption)
 genLogs()
 
-#3 RRHS per execution, 10 aggregations sites
-reloadDicts()
+#main loop
 for s in sched_pol:
-	g.rrhs_amount = 3
+	g.rrhs_amount = 30
 	rs = g.rrhs_amount
 	print("Executing {}".format(s))
-	for i in range(10):
-		#print(g.rrhs_amount)
-		importlib.reload(g)
-		g.rrhs_amount = rs
-		gp = g.createGraph()
-		g.createRRHs()
-		g.addFogNodes(gp, fog_amount)
-		setExperiment(gp, g.rrhs_amount, fog_amount)
-		for i in range(len(g.rrhs)):
-			g.startNode(gp, "RRH{}".format(i))
-			g.actives_rrhs.append("RRH{}".format(i))
-		if s == "all_random":
-			g.allRandomVPON(gp)
-		#elif s == "fog_first":
-		#	g.fogFirst(gp)
-		elif s == "cloud_first_all_fogs":
-			g.assignVPON(gp)
-		elif s == "cloud_first_random_fogs":
-			g.randomFogVPON(gp)
-		elif s == "most_loaded":
-			g.assignMostLoadedVPON(gp)
-		elif s == "least_loaded":
-			g.assignLeastLoadedVPON(gp)
-		#elif s == "least_cost":
-		#	g.leastCostNodeVPON(gp)
-		#elif s == "least_cost_active_ratio":
-		#	g.leastCostLoadedVPON(gp)
-		#most and least loaded that considers the bandwidth available on each node midhaul
-		#elif s == "most_loaded_bandwidth":
-		#	g.assignMostLoadedVPONBand(gp)
-		#elif s == "least_loaded_bandwidth":
-		#	g.assignLeastLoadedVPONBand(gp)
-		#elif s == "big_ratio":
-		#	g.assignBigRatioVPON(gp)
-		#elif s == "small_ratio":
-		#	g.assignSmallRatioVPON(gp)
-		start_time = g.time.clock()
-		mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
-		execution_time[s].append(g.time.clock() - start_time)
-		power_consumption[s].append(g.overallPowerConsumption(gp))
-		average_delay[s].append(g.overallDelay(gp))
-		g.rrhs_amount += 5
-		rs = g.rrhs_amount
+	#print(g.rrhs_amount)
+	importlib.reload(g)
+	g.rrhs_amount = rs
+	gp = g.createGraph()
+	g.createRRHs()
+	g.addFogNodes(gp, fog_amount)
+	setExperiment(gp, g.rrhs_amount, fog_amount)
+	for i in range(len(g.rrhs)):
+		g.startNode(gp, "RRH{}".format(i))
+		g.actives_rrhs.append("RRH{}".format(i))
+	if s == "all_random":
+		g.allRandomVPON(gp)
+	#elif s == "fog_first":
+	#	g.fogFirst(gp)
+	elif s == "cloud_first_all_fogs":
+		g.assignVPON(gp)
+	elif s == "cloud_first_random_fogs":
+		g.randomFogVPON(gp)
+	elif s == "most_loaded":
+		g.assignMostLoadedVPON(gp)
+	elif s == "least_loaded":
+		g.assignLeastLoadedVPON(gp)
+	#elif s == "least_cost":
+	#	g.leastCostNodeVPON(gp)
+	#elif s == "least_cost_active_ratio":
+	#	g.leastCostLoadedVPON(gp)
+	#most and least loaded that considers the bandwidth available on each node midhaul
+	#elif s == "most_loaded_bandwidth":
+	#	g.assignMostLoadedVPONBand(gp)
+	#elif s == "least_loaded_bandwidth":
+	#	g.assignLeastLoadedVPONBand(gp)
+	#elif s == "big_ratio":
+	#	g.assignBigRatioVPON(gp)
+	#elif s == "small_ratio":
+	#	g.assignSmallRatioVPON(gp)
+	start_time = g.time.clock()
+	mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
+	execution_time[s].append(g.time.clock() - start_time)
+	power_consumption[s].append(g.overallPowerConsumption(gp))
+	average_delay[s].append(g.overallDelay(gp))
 #print(power_consumption)
 genLogs()
 
-#3 RRHS per execution, 15 aggregations sites
-reloadDicts()
+#main loop
 for s in sched_pol:
-	g.rrhs_amount = 3
+	g.rrhs_amount = 45
 	rs = g.rrhs_amount
 	print("Executing {}".format(s))
-	for i in range(15):
-		#print(g.rrhs_amount)
-		importlib.reload(g)
-		g.rrhs_amount = rs
-		gp = g.createGraph()
-		g.createRRHs()
-		g.addFogNodes(gp, fog_amount)
-		setExperiment(gp, g.rrhs_amount, fog_amount)
-		for i in range(len(g.rrhs)):
-			g.startNode(gp, "RRH{}".format(i))
-			g.actives_rrhs.append("RRH{}".format(i))
-		if s == "all_random":
-			g.allRandomVPON(gp)
-		#elif s == "fog_first":
-		#	g.fogFirst(gp)
-		elif s == "cloud_first_all_fogs":
-			g.assignVPON(gp)
-		elif s == "cloud_first_random_fogs":
-			g.randomFogVPON(gp)
-		elif s == "most_loaded":
-			g.assignMostLoadedVPON(gp)
-		elif s == "least_loaded":
-			g.assignLeastLoadedVPON(gp)
-		#elif s == "least_cost":
-		#	g.leastCostNodeVPON(gp)
-		#elif s == "least_cost_active_ratio":
-		#	g.leastCostLoadedVPON(gp)
-		#most and least loaded that considers the bandwidth available on each node midhaul
-		#elif s == "most_loaded_bandwidth":
-		#	g.assignMostLoadedVPONBand(gp)
-		#elif s == "least_loaded_bandwidth":
-		#	g.assignLeastLoadedVPONBand(gp)
-		#elif s == "big_ratio":
-		#	g.assignBigRatioVPON(gp)
-		#elif s == "small_ratio":
-		#	g.assignSmallRatioVPON(gp)
-		start_time = g.time.clock()
-		mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
-		execution_time[s].append(g.time.clock() - start_time)
-		power_consumption[s].append(g.overallPowerConsumption(gp))
-		average_delay[s].append(g.overallDelay(gp))
-		g.rrhs_amount += 5
-		rs = g.rrhs_amount
+	#print(g.rrhs_amount)
+	importlib.reload(g)
+	g.rrhs_amount = rs
+	gp = g.createGraph()
+	g.createRRHs()
+	g.addFogNodes(gp, fog_amount)
+	setExperiment(gp, g.rrhs_amount, fog_amount)
+	for i in range(len(g.rrhs)):
+		g.startNode(gp, "RRH{}".format(i))
+		g.actives_rrhs.append("RRH{}".format(i))
+	if s == "all_random":
+		g.allRandomVPON(gp)
+	#elif s == "fog_first":
+	#	g.fogFirst(gp)
+	elif s == "cloud_first_all_fogs":
+		g.assignVPON(gp)
+	elif s == "cloud_first_random_fogs":
+		g.randomFogVPON(gp)
+	elif s == "most_loaded":
+		g.assignMostLoadedVPON(gp)
+	elif s == "least_loaded":
+		g.assignLeastLoadedVPON(gp)
+	#elif s == "least_cost":
+	#	g.leastCostNodeVPON(gp)
+	#elif s == "least_cost_active_ratio":
+	#	g.leastCostLoadedVPON(gp)
+	#most and least loaded that considers the bandwidth available on each node midhaul
+	#elif s == "most_loaded_bandwidth":
+	#	g.assignMostLoadedVPONBand(gp)
+	#elif s == "least_loaded_bandwidth":
+	#	g.assignLeastLoadedVPONBand(gp)
+	#elif s == "big_ratio":
+	#	g.assignBigRatioVPON(gp)
+	#elif s == "small_ratio":
+	#	g.assignSmallRatioVPON(gp)
+	start_time = g.time.clock()
+	mincostFlow = g.nx.max_flow_min_cost(gp, "s", "d")
+	execution_time[s].append(g.time.clock() - start_time)
+	power_consumption[s].append(g.overallPowerConsumption(gp))
+	average_delay[s].append(g.overallDelay(gp))
 #print(power_consumption)
 genLogs()
+
 
 '''
 TESTS
