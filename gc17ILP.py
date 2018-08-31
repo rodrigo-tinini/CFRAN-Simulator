@@ -161,10 +161,11 @@ class ILP(object):
 		self.rrhs = rrhs
 		self.nodes = nodes
 		self.lambdas = lambdas
+		self.setModel() #now here, than it was at the run() method
 
 	#run the formulation
 	def run(self):
-		self.setModel()
+		#self.setModel() #moved to the constructor to help when constraints need to be modified in execution time
 		self.setConstraints()
 		self.setObjective()
 		sol = self.solveILP()

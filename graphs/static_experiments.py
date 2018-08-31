@@ -60,9 +60,9 @@ for i in sched_pol:
 
 def reloadDicts():
 	for i in sched_pol:
-	power_consumption["{}".format(i)] = []
-	execution_time["{}".format(i)] = []
-	average_delay["{}".format(i)] = []
+		power_consumption["{}".format(i)] = []
+		execution_time["{}".format(i)] = []
+		average_delay["{}".format(i)] = []
 
 def setExperiment(gp, rrhs, fogs):
 	divided = int(rrhs/fogs)
