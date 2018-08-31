@@ -34,6 +34,8 @@ node_capacity = [92160, 18432, 18432, 18432, 18432, 18432]
 cost_du = [100.0, 50.0, 50.0, 50.0, 50.0, 50.0]
 
 #to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
+lambda_node = []
+'''
 lambda_node = [
 [1,1,1,1,1,1],
 [1,1,1,1,1,1],
@@ -56,7 +58,7 @@ lambda_node = [
 [1,1,1,1,1,1],
 [1,1,1,1,1,1],
 ]
-
+'''
 #to test if the rrh can be allcoated to the node
 fog = [
 [1,1,0,0,0,0,1,0,0,0],
@@ -110,6 +112,8 @@ du_cost = [
 [50.0, 50.0, 50.0, 50.0, 50.0],
 ]
 
+lc_cost = []
+'''
 lc_cost = [
 20.0,
 20.0,
@@ -132,24 +136,34 @@ lc_cost = [
 20.0,
 20.0,
 ]
-
+'''
 
 #switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0]
 #switchBandwidth = [10000.0,10000.0,10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+#wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+wavelength_capacity = []
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
-lambda_state = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+#lambda_state = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+lambda_state = []
 #switch_state = [0,0,0,0,0]
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
 nodes = range(0, 6)
 #number of lambdas
-lambdas = range(0, 20)
+lambdas = range(0, 60)
+
+#populate the wavelength data structures
+def setLambdas():
+	for i in lambdas:
+		wavelength_capacity.append(10000.0)
+		lambda_state.append(0)
+		lc_cost.append(20.0)
+		lambda_node.append([1,1,1,1,1,1])
 
 #create the ilp class
 class ILP(object):
@@ -523,6 +537,8 @@ class Util(object):
 		self.staticSetMatrix(antenas,  divided*2, divided*3, 3)
 		self.staticSetMatrix(antenas,  divided*3, divided*4, 4)
 		self.staticSetMatrix(antenas,  divided*4, divided*5, 5)
+#set lambdas
+setLambdas()
 
 #Test
 '''
