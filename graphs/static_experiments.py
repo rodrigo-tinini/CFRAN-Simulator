@@ -16,17 +16,17 @@ def genLogs(s):
 	#iterate over each scheduling policy
 	for i in sched_pol:
 		#power consumption
-		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulador/graphs/static/logs/power/{}_power_consumption_{}.txt'.format(s,i),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/power/{}_power_consumption_{}.txt'.format(s,i),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(i)])
 		    filehandle.write("\n")
 		    #filehandle.write("\n")
-		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulador/graphs/static/logs/exec_time/{}_execution_time_{}.txt'.format(s,i),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/exec_time/{}_execution_time_{}.txt'.format(s,i),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(i)])
 		    filehandle.write("\n")
 		    #filehandle.write("\n")
-		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulador/graphs/static/logs/delay/{}_average_minimum_delay_{}.txt'.format(s,i),'a') as filehandle:  
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/delay/{}_average_minimum_delay_{}.txt'.format(s,i),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(i)])
 		    filehandle.write("\n")
@@ -36,12 +36,13 @@ def genLogs(s):
 fog_amount = 5
 #scheduling policies
 sched_pol = []
-sched_pol.append("all_random")
-sched_pol.append("cloud_first_all_fogs")
-sched_pol.append("cloud_first_random_fogs")
+sched_pol.append("cloud_fog_first")
+#sched_pol.append("all_random")
+#sched_pol.append("cloud_first_all_fogs")
+#sched_pol.append("cloud_first_random_fogs")
 #sched_pol.append("fog_first")
-sched_pol.append("most_loaded")
-sched_pol.append("least_loaded")
+#sched_pol.append("most_loaded")
+#sched_pol.append("least_loaded")
 #sched_pol.append("least_cost")
 #sched_pol.append("least_cost_active_ratio")
 #sched_pol.append("most_loaded_bandwidth")
@@ -153,6 +154,8 @@ for s in sched_pol:
 		g.allRandomVPON(gp)
 	#elif s == "fog_first":
 	#	g.fogFirst(gp)
+	elif s == "cloud_fog_first":
+		g.cloudFirst_FogFirst(gp)
 	elif s == "cloud_first_all_fogs":
 		g.assignVPON(gp)
 	elif s == "cloud_first_random_fogs":
@@ -202,6 +205,8 @@ for s in sched_pol:
 		g.allRandomVPON(gp)
 	#elif s == "fog_first":
 	#	g.fogFirst(gp)
+	elif s == "cloud_fog_first":
+		g.cloudFirst_FogFirst(gp)
 	elif s == "cloud_first_all_fogs":
 		g.assignVPON(gp)
 	elif s == "cloud_first_random_fogs":
@@ -251,6 +256,8 @@ for s in sched_pol:
 		g.allRandomVPON(gp)
 	#elif s == "fog_first":
 	#	g.fogFirst(gp)
+	elif s == "cloud_fog_first":
+		g.cloudFirst_FogFirst(gp)
 	elif s == "cloud_first_all_fogs":
 		g.assignVPON(gp)
 	elif s == "cloud_first_random_fogs":
@@ -302,6 +309,8 @@ for s in sched_pol:
 		g.allRandomVPON(gp)
 	#elif s == "fog_first":
 	#	g.fogFirst(gp)
+	elif s == "cloud_fog_first":
+		g.cloudFirst_FogFirst(gp)
 	elif s == "cloud_first_all_fogs":
 		g.assignVPON(gp)
 	elif s == "cloud_first_random_fogs":
@@ -351,6 +360,8 @@ for s in sched_pol:
 		g.allRandomVPON(gp)
 	#elif s == "fog_first":
 	#	g.fogFirst(gp)
+	elif s == "cloud_fog_first":
+		g.cloudFirst_FogFirst(gp)
 	elif s == "cloud_first_all_fogs":
 		g.assignVPON(gp)
 	elif s == "cloud_first_random_fogs":
@@ -400,6 +411,8 @@ for s in sched_pol:
 		g.allRandomVPON(gp)
 	#elif s == "fog_first":
 	#	g.fogFirst(gp)
+	elif s == "cloud_fog_first":
+		g.cloudFirst_FogFirst(gp)
 	elif s == "cloud_first_all_fogs":
 		g.assignVPON(gp)
 	elif s == "cloud_first_random_fogs":

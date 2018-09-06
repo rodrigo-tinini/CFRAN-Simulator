@@ -28,7 +28,7 @@ rrhs_on_nodes = [0,0,0,0,0,0]
 
 cpri_rate = 614.4
 
-node_capacity = [92160, 18432, 18432, 18432, 18432, 18432]
+node_capacity = [18432, 6144, 6144, 6144, 6144, 6144]
 
 #du cost of each node
 cost_du = [100.0, 50.0, 50.0, 50.0, 50.0, 50.0]

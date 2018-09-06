@@ -144,6 +144,7 @@ reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 gc.RRHband = 3 * gc.RRHband
+gc.cpri_rate = 3* gc.cpri_rate
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, gc.fog_amount)
@@ -212,6 +213,7 @@ reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 gc.RRHband = 3* gc.RRHband
+gc.cpri_rate = 3* gc.cpri_rate
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, gc.fog_amount)
@@ -280,6 +282,7 @@ reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 gc.RRHband = 3* gc.RRHband
+gc.cpri_rate = 3* gc.cpri_rate
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, gc.fog_amount)
@@ -349,6 +352,7 @@ reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 gc.RRHband = 4 * gc.RRHband
+gc.cpri_rate = 4* gc.cpri_rate
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, gc.fog_amount)
@@ -417,6 +421,7 @@ reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 gc.RRHband = 4* gc.RRHband
+gc.cpri_rate = 4* gc.cpri_rate
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, gc.fog_amount)
@@ -485,6 +490,7 @@ reloadDicts()
 print("AMOUNT IS {}".format(amount))
 importlib.reload(gc)
 gc.RRHband = 4 * gc.RRHband
+gc.cpri_rate = 4* gc.cpri_rate
 antenas = []
 antenas = util.staticCreateRRHs(amount)
 util.setExperiment(antenas, gc.fog_amount)
