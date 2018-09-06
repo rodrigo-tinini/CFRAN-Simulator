@@ -16,9 +16,9 @@ cpri_line = 614
 #capacity of a vopn
 lambda_capacity = 16 * cpri_line
 #fog capacity
-fog_capacity = 30 * cpri_line
+fog_capacity = 10 * cpri_line
 #cloud capacity
-cloud_capacity = 159 *cpri_line
+cloud_capacity = 30 *cpri_line
 #node power costs
 fog_cost = 300
 cloud_cost = 1
@@ -133,6 +133,62 @@ def getSmallActBandRatio():
 
 ##############################################################################################################################################
 #HEURISTICS
+
+
+#Cloud first and, while there is need for bandwidth, gives VPON to fog in first fit manner
+def cloudFirst_FogFirst(graph):
+  traffic = 0
+  #calculate the total incoming traffic
+  traffic = len(actives_rrhs) * cpri_line
+  #verify if the cloud alone can support this traffic
+  if traffic <= graph["cloud"]["d"]["capacity"]:
+    #print("Cloud Can Handle It!")
+    #verify if the fronthaul has lambda. If so, does nothing, otherwise, put the necessary vpons
+    if graph["bridge"]["cloud"]["capacity"] == 0 or traffic > graph["bridge"]["cloud"]["capacity"]:
+      #print("Putting VPONs on Fronthaul")
+      #calculate the VPONs necessaries and put them on the fronthaul
+      #num_vpons = 0
+      #num_vpons = math.ceil(traffic/lambda_capacity)
+      #for i in range(num_vpons):
+      #  graph["bridge"]["cloud"]["capacity"] += 9824
+      #  allocated_vpons.append(available_vpons.pop())
+      #this ways seems better than the above method
+      while graph["bridge"]["cloud"]["capacity"] < traffic:
+        if available_vpons:
+          graph["bridge"]["cloud"]["capacity"] += 9824
+          cloud_vpons.append(available_vpons.pop())
+        else:
+          print("No VPON available!")
+    else:
+      pass#print("OKKKK")
+  elif traffic > graph["cloud"]["d"]["capacity"]:
+    if available_vpons:
+      #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
+      num_vpons = 0
+      num_vpons = math.ceil(traffic/lambda_capacity)
+      while graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"] :
+        if available_vpons:
+          graph["bridge"]["cloud"]["capacity"] += 9824
+          cloud_vpons.append(available_vpons.pop())
+          num_vpons -= 1
+        else:
+            print("No VPON available!")
+      #First-Fit Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on the next Fog Node
+      #calculate the total available bandwidth
+      total_bd = getTotalBandwidth(graph)
+      while traffic > total_bd:
+        #take one fog node and gives vpon to it
+        for i in range(fogs):#this is the First-Fit Fog VPON Allocation
+          if traffic > total_bd:
+            if available_vpons:
+              graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9824 
+              fogs_vpons["fog{}".format(i)].append(available_vpons.pop())
+              num_vpons -= 1
+              total_bd = getTotalBandwidth(graph)
+            else:
+                print("No VPON available!")
+        total_bd = getTotalBandwidth(graph)
+
 
 #cloud first and fog on sort of the nodes with greatest ratio between activated RRHs and available midhaul bandwidth
 def assignBigRatioVPON(graph):
