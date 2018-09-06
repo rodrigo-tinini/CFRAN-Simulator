@@ -6,7 +6,7 @@ import random
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 160
+rrhs_amount = 45
 #consumption of a line card + a DU
 line_card_consumption = 20
 #keeps the power cost
@@ -1209,6 +1209,88 @@ def getTrafficLost(mincostFlow):
   lost_traffic = (len(actives_rrhs)*cpri_line) - getTransmittedTraffic(mincostFlow)
   return lost_traffic
 
+#Cloud first and, while there is need for bandwidth, gives VPON to fog in first fit manner
+def cloudFirst_FogFirst(graph):
+  traffic = 0
+  #calculate the total incoming traffic
+  traffic = len(actives_rrhs) * cpri_line
+  #verify if the cloud alone can support this traffic
+  if traffic <= graph["cloud"]["d"]["capacity"]:
+    #print("Cloud Can Handle It!")
+    #verify if the fronthaul has lambda. If so, does nothing, otherwise, put the necessary vpons
+    if graph["bridge"]["cloud"]["capacity"] == 0 or traffic > graph["bridge"]["cloud"]["capacity"]:
+      #print("Putting VPONs on Fronthaul")
+      #calculate the VPONs necessaries and put them on the fronthaul
+      #num_vpons = 0
+      #num_vpons = math.ceil(traffic/lambda_capacity)
+      #for i in range(num_vpons):
+      #  graph["bridge"]["cloud"]["capacity"] += 9824
+      #  allocated_vpons.append(available_vpons.pop())
+      #this ways seems better than the above method
+      while graph["bridge"]["cloud"]["capacity"] < traffic:
+        if available_vpons:
+          graph["bridge"]["cloud"]["capacity"] += 9824
+          cloud_vpons.append(available_vpons.pop())
+        else:
+          print("No VPON available!")
+    else:
+      pass#print("OKKKK")
+  elif traffic > graph["cloud"]["d"]["capacity"]:
+    if available_vpons:
+      #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
+      num_vpons = 0
+      num_vpons = math.ceil(traffic/lambda_capacity)
+      while graph["bridge"]["cloud"]["capacity"] < graph["cloud"]["d"]["capacity"] :
+        if available_vpons:
+          graph["bridge"]["cloud"]["capacity"] += 9824
+          cloud_vpons.append(available_vpons.pop())
+          num_vpons -= 1
+        else:
+            print("No VPON available!")
+      #First-Fit Fog VPON Allocation - When there is VPON and traffic is greater than the total available bandwidth, put it on the next Fog Node
+      #calculate the total available bandwidth
+      total_bd = getTotalBandwidth(graph)
+      f_list = [4,3,2,1,0]
+      no_vpons_fogs = [0,1,2,3,4]
+      traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+      while traffic_no_vpon_fogs > graph["cloud"]["d"]["capacity"]:
+        print(total_bd)
+        if available_vpons:
+          if f_list:
+            next_f = f_list.pop()
+            graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
+            fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
+            num_vpons -= 1
+            no_vpons_fogs.remove(next_f)
+            total_bd = getTotalBandwidth(graph)
+            traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+          else:
+            f_list = [4,3,2,1,0]
+            graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
+            fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
+            num_vpons -= 1
+            no_vpons_fogs.remove(next_f)
+            total_bd = getTotalBandwidth(graph)
+            traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+        else:
+          print("NO VPON AVAILABLE")
+        #OLD VPON ALLOCATION TO FOG FOR THIS METHOD - LEAD TO BOCKING BECAUSE OF BAD DISTRIBUTION OF TYHE VPONS
+        #total_bd = getTotalBandwidth(graph)
+        #take one fog node and gives vpon to it
+        #for i in range(fogs):#this is the First-Fit Fog VPON Allocation
+         # if traffic > total_bd:
+          #  print("precisa")
+           # if available_vpons:
+           #   graph["fog_bridge{}".format(i)]["fog{}".format(i)]["capacity"] += 9824 
+            #  fogs_vpons["fog{}".format(i)].append(available_vpons.pop())
+             # num_vpons -= 1
+             # total_bd = getTotalBandwidth(graph)
+            #else:
+             #   print("No VPON available!")
+          #else:
+           # print("{} {}".format(traffic, total_bd))
+        #total_bd = getTotalBandwidth(graph)
+
 #testes
 '''
 #print(getRandomNode())
@@ -1223,11 +1305,11 @@ addFogNodes(g, 5)
 #addRRHs(g, 5, 10, "1")
 #addRRHs(g, 10, 15, "2")
 #addRRHs(g, 15, 20, "3")
-addRRHs(g, 0, 32, "0")
-addRRHs(g, 32, 64, "1")
-addRRHs(g, 64, 96, "2")
-addRRHs(g, 96, 128, "3")
-addRRHs(g, 128, 160, "4")
+addRRHs(g, 0, 9, "0")
+addRRHs(g, 9, 18, "1")
+addRRHs(g, 18, 27, "2")
+addRRHs(g, 27, 36, "3")
+addRRHs(g, 36, 45, "4")
 
 
 
@@ -1236,7 +1318,8 @@ for i in range(len(rrhs)):
   actives_rrhs.append("RRH{}".format(i))
 #for i in range(len(rrhs)):
 #  print(g["s"]["RRH{}".format(i)]["capacity"])
-assignVPON(g)
+#assignVPON(g)
+cloudFirst_FogFirst(g)
 #print(g["bridge"]["cloud"]["capacity"])
 #g["bridge"]["cloud"]["capacity"] = 20000.0
 #print([i for i in nx.edges(g)])
@@ -1247,10 +1330,12 @@ start_time = time.clock()
 mincostFlow = nx.max_flow_min_cost(g, "s", "d")
 #print(mincostFlow)
 #print(mincostFlow["cloud"]["d"])
-for i in mincostFlow:
-  print(i, mincostFlow[i])
-
+#for i in mincostFlow:
+#  print(i, mincostFlow[i])
+print(getBlockingProbability(mincostFlow))
+print(overallPowerConsumption(g))
 '''
+
 '''
 #for i in mincostFlow:
 #  print(i, mincostFlow[i])
