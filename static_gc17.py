@@ -1,7 +1,7 @@
 import time
 import importlib
 import gc17ILP as gc
-
+'''
 def genLogs(s):
 	#power consumption
 	for policy in lambda_policies:
@@ -24,30 +24,30 @@ def genLogs(s):
 #old gen logs, for simple executions of the ILP considering only one policy to log
 def genLogs():
 	#power consumption
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/power/power_consumption_{}.txt'.format(amount),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/power/power_consumption_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(policy)])
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/exec_time/execution_time_{}.txt'.format(amount),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/exec_time/execution_time_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(policy)])
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/delay/minimum_average_delay_{}.txt'.format(amount),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/delay/minimum_average_delay_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(policy)])
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
-'''
+
 #wavelength assignment policies (GC17 + ISCC)
 lambda_policies = ['vpon', 'rrha', 'ca']
 
 #logging variables
-#power_consumption = []
-#execution_time = []
-#average_delay = []
-
+power_consumption = []
+execution_time = []
+average_delay = []
+'''
 #logging variables for each of the wavelength assignment schemes from GC17 and ISCC
 power_consumption = {}
 execution_time = {}
@@ -64,14 +64,14 @@ def reloadDicts():
 		power_consumption['{}'.format(i)] = []
 		execution_time['{}'.format(i)] = []
 		average_delay['{}'.format(i)] = []
-
+'''
 #util function
 util = gc.Util()
 
 #old execution considering automatic increase of number of RRHs
-'''
+
 amount = 5
-for i in range(40):
+for i in range(60):
 	print("AMOUNT IS {}".format(amount))
 	importlib.reload(gc)
 	antenas = []
@@ -88,8 +88,8 @@ for i in range(40):
 	average_delay.append(util.overallDelay(sol))
 	amount += 5
 genLogs()
-'''
 
+'''
 #################################################---3RRHs per aggregation groups
 ############################################### 5 Aggregation groups 
 #initial amount of rrhs
@@ -505,4 +505,4 @@ power_consumption['ca'].append(util.getPowerConsumption())
 execution_time['ca'].append(s.solve_details.time)
 average_delay['ca'].append(util.overallDelay(sol))
 genLogs("4X15")
-
+'''

@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import copy
 import graph as g
 
+'''
+#generate logs for the case with aggregation groups
 def genLogs(s):
 	#iterate over each scheduling policy
 	for i in sched_pol:
@@ -27,6 +29,27 @@ def genLogs(s):
 		    filehandle.write("\n")
 		    #filehandle.write("\n")
 		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/logs/delay/{}_average_minimum_delay_{}.txt'.format(s,i),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(i)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
+'''
+
+def genLogs():
+	#iterate over each scheduling policy
+	for i in sched_pol:
+		#power consumption
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/incremental/power/power_consumption_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(i)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/incremental/exec_time/execution_time_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
+		    filehandle.write("{}\n\n".format(i))
+		    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(i)])
+		    filehandle.write("\n")
+		    #filehandle.write("\n")
+		with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/graphs/static/incremental/delay/delay_{}.txt'.format(g.rrhs_amount),'a') as filehandle:  
 		    filehandle.write("{}\n\n".format(i))
 		    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(i)])
 		    filehandle.write("\n")
@@ -73,7 +96,7 @@ def setExperiment(gp, rrhs, fogs):
 	g.addRRHs(gp, divided*2, divided*3, "2")
 	g.addRRHs(gp, divided*3, divided*4, "3")
 	g.addRRHs(gp, divided*4, divided*5, "4")
-'''
+
 #Assign VPON Heuristic simulations
 #add 5 rrhs per execution
 g.rrhs_amount = 5
@@ -83,7 +106,7 @@ for s in sched_pol:
 	g.rrhs_amount = 5
 	rs = g.rrhs_amount
 	print("Executing {}".format(s))
-	for i in range(40):
+	for i in range(60):
 		#print(g.rrhs_amount)
 		importlib.reload(g)
 		g.rrhs_amount = rs
@@ -96,6 +119,8 @@ for s in sched_pol:
 			g.actives_rrhs.append("RRH{}".format(i))
 		if s == "all_random":
 			g.allRandomVPON(gp)
+		elif s == "cloud_fog_first":
+			g.cloudFirst_FogFirst(gp)
 		#elif s == "fog_first":
 		#	g.fogFirst(gp)
 		elif s == "cloud_first_all_fogs":
@@ -128,8 +153,8 @@ for s in sched_pol:
 		rs = g.rrhs_amount
 #print(power_consumption)
 genLogs()
-'''
 
+'''
 #Experiments for JOCN
 ############################# 3 RRHs per execution - 5 aggregation sites
 #Assign VPON Heuristic simulations
@@ -441,7 +466,7 @@ for s in sched_pol:
 	average_delay[s].append(g.overallDelay(gp))
 #print(power_consumption)
 genLogs("4x15")
-
+'''
 '''
 TESTS
 gp = g.createGraph()

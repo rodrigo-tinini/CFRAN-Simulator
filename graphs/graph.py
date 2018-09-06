@@ -16,9 +16,9 @@ cpri_line = 614
 #capacity of a vopn
 lambda_capacity = 16 * cpri_line
 #fog capacity
-fog_capacity = 10 * cpri_line
+fog_capacity = 30 * cpri_line
 #cloud capacity
-cloud_capacity = 30 *cpri_line
+cloud_capacity = 150 *cpri_line
 #node power costs
 fog_cost = 300
 cloud_cost = 1
@@ -1254,7 +1254,7 @@ def cloudFirst_FogFirst(graph):
       no_vpons_fogs = [0,1,2,3,4]
       traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
       while traffic_no_vpon_fogs > graph["cloud"]["d"]["capacity"]:
-        print(total_bd)
+        #print(total_bd)
         if available_vpons:
           if f_list:
             next_f = f_list.pop()
