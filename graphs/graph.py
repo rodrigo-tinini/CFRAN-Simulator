@@ -16,9 +16,9 @@ cpri_line = 614
 #capacity of a vopn
 lambda_capacity = 16 * cpri_line
 #fog capacity
-fog_capacity = 30 * cpri_line
+fog_capacity = 32 * cpri_line
 #cloud capacity
-cloud_capacity = 150 *cpri_line
+cloud_capacity = 160 *cpri_line
 #node power costs
 fog_cost = 300
 cloud_cost = 1
@@ -1236,6 +1236,7 @@ def cloudFirst_FogFirst(graph):
     else:
       pass#print("OKKKK")
   elif traffic > graph["cloud"]["d"]["capacity"]:
+    residual = traffic - graph["cloud"]["d"]["capacity"]
     if available_vpons:
       #calculate the amount necessary on VPONs and put the maximum on the cloud and the rest on the fogs
       num_vpons = 0
@@ -1252,28 +1253,63 @@ def cloudFirst_FogFirst(graph):
       total_bd = getTotalBandwidth(graph)
       f_list = [4,3,2,1,0]
       no_vpons_fogs = [0,1,2,3,4]
-      traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
-      while traffic_no_vpon_fogs > graph["cloud"]["d"]["capacity"]:
-        #print(total_bd)
+      fog_band = 0
+      #allocate lambda to fogs while residual traffic is greater than the available bandwidth on midhaul (fog nodes)
+      while residual >= fog_band:
         if available_vpons:
           if f_list:
             next_f = f_list.pop()
-            graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
-            fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
-            num_vpons -= 1
-            no_vpons_fogs.remove(next_f)
-            total_bd = getTotalBandwidth(graph)
-            traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+            while graph["fog{}".format(next_f)]["d"]["capacity"] > graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"]:
+              graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
+              fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
+              num_vpons -= 1
+              fog_band += 9824
           else:
             f_list = [4,3,2,1,0]
-            graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
-            fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
-            num_vpons -= 1
-            no_vpons_fogs.remove(next_f)
-            total_bd = getTotalBandwidth(graph)
-            traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+            while graph["fog{}".format(next_f)]["d"]["capacity"] > graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"]:
+              graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
+              fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
+              num_vpons -= 1
+              fog_band += 9824
         else:
           print("NO VPON AVAILABLE")
+          break
+          
+
+
+
+
+
+
+
+      #old vpon allocation to fogs2 - this case suffers from not considering the residual traffic that can not be put on the cloud
+      #but, even with the calculations, considers the cloud residual capacity jointly with the capacity of the fogs to allocate BBUs
+      #howver, the residual capacity of the cloud must not count to the line "while residual < total_bd", because total_bd considers t
+      #he residual capcity of the cloud, which is wrong and lead to blocking
+      #traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+      #while traffic_no_vpon_fogs > graph["cloud"]["d"]["capacity"]:
+       # #print(total_bd)
+       # if available_vpons:
+        #  if f_list:
+        #    next_f = f_list.pop()
+        #    graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
+        #    fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
+        #    num_vpons -= 1
+        #    no_vpons_fogs.remove(next_f)
+        #    total_bd = getTotalBandwidth(graph)
+        #    traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+        #  else:
+        #    f_list = [4,3,2,1,0]
+        #    graph["fog_bridge{}".format(next_f)]["fog{}".format(next_f)]["capacity"] += 9824 
+        #    fogs_vpons["fog{}".format(next_f)].append(available_vpons.pop())
+        #    num_vpons -= 1
+        #    no_vpons_fogs.remove(next_f)
+        #    total_bd = getTotalBandwidth(graph)
+        #    traffic_no_vpon_fogs = (len(no_vpons_fogs)*((rrhs_amount/fogs)*cpri_line))
+        #else:
+        #  print("NO VPON AVAILABLE")
+        
+
         #OLD VPON ALLOCATION TO FOG FOR THIS METHOD - LEAD TO BOCKING BECAUSE OF BAD DISTRIBUTION OF TYHE VPONS
         #total_bd = getTotalBandwidth(graph)
         #take one fog node and gives vpon to it

@@ -149,6 +149,14 @@ for s in sched_pol:
 		execution_time[s].append(g.time.clock() - start_time)
 		power_consumption[s].append(g.overallPowerConsumption(gp))
 		average_delay[s].append(g.overallDelay(gp))
+		print(g.rrhs_amount)
+		print(g.getBlockingProbability(mincostFlow))
+		#if g.rrhs_amount == 190:
+		#	print(g.fogs_vpons)
+		#	print(g.getIncomingTraffic())
+		#	print(g.getTotalBandwidth(gp))
+			#print(g.fog_activated_rrhs)
+		#	print(gp["bridge"]["cloud"]["capacity"])
 		g.rrhs_amount += 5
 		rs = g.rrhs_amount
 #print(power_consumption)
