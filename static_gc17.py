@@ -26,17 +26,17 @@ def genLogs():
 	#power consumption
 	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/power/power_consumption_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in power_consumption["{}".format(policy)])
+	    filehandle.writelines("%s\n" % p for p in power_consumption)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
 	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/exec_time/execution_time_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in execution_time["{}".format(policy)])
+	    filehandle.writelines("%s\n" % p for p in execution_time)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
 	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/delay/minimum_average_delay_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
-	    filehandle.writelines("%s\n" % p for p in average_delay["{}".format(policy)])
+	    filehandle.writelines("%s\n" % p for p in average_delay)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
 
