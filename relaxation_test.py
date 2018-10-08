@@ -6,12 +6,13 @@ import time
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+#Main relaxation module
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
 #create the ilp class
 class ILP(object):
-	def __init__(self, rrh, rrhs, nodes, lambdas):
+	def __init__(self, rrh, rrhs, nodes, lambdas, relaxed):
 		self.rrh = rrh
 		self.fog = []
 		for i in rrh:
@@ -19,6 +20,7 @@ class ILP(object):
 		self.rrhs = rrhs
 		self.nodes = nodes
 		self.lambdas = lambdas
+		self.relaxed = relaxed
 		#self.switchBandwidth = switchBandwidth
 		#self.RRHband = RRHband
 		#self.wavelength_capacity = wavelength_capacity
@@ -46,63 +48,98 @@ class ILP(object):
 		self.idx_wj = [(w, j) for w in self.lambdas for j in self.nodes]
 		self.idx_j = [(j) for j in self.nodes]
 		 
-		#Decision variables
-		#x[rrhs][lambdas][nodes];
-		self.x = self.mdl.continuous_var_dict(self.idx_ijw, name = 'RRH/Node/Lambda', key_format = "")
-		#u[rrhs][lambdas][nodes];
-		self.u = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/DU')
-		#y[rrhs][nodes];
-		self.y = self.mdl.binary_var_dict(self.idx_ij, name = 'RRH/Node')
-		#k[rrhs][nodes];
-		self.k = self.mdl.binary_var_dict(self.idx_ij, name = 'Redirection of RRH in Node')
-		#rd[lambdas][nodes];
-		self.rd = self.mdl.binary_var_dict(self.idx_wj, name = 'DU in Node used for redirection')
-		#s[lambdas][nodes];
-		self.s = self.mdl.binary_var_dict(self.idx_wj, name = 'DU activated in node')
-		#e[nodes];
-		self.e = self.mdl.binary_var_dict(self.idx_j, name = "Switch/Node")
-		#g[rrhs][lambdas][nodes];
-		self.g = self.mdl.binary_var_dict(self.idx_ijw, name = 'Redirection of RRH in Node in DU')
-		#xn[nodes];
-		self.xn = self.mdl.binary_var_dict(self.idx_j, name = 'Node activated')
-		#z[lambdas][nodes];
-		self.z = self.mdl.binary_var_dict(self.idx_wj, name = 'Lambda in Node')
+		 #relax the variables if the model is relaxed
+		if self.relaxed == True:
+			#Decision variables
+			#x[rrhs][lambdas][nodes];
+			self.x = self.mdl.continuous_var_dict(self.idx_ijw, lb = 0.0, ub = 0.9, name = 'RRH/Node/Lambda', key_format = "")
+			#u[rrhs][lambdas][nodes];
+			self.u = self.mdl.continuous_var_dict(self.idx_ijw,lb = 0.0, ub = 0.9, name = 'RRH/Node/DU')
+			#y[rrhs][nodes];
+			self.y = self.mdl.continuous_var_dict(self.idx_ij,lb = 0.0, ub = 0.9, name = 'RRH/Node')
+			#k[rrhs][nodes];
+			self.k = self.mdl.continuous_var_dict(self.idx_ij,lb = 0.0, ub = 0.9, name = 'Redirection of RRH in Node')
+			#rd[lambdas][nodes];
+			self.rd = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.0, ub = 0.9, name = 'DU in Node used for redirection')
+			#s[lambdas][nodes];
+			self.s = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.0, ub = 0.9, name = 'DU activated in node')
+			#e[nodes];
+			self.e = self.mdl.continuous_var_dict(self.idx_j,lb = 0.0, ub = 0.9, name = "Switch/Node")
+			#g[rrhs][lambdas][nodes];
+			self.g = self.mdl.continuous_var_dict(self.idx_ijw, lb = 0.0, ub = 0.9,name = 'Redirection of RRH in Node in DU')
+			#xn[nodes];
+			self.xn = self.mdl.continuous_var_dict(self.idx_j,lb = 0.0, ub = 0.9, name = 'Node activated')
+			#z[lambdas][nodes];
+			self.z = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.0, ub = 0.9, name = 'Lambda in Node')
+		else:
+			self.x = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/Lambda', key_format = "")
+			#u[rrhs][lambdas][nodes];
+			self.u = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/DU')
+			#y[rrhs][nodes];
+			self.y = self.mdl.binary_var_dict(self.idx_ij, name = 'RRH/Node')
+			#k[rrhs][nodes];
+			self.k = self.mdl.binary_var_dict(self.idx_ij, name = 'Redirection of RRH in Node')
+			#rd[lambdas][nodes];
+			self.rd = self.mdl.binary_var_dict(self.idx_wj, name = 'DU in Node used for redirection')
+			#s[lambdas][nodes];
+			self.s = self.mdl.binary_var_dict(self.idx_wj, name = 'DU activated in node')
+			#e[nodes];
+			self.e = self.mdl.binary_var_dict(self.idx_j, name = "Switch/Node")
+			#g[rrhs][lambdas][nodes];
+			self.g = self.mdl.binary_var_dict(self.idx_ijw, name = 'Redirection of RRH in Node in DU')
+			#xn[nodes];
+			self.xn = self.mdl.binary_var_dict(self.idx_j, name = 'Node activated')
+			#z[lambdas][nodes];
+			self.z = self.mdl.binary_var_dict(self.idx_wj, name = 'Lambda in Node')
+
 
 	#create constraints
 	def setConstraints(self):
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#1
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#2
+		
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * RRHband for i in self.rrhs for j in self.nodes) <= wavelength_capacity[w] for w in self.lambdas)
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= du_processing[j][w] for j in self.nodes for w in self.lambdas)
+		
 		self.mdl.add_constraints(self.mdl.sum(self.k[i,j] * RRHband for i in self.rrhs) <= switchBandwidth[j] for j in self.nodes)
 		self.mdl.add_constraints(B*self.xn[j] >= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
 		self.mdl.add_constraints(self.xn[j] <= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
+		
 		self.mdl.add_constraints(B*self.z[w,j] >= self.mdl.sum(self.x[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
 		self.mdl.add_constraints(self.z[w,j] <= self.mdl.sum(self.x[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
+		
 		self.mdl.add_constraints(B*self.s[w,j] >= self.mdl.sum(self.u[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
 		self.mdl.add_constraints(self.s[w,j] <= self.mdl.sum(self.u[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
+		
 		self.mdl.add_constraints(self.g[i,j,w] <= self.x[i,j,w] + self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		self.mdl.add_constraints(self.g[i,j,w] >= self.x[i,j,w] - self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		self.mdl.add_constraints(self.g[i,j,w] >= self.u[i,j,w] - self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		self.mdl.add_constraints(self.g[i,j,w] <= 2 - self.x[i,j,w] - self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		
 		self.mdl.add_constraints(B*self.k[i,j] >= self.mdl.sum(self.g[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.k[i,j] <= self.mdl.sum(self.g[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
+		
 		self.mdl.add_constraints(B*self.rd[w,j] >= self.mdl.sum(self.g[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
 		self.mdl.add_constraints(self.rd[w,j] <= self.mdl.sum(self.g[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
+		
 		self.mdl.add_constraints(B*self.e[j] >= self.mdl.sum(self.k[i,j] for i in self.rrhs) for j in self.nodes)
 		self.mdl.add_constraints(self.e[j] <= self.mdl.sum(self.k[i,j] for i in self.rrhs)  for j in self.nodes)
+		
 		self.mdl.add_constraints(self.mdl.sum(self.z[w,j] for j in self.nodes) <= 1 for w in self.lambdas)
 		self.mdl.add_constraints(self.mdl.sum(self.y[i,j] for j in self.nodes) == 1 for i in self.rrhs)
+		
 		self.mdl.add_constraints(B*self.y[i,j] >= self.mdl.sum(self.x[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.y[i,j] <= self.mdl.sum(self.x[i,j,w] for w in self.lambdas) for i in self.rrhs  for j in self.nodes)
+		
 		self.mdl.add_constraints(B*self.y[i,j] >= self.mdl.sum(self.u[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
+		
 		self.mdl.add_constraints(self.y[i,j] <= self.mdl.sum(self.u[i,j,w] for w in self.lambdas) for i in self.rrhs  for j in self.nodes)
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) >= 0 for j in self.nodes for w in self.lambdas)
 
 		#self.mdl.add_constraints(self.y[i,j] >= self.x[i,j,w] + self.fog[i][j] - 1 for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#self.mdl.add_constraints(self.y[i,j] <= self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#this constraints guarantees that each rrh can be allocated to either the cloud or a specific fog node
-		self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
+		#self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.z[w,j] <= lambda_node[w][j] for w in self.lambdas for j in self.nodes)
 
 	#set the objective function
@@ -122,44 +159,84 @@ class ILP(object):
 
 	#print variables values
 	def print_var_values(self):
-		for i in self.x:
-			if self.x[i].solution_value >= 1:
-				print("{} is {}".format(self.x[i], self.x[i].solution_value))
-		for i in self.u:
-			if self.u[i].solution_value >= 1:
-				print("{} is {}".format(self.u[i], self.u[i].solution_value))
+		if self.relaxed == True:
+			for i in self.x:
+				if self.x[i].solution_value > 0:
+					print("{} is {}".format(self.x[i], self.x[i].solution_value))
+			for i in self.u:
+				if self.u[i].solution_value > 0:
+					print("{} is {}".format(self.u[i], self.u[i].solution_value))
 
-		for i in self.k:
-			if self.k[i].solution_value >= 1:
-				print("{} is {}".format(self.k[i], self.k[i].solution_value))
+			for i in self.k:
+				if self.k[i].solution_value > 0:
+					print("{} is {}".format(self.k[i], self.k[i].solution_value))
 
-		for i in self.rd:
-			if self.rd[i].solution_value >= 1:
-				print("{} is {}".format(self.rd[i], self.rd[i].solution_value))
+			for i in self.rd:
+				if self.rd[i].solution_value > 0:
+					print("{} is {}".format(self.rd[i], self.rd[i].solution_value))
 
-		for i in self.s:
-			if self.s[i].solution_value >= 1:
-				print("{} is {}".format(self.s[i], self.s[i].solution_value))
+			for i in self.s:
+				if self.s[i].solution_value > 0:
+					print("{} is {}".format(self.s[i], self.s[i].solution_value))
 
-		for i in self.e:
-			if self.e[i].solution_value >= 1:
-				print("{} is {}".format(self.e[i], self.e[i].solution_value))
+			for i in self.e:
+				if self.e[i].solution_value > 0:
+					print("{} is {}".format(self.e[i], self.e[i].solution_value))
 
-		for i in self.y:
-			if self.y[i].solution_value >= 1:
-				print("{} is {}".format(self.y[i], self.y[i].solution_value))
+			for i in self.y:
+				if self.y[i].solution_value > 0:
+					print("{} is {}".format(self.y[i], self.y[i].solution_value))
 
-		for i in self.g:
-			if self.g[i].solution_value >= 1:
-				print("{} is {}".format(self.g[i], self.g[i].solution_value))
+			for i in self.g:
+				if self.g[i].solution_value > 0:
+					print("{} is {}".format(self.g[i], self.g[i].solution_value))
 
-		for i in self.xn:
-			if self.xn[i].solution_value >= 1:
-				print("{} is {}".format(self.xn[i], self.xn[i].solution_value))
+			for i in self.xn:
+				if self.xn[i].solution_value > 0:
+					print("{} is {}".format(self.xn[i], self.xn[i].solution_value))
 
-		for i in self.z:
-			if self.z[i].solution_value >= 1:
-				print("{} is {}".format(self.z[i], self.z[i].solution_value))
+			for i in self.z:
+				if self.z[i].solution_value > 0:
+					print("{} is {}".format(self.z[i], self.z[i].solution_value))
+		else:
+			for i in self.x:
+				if self.x[i].solution_value >= 1:
+					print("{} is {}".format(self.x[i], self.x[i].solution_value))
+			for i in self.u:
+				if self.u[i].solution_value >= 1:
+					print("{} is {}".format(self.u[i], self.u[i].solution_value))
+
+			for i in self.k:
+				if self.k[i].solution_value >= 1:
+					print("{} is {}".format(self.k[i], self.k[i].solution_value))
+
+			for i in self.rd:
+				if self.rd[i].solution_value >= 1:
+					print("{} is {}".format(self.rd[i], self.rd[i].solution_value))
+
+			for i in self.s:
+				if self.s[i].solution_value >= 1:
+					print("{} is {}".format(self.s[i], self.s[i].solution_value))
+
+			for i in self.e:
+				if self.e[i].solution_value >= 1:
+					print("{} is {}".format(self.e[i], self.e[i].solution_value))
+
+			for i in self.y:
+				if self.y[i].solution_value >= 1:
+					print("{} is {}".format(self.y[i], self.y[i].solution_value))
+
+			for i in self.g:
+				if self.g[i].solution_value >= 1:
+					print("{} is {}".format(self.g[i], self.g[i].solution_value))
+
+			for i in self.xn:
+				if self.xn[i].solution_value >= 1:
+					print("{} is {}".format(self.xn[i], self.xn[i].solution_value))
+
+			for i in self.z:
+				if self.z[i].solution_value >= 1:
+					print("{} is {}".format(self.z[i], self.z[i].solution_value))
 
 
 #return the variables values
@@ -712,12 +789,11 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 [1,1,0,0,0,0,0,0,0,0],
 ]
+
 du_processing = [
-[5.0, 5.0, 5.0, 5.0, 5.0],
-[2.0, 2.0, 2.0, 2.0, 2.0],
-[2.0, 2.0, 2.0, 2.0, 2.0],
-
-
+[0.0, 0.0, 1.0, 0.0, 0.0],
+[1.0, 1.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0],
 
 ]
 
@@ -773,17 +849,27 @@ lambdas = range(0, 5)
 
 
 u = Util()
-antenas = u.newCreateRRHs(45)
-for i in antenas:
-	print(i.rrhs_matrix)
+antenas = u.newCreateRRHs(2)
+#for i in antenas:
+#	print(i.rrhs_matrix)
 #for i in range(len(antenas)):
 #	print(antenas[i].rrhs_matrix)
+#np.shuffle(antenas)
+#ilp = ILP(antenas, range(len(antenas)), nodes, lambdas, False)
+#s = ilp.run()
+#sol = ilp.return_solution_values()
+#ilp.print_var_values()
+#ilp.updateValues(sol)
+#print("Solving time: {}".format(s.solve_details.time))
+#relaxed
 np.shuffle(antenas)
-ilp = ILP(antenas, range(len(antenas)), nodes, lambdas)
+ilp = ILP(antenas, range(len(antenas)), nodes, lambdas, True)
 s = ilp.run()
 sol = ilp.return_solution_values()
 ilp.print_var_values()
 #ilp.updateValues(sol)
+#for i in ilp.y:
+#	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
 print("Solving time: {}".format(s.solve_details.time))
 
 '''
