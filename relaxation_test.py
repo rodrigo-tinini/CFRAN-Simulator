@@ -98,10 +98,10 @@ class ILP(object):
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#1
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#2
 		
-		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * RRHband for i in self.rrhs for j in self.nodes) <= wavelength_capacity[w] for w in self.lambdas)
-		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= du_processing[j][w] for j in self.nodes for w in self.lambdas)
+		#self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * RRHband for i in self.rrhs for j in self.nodes) <= wavelength_capacity[w] for w in self.lambdas) #TIREI PARA PODER RODAR A RELAXAÇÃO - ESSA RESTRIÇÃO TEM QUE SER TRATADA PELO ALGORITMO
+		#self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= du_processing[j][w] for j in self.nodes for w in self.lambdas) #TIREI PARA PODER RODAR A RELAXAÇÃO - ESSA RESTRIÇÃO TEM QUE SER TRATADA PELO ALGORITMO
 		
-		self.mdl.add_constraints(self.mdl.sum(self.k[i,j] * RRHband for i in self.rrhs) <= switchBandwidth[j] for j in self.nodes)
+		#self.mdl.add_constraints(self.mdl.sum(self.k[i,j] * RRHband for i in self.rrhs) <= switchBandwidth[j] for j in self.nodes) #TIREI PARA PODER RODAR A RELAXAÇÃO - ESSA RESTRIÇÃO TEM QUE SER TRATADA PELO ALGORITMO
 		self.mdl.add_constraints(B*self.xn[j] >= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
 		self.mdl.add_constraints(self.xn[j] <= self.mdl.sum(self.x[i,j,w] for i in self.rrhs for w in self.lambdas) for j in self.nodes)
 		
@@ -139,7 +139,7 @@ class ILP(object):
 		#self.mdl.add_constraints(self.y[i,j] >= self.x[i,j,w] + self.fog[i][j] - 1 for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#self.mdl.add_constraints(self.y[i,j] <= self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		#this constraints guarantees that each rrh can be allocated to either the cloud or a specific fog node
-		#self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes)
+		#self.mdl.add_constraints(self.y[i,j] <= self.fog[i][j] for i in self.rrhs for j in self.nodes) #TIREI PARA PODER RODAR A RELAXAÇÃO - ESSA RESTRIÇÃO TEM QUE SER TRATADA PELO ALGORITMO
 		self.mdl.add_constraints(self.z[w,j] <= lambda_node[w][j] for w in self.lambdas for j in self.nodes)
 
 	#set the objective function
@@ -238,8 +238,24 @@ class ILP(object):
 				if self.z[i].solution_value >= 1:
 					print("{} is {}".format(self.z[i], self.z[i].solution_value))
 
+	#return the decision variables
+	def return_decision_variables(self):
+		self.dec_x = self.x
+		self.dec_u = self.u
+		self.dec_k = self.k
+		self.dec_rd = self.rd
+		self.dec_s = self.s
+		self.dec_e = self.e
+		self.dec_y = self.y
+		self.dec_g = self.g
+		self.dec_xn = self.xn
+		self.dec_z = self.z
 
-#return the variables values
+		dec_variables = DecisionVariables(self.dec_x, self.dec_u, self.dec_k, self.dec_rd, self.dec_s, 
+			self.dec_e, self.dec_y, self.dec_g, self.dec_xn, self.dec_z)
+		return dec_variables
+
+	#return the variables values
 	def return_solution_values(self):
 		self.var_x = []
 		self.var_u = []
@@ -251,45 +267,86 @@ class ILP(object):
 		self.var_g = []
 		self.var_xn = []
 		self.var_z = []
-		for i in self.x:
-			if self.x[i].solution_value >= 1:
-				self.var_x.append(i)
+		if self.relaxed == True:
+			for i in self.x:
+				if self.x[i].solution_value > 0:
+					self.var_x.append(i)
 
-		for i in self.u:
-			if self.u[i].solution_value >= 1:
-				self.var_u.append(i)
+			for i in self.u:
+				if self.u[i].solution_value > 0:
+					self.var_u.append(i)
 
-		for i in self.k:
-			if self.k[i].solution_value >= 1:
-				self.var_k.append(i)
+			for i in self.k:
+				if self.k[i].solution_value > 0:
+					self.var_k.append(i)
 
-		for i in self.rd:
-			if self.rd[i].solution_value >= 1:
-				self.var_rd.append(i)
+			for i in self.rd:
+				if self.rd[i].solution_value > 0:
+					self.var_rd.append(i)
 
-		for i in self.s:
-			if self.s[i].solution_value >= 1:
-				self.var_s.append(i)
+			for i in self.s:
+				if self.s[i].solution_value > 0:
+					self.var_s.append(i)
 
-		for i in self.e:
-			if self.e[i].solution_value >= 1:
-				self.var_e.append(i)
+			for i in self.e:
+				if self.e[i].solution_value > 0:
+					self.var_e.append(i)
 
-		for i in self.y:
-			if self.y[i].solution_value >= 1:
-				self.var_y.append(i)
+			for i in self.y:
+				if self.y[i].solution_value > 0:
+					self.var_y.append(i)
 
-		for i in self.g:
-			if self.g[i].solution_value >= 1:
-				self.var_g.append(i)
+			for i in self.g:
+				if self.g[i].solution_value > 0:
+					self.var_g.append(i)
 
-		for i in self.xn:
-			if self.xn[i].solution_value >= 1:
-				self.var_xn.append(i)
+			for i in self.xn:
+				if self.xn[i].solution_value > 0:
+					self.var_xn.append(i)
 
-		for i in self.z:
-			if self.z[i].solution_value >= 1:
-				self.var_z.append(i)
+			for i in self.z:
+				if self.z[i].solution_value > 0:
+					self.var_z.append(i)
+		else:
+			for i in self.x:
+				if self.x[i].solution_value >= 1:
+					self.var_x.append(i)
+
+			for i in self.u:
+				if self.u[i].solution_value >= 1:
+					self.var_u.append(i)
+
+			for i in self.k:
+				if self.k[i].solution_value >= 1:
+					self.var_k.append(i)
+
+			for i in self.rd:
+				if self.rd[i].solution_value >= 1:
+					self.var_rd.append(i)
+
+			for i in self.s:
+				if self.s[i].solution_value >= 1:
+					self.var_s.append(i)
+
+			for i in self.e:
+				if self.e[i].solution_value >= 1:
+					self.var_e.append(i)
+
+			for i in self.y:
+				if self.y[i].solution_value >= 1:
+					self.var_y.append(i)
+
+			for i in self.g:
+				if self.g[i].solution_value >= 1:
+					self.var_g.append(i)
+
+			for i in self.xn:
+				if self.xn[i].solution_value >= 1:
+					self.var_xn.append(i)
+
+			for i in self.z:
+				if self.z[i].solution_value >= 1:
+					self.var_z.append(i)
 
 		solution = Solution(self.var_x, self.var_u, self.var_k, self.var_rd, 
 			self.var_s, self.var_e, self.var_y, self.var_g, self.var_xn, self.var_z)
@@ -566,7 +623,19 @@ class ILP(object):
 
 
 
-
+#encapsulates decision variables
+class DecisionVariables(object):
+	def __init__(self, var_x, var_u, var_k, var_rd, var_s, var_e, var_y, var_g, var_xn, var_z):
+		self.var_x = var_x
+		self.var_u = var_u
+		self.var_k = var_k
+		self.var_rd = var_rd
+		self.var_s = var_s
+		self.var_e = var_e
+		self.var_y = var_y
+		self.var_g = var_g
+		self.var_xn = var_xn
+		self.var_z = var_z
 
 #encapsulates the solution values
 class Solution(object):
@@ -808,7 +877,7 @@ du_state = [
 nodeState = [0,0,0]
 
 nodeCost = [
-600.0,
+60.0,
 500.0,
 500.0,
 
@@ -847,7 +916,7 @@ nodes = range(0, 3)
 #number of lambdas
 lambdas = range(0, 5)
 
-
+'''
 u = Util()
 antenas = u.newCreateRRHs(2)
 #for i in antenas:
@@ -871,7 +940,7 @@ ilp.print_var_values()
 #for i in ilp.y:
 #	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
 print("Solving time: {}".format(s.solve_details.time))
-
+'''
 '''
 print(du_processing)
 print(lambda_node)

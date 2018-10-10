@@ -11,7 +11,21 @@ import relaxation_test as rlx
 #It solves the capacities (DU and lambda) and rrh-fog connection constraints
 #It returns a new solution object with only possible valid scheduling solutions
 def cleanSolution(solution):
-	pass
+	#take each decision variable from the solution
+	x = solution.var_x
+	y = solution.var_u
+	k = solution.var_k
+	rd = solution.var_rd
+	s = solution.var_s
+	e = solution.var_e
+	y = solution.var_y
+	g = solution.var_g
+	xn = solution.var_xn
+	z = solution.var_z
+	#first, discard decision variables  in which the RRH is not connected to the fog node
+	for i in x:
+		print("{} is: {} ".format(x[i], x[i].solution_value))
+
 
 #This algorithms takes solution values and consider them as probabilities
 #For each decision variable, it consider the higher value, perform the scheduling and discard the other values for the same variable
@@ -42,3 +56,17 @@ def sortProbability(solution, ilp_module):
 #this algorithm is executed for the remaining variables, schedule one, run ILP relaxaed again, and so on
 def incSortProbability(solution, ilp_module):
 	pass
+
+u = rlx.Util()
+antenas = u.newCreateRRHs(2)
+np.shuffle(antenas)
+ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
+s = ilp.run()
+sol = ilp.return_solution_values()
+dec = ilp.return_decision_variables()
+#ilp.print_var_values()
+#ilp.updateValues(sol)
+#for i in ilp.y:
+#	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
+print("Solving time: {}".format(s.solve_details.time))
+cleanSolution(dec)
