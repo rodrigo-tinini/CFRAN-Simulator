@@ -1,0 +1,4 @@
+cloud_fog_first
+
+1280.0
+
