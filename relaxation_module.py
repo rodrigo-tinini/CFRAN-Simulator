@@ -2,6 +2,7 @@
 from docplex.mp.model import Model
 import functools
 import random as np
+import operator
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
@@ -78,14 +79,28 @@ def getInclusive(var):
 def getHigherValues(var):
 	indexes = getInclusive(var)
 	values = []
+	higher_values = {}
 	for i in indexes:
 		values.append({})
+		#higher_values[i] = {}
 	for i in indexes:
 		for j in var:
 			if j[0] == i:
 				values[i][j] = var[j].solution_value
-				print(values[i])
-	#print(values)
+	#now, gets the maximum value for each variable
+	for i in range(len(values)):
+		#higher_values[max(values[i].items(), key=operator.itemgetter(1))[0]] = var[max(values[i].items(), key=operator.itemgetter(1))[0]] #Aqui eu retornava o valor real da solução do ILP
+		higher_values[max(values[i].items(), key=operator.itemgetter(1))[0]] = max(values[i].items(), key=operator.itemgetter(1))[0] #aqui eu retorno só a variavel com o maior valor e depois seto ela como 1
+	for i in higher_values:
+		#set the higher decision variables as 1
+		higher_values[i]= 1
+		#remove the high value variables from the decision var
+		del var[i]
+		#print(higher_values)
+		#print(higher_values[i].solution_value)
+	return higher_values
+
+
 
 
 #This algorithms takes solution values and consider them as probabilities
@@ -96,15 +111,6 @@ def mostProbability(solution, ilp_module):
 	#choose the higher value of variable x
 	#first, take inclusive values of rrhs represented in var x
 	rrhs = getInclusive(sol.x)
-	values = {}
-	high_values = {}
-	for i in rrhs:
-		for j in sol.x:
-			#print(sol.x[j].solution_value)
-			if j[0] == i:
-				values[j] = sol.x[j]
-	#for i in values:
-	#	print("{} : {} ".format(i[0],values[i].solution_value))
 	getHigherValues(sol.x)
 
 	#now, checks with value for var x has the higher value, set it as 1 and discard the others
