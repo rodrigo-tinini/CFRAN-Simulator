@@ -10,10 +10,10 @@ import relaxation_test as rlx
 #needed to be removed from the ILP formulation in order to relax the formulation and run it
 #It solves the capacities (DU and lambda) and rrh-fog connection constraints
 #It returns a new solution object with only possible valid scheduling solutions
-def cleanSolution(solution):
+def cleanSolution(solution, ilp):
 	#take each decision variable from the solution
 	x = solution.var_x
-	y = solution.var_u
+	u = solution.var_u
 	k = solution.var_k
 	rd = solution.var_rd
 	s = solution.var_s
@@ -22,9 +22,48 @@ def cleanSolution(solution):
 	g = solution.var_g
 	xn = solution.var_xn
 	z = solution.var_z
-	#first, discard decision variables  in which the RRH is not connected to the fog node
+	#keep keys to remove
+	del_keys = []
+	#first, discard decision variables  in which the RRH is not connected to the fog node (vars x and u)
 	for i in x:
-		print("{} is: {} ".format(x[i], x[i].solution_value))
+		#print(i)
+		#print("{} : {}" .format(x[i],x[i].solution_value))
+		if x[i].solution_value > 0 and ilp.fog[i[0]][i[1]] == 0:
+			#print("{} : {}".format(antenas[i[0]].id, antenas[i[0]].rrhs_matrix))
+			del_keys.append(i)
+	for i in del_keys:
+		del x[i]
+		#print("Removed {}".format(i))
+	del_keys = []
+	for i in u:
+		#print(i)
+		#print("{} : {}" .format(x[i],x[i].solution_value))
+		if u[i].solution_value > 0 and ilp.fog[i[0]][i[1]] == 0:
+			#print("{} : {}".format(antenas[i[0]].id, antenas[i[0]].rrhs_matrix))
+			del_keys.append(i)
+	for i in del_keys:
+		del u[i]
+		#print("Removed {}".format(i))
+	del_keys = []
+	for i in y:
+		#print(i)
+		#print("{} : {}" .format(x[i],x[i].solution_value))
+		if y[i].solution_value > 0 and ilp.fog[i[0]][i[1]] == 0:
+			#print("{} : {}".format(antenas[i[0]].id, antenas[i[0]].rrhs_matrix))
+			del_keys.append(i)
+	for i in del_keys:
+		del y[i]
+		#print("Removed {}".format(i))
+	#now, remove the decision variables in which a wavelength can not be allocated to a processing node
+	del_keys = []
+	for i in z:
+		if z[i].solution_value > 0 and rlx.lambda_node[i[0]][i[1]] == 0:
+			del_keys.append(i)
+	for i in del_keys:
+		del z[i]
+
+	clean_vars = rlx.DecisionVariables(x, u, k, rd, s, e, y, g, xn, z)
+	return clean_vars
 
 
 #This algorithms takes solution values and consider them as probabilities
@@ -69,4 +108,6 @@ dec = ilp.return_decision_variables()
 #for i in ilp.y:
 #	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
 print("Solving time: {}".format(s.solve_details.time))
-cleanSolution(dec)
+cleanSolution(dec, ilp)
+#for i in antenas:
+#	print("{} is {}" .format(i.id,i.rrhs_matrix))
