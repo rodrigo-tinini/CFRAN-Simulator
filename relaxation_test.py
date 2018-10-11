@@ -627,16 +627,16 @@ class ILP(object):
 #encapsulates decision variables
 class DecisionVariables(object):
 	def __init__(self, var_x, var_u, var_k, var_rd, var_s, var_e, var_y, var_g, var_xn, var_z):
-		self.var_x = var_x
-		self.var_u = var_u
-		self.var_k = var_k
-		self.var_rd = var_rd
-		self.var_s = var_s
-		self.var_e = var_e
-		self.var_y = var_y
-		self.var_g = var_g
-		self.var_xn = var_xn
-		self.var_z = var_z
+		self.x = var_x
+		self.u = var_u
+		self.k = var_k
+		self.rd = var_rd
+		self.s = var_s
+		self.e = var_e
+		self.y = var_y
+		self.g = var_g
+		self.xn = var_xn
+		self.z = var_z
 
 #encapsulates the solution values
 class Solution(object):

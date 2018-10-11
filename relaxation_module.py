@@ -12,16 +12,16 @@ import relaxation_test as rlx
 #It returns a new solution object with only possible valid scheduling solutions
 def cleanSolution(solution, ilp):
 	#take each decision variable from the solution
-	x = solution.var_x
-	u = solution.var_u
-	k = solution.var_k
-	rd = solution.var_rd
-	s = solution.var_s
-	e = solution.var_e
-	y = solution.var_y
-	g = solution.var_g
-	xn = solution.var_xn
-	z = solution.var_z
+	x = solution.x
+	u = solution.u
+	k = solution.k
+	rd = solution.rd
+	s = solution.s
+	e = solution.e
+	y = solution.y
+	g = solution.g
+	xn = solution.xn
+	z = solution.z
 	#keep keys to remove
 	del_keys = []
 	#first, discard decision variables  in which the RRH is not connected to the fog node (vars x and u)
@@ -65,6 +65,28 @@ def cleanSolution(solution, ilp):
 	clean_vars = rlx.DecisionVariables(x, u, k, rd, s, e, y, g, xn, z)
 	return clean_vars
 
+#keeps only inclusive index in a list
+def getInclusive(var):
+	inclusive = []
+	for i in var:
+		inclusive.append(i[0])
+	inclusive = set(inclusive)
+	inclusive = list(inclusive)
+	return inclusive
+
+#keeps only higher values from a decision variable
+def getHigherValues(var):
+	indexes = getInclusive(var)
+	values = []
+	for i in indexes:
+		values.append({})
+	for i in indexes:
+		for j in var:
+			if j[0] == i:
+				values[i][j] = var[j].solution_value
+				print(values[i])
+	#print(values)
+
 
 #This algorithms takes solution values and consider them as probabilities
 #For each decision variable, it consider the higher value, perform the scheduling and discard the other values for the same variable
@@ -72,8 +94,21 @@ def cleanSolution(solution, ilp):
 def mostProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
 	#choose the higher value of variable x
-	for i in sol.x:
-		print(i[0])
+	#first, take inclusive values of rrhs represented in var x
+	rrhs = getInclusive(sol.x)
+	values = {}
+	high_values = {}
+	for i in rrhs:
+		for j in sol.x:
+			#print(sol.x[j].solution_value)
+			if j[0] == i:
+				values[j] = sol.x[j]
+	#for i in values:
+	#	print("{} : {} ".format(i[0],values[i].solution_value))
+	getHigherValues(sol.x)
+
+	#now, checks with value for var x has the higher value, set it as 1 and discard the others
+		#print(sol.x[i].solution_value)
 
 #This algorithms takes solutions values and consider them as probabilities
 #it takes the first decision variable (in a first-fit manner), consider its higher value and discard the other values for the same variable
@@ -114,4 +149,4 @@ print("Solving time: {}".format(s.solve_details.time))
 #cleanSolution(dec, ilp)
 #for i in antenas:
 #	print("{} is {}" .format(i.id,i.rrhs_matrix))
-mostProbability(sol, ilp)
+mostProbability(dec, ilp)
