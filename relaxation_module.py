@@ -70,14 +70,17 @@ def cleanSolution(solution, ilp):
 #For each decision variable, it consider the higher value, perform the scheduling and discard the other values for the same variable
 #Does this to every variable and DO NOT run the ILP again
 def mostProbability(solution, ilp_module):
-	pass
+	sol = cleanSolution(solution, ilp_module)
+	#choose the higher value of variable x
+	for i in sol.x:
+		print(i[0])
 
 #This algorithms takes solutions values and consider them as probabilities
 #it takes the first decision variable (in a first-fit manner), consider its higher value and discard the other values for the same variable
 #Schedule the decision variable and, outside this function, the relaxation module is executed again, and then, 
 #this algorithm is executed for the remaining variables, schedule one, run ILP relaxaed again, and so on
 def incMostProbability(solution, ilp_module):
-	pass
+	sol = cleanSolution(solution, ilp_module)
 
 #This algorithms takes solution values and consider them as probabilities
 #For each decision variable, a value between 0 and 1 is sorted from a uniform distribution, find the value of the decision variable where the sorted value fits within 
@@ -85,7 +88,7 @@ def incMostProbability(solution, ilp_module):
 #perform the scheduling and discard the other values for the same variable
 #Does this to every variable and DO NOT run the ILP again
 def sortProbability(solution, ilp_module):
-	pass
+	sol = cleanSolution(solution, ilp_module)
 
 #This algorithms takes solutions values and consider them as probabilities
 #it takes the first decision variable (in a first-fit manner),a value between 0 and 1 is sorted from a uniform distribution, find the value of the decision variable where the sorted value fits within 
@@ -94,7 +97,7 @@ def sortProbability(solution, ilp_module):
 #Schedule the decision variable and, outside this function, the relaxation module is executed again, and then, 
 #this algorithm is executed for the remaining variables, schedule one, run ILP relaxaed again, and so on
 def incSortProbability(solution, ilp_module):
-	pass
+	sol = cleanSolution(solution, ilp_module)
 
 u = rlx.Util()
 antenas = u.newCreateRRHs(2)
@@ -108,6 +111,7 @@ dec = ilp.return_decision_variables()
 #for i in ilp.y:
 #	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
 print("Solving time: {}".format(s.solve_details.time))
-cleanSolution(dec, ilp)
+#cleanSolution(dec, ilp)
 #for i in antenas:
 #	print("{} is {}" .format(i.id,i.rrhs_matrix))
+mostProbability(sol, ilp)
