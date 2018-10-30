@@ -52,25 +52,25 @@ class ILP(object):
 		if self.relaxed == True:
 			#Decision variables
 			#x[rrhs][lambdas][nodes];
-			self.x = self.mdl.continuous_var_dict(self.idx_ijw, lb = 0.000, ub = 1, name = 'RRH/Node/Lambda', key_format = "")
+			self.x = self.mdl.continuous_var_dict(self.idx_ijw,  name = 'RRH/Node/Lambda', key_format = "")
 			#u[rrhs][lambdas][nodes];
-			self.u = self.mdl.continuous_var_dict(self.idx_ijw,lb = 0.0001, ub = 1, name = 'RRH/Node/DU')
+			self.u = self.mdl.continuous_var_dict(self.idx_ijw, name = 'RRH/Node/DU')
 			#y[rrhs][nodes];
-			self.y = self.mdl.continuous_var_dict(self.idx_ij,lb = 0.0001, ub = 1, name = 'RRH/Node')
+			self.y = self.mdl.continuous_var_dict(self.idx_ij, name = 'RRH/Node')
 			#k[rrhs][nodes];
-			self.k = self.mdl.continuous_var_dict(self.idx_ij,lb = 0.0001, ub = 1, name = 'Redirection of RRH in Node')
+			self.k = self.mdl.continuous_var_dict(self.idx_ij, name = 'Redirection of RRH in Node')
 			#rd[lambdas][nodes];
-			self.rd = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.0001, ub = 1, name = 'DU in Node used for redirection')
+			self.rd = self.mdl.continuous_var_dict(self.idx_wj, name = 'DU in Node used for redirection')
 			#s[lambdas][nodes];
-			self.s = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.0001, ub = 1, name = 'DU activated in node')
+			self.s = self.mdl.continuous_var_dict(self.idx_wj, name = 'DU activated in node')
 			#e[nodes];
-			self.e = self.mdl.continuous_var_dict(self.idx_j,lb = 0.0001, ub = 1, name = "Switch/Node")
+			self.e = self.mdl.continuous_var_dict(self.idx_j, name = "Switch/Node")
 			#g[rrhs][lambdas][nodes];
-			self.g = self.mdl.continuous_var_dict(self.idx_ijw, lb = 0.0001, ub = 1,name = 'Redirection of RRH in Node in DU')
+			self.g = self.mdl.continuous_var_dict(self.idx_ijw, name = 'Redirection of RRH in Node in DU')
 			#xn[nodes];
-			self.xn = self.mdl.continuous_var_dict(self.idx_j,lb = 0.0001, ub = 1, name = 'Node activated')
+			self.xn = self.mdl.continuous_var_dict(self.idx_j, name = 'Node activated')
 			#z[lambdas][nodes];
-			self.z = self.mdl.continuous_var_dict(self.idx_wj,lb = 0.0001, ub = 1, name = 'Lambda in Node')
+			self.z = self.mdl.continuous_var_dict(self.idx_wj, name = 'Lambda in Node')
 		else:
 			self.x = self.mdl.binary_var_dict(self.idx_ijw, name = 'RRH/Node/Lambda', key_format = "")
 			#u[rrhs][lambdas][nodes];
@@ -96,9 +96,9 @@ class ILP(object):
 	#create constraints
 	def setConstraints(self):
 		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#1
-		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w]) >= 0.0001 for i in self.rrhs for j in self.nodes for w in self.lambdas)#1.5
+		self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w]) >= 0.01 for i in self.rrhs for j in self.nodes for w in self.lambdas)#1.5
 		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for j in self.nodes for w in self.lambdas) == 1 for i in self.rrhs)#2
-		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w]) >= 0.0001 for i in self.rrhs for j in self.nodes for w in self.lambdas)#2.5
+		self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w]) >= 0.01 for i in self.rrhs for j in self.nodes for w in self.lambdas)#2.5
 		
 		#self.mdl.add_constraints(self.mdl.sum(self.x[i,j,w] * RRHband for i in self.rrhs for j in self.nodes) <= wavelength_capacity[w] for w in self.lambdas) #TIREI PARA PODER RODAR A RELAXAÇÃO - ESSA RESTRIÇÃO TEM QUE SER TRATADA PELO ALGORITMO
 		#self.mdl.add_constraints(self.mdl.sum(self.u[i,j,w] for i in self.rrhs) <= du_processing[j][w] for j in self.nodes for w in self.lambdas) #TIREI PARA PODER RODAR A RELAXAÇÃO - ESSA RESTRIÇÃO TEM QUE SER TRATADA PELO ALGORITMO
@@ -113,10 +113,10 @@ class ILP(object):
 		self.mdl.add_constraints(B*self.s[w,j] >= self.mdl.sum(self.u[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
 		self.mdl.add_constraints(self.s[w,j] <= self.mdl.sum(self.u[i,j,w] for i in self.rrhs) for w in self.lambdas for j in self.nodes)
 		
-		self.mdl.add_constraints(self.g[i,j,w] <= self.x[i,j,w] + self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
-		self.mdl.add_constraints(self.g[i,j,w] >= self.x[i,j,w] - self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
-		self.mdl.add_constraints(self.g[i,j,w] >= self.u[i,j,w] - self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
-		self.mdl.add_constraints(self.g[i,j,w] <= 2 - self.x[i,j,w] - self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		#self.mdl.add_constraints(self.g[i,j,w] <= self.x[i,j,w] + self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		#self.mdl.add_constraints(self.g[i,j,w] >= self.x[i,j,w] - self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		#self.mdl.add_constraints(self.g[i,j,w] >= self.u[i,j,w] - self.x[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
+		#self.mdl.add_constraints(self.g[i,j,w] <= 2 - self.x[i,j,w] - self.u[i,j,w] for i in self.rrhs for j in self.nodes for w in self.lambdas)
 		
 		self.mdl.add_constraints(B*self.k[i,j] >= self.mdl.sum(self.g[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
 		self.mdl.add_constraints(self.k[i,j] <= self.mdl.sum(self.g[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
@@ -128,6 +128,7 @@ class ILP(object):
 		self.mdl.add_constraints(self.e[j] <= self.mdl.sum(self.k[i,j] for i in self.rrhs)  for j in self.nodes)
 		
 		self.mdl.add_constraints(self.mdl.sum(self.z[w,j] for j in self.nodes) <= 1 for w in self.lambdas)
+		#self.mdl.add_constraints(self.mdl.sum(self.z[w,j] for j in self.nodes) == 1 for w in self.lambdas)
 		self.mdl.add_constraints(self.mdl.sum(self.y[i,j] for j in self.nodes) == 1 for i in self.rrhs)
 		
 		self.mdl.add_constraints(B*self.y[i,j] >= self.mdl.sum(self.x[i,j,w] for w in self.lambdas) for i in self.rrhs for j in self.nodes)
@@ -145,13 +146,23 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
-		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
+		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) +
 		self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes) + 
 		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
 		self.mdl.sum(self.g[i,j,w] * switch_cost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
 		(self.mdl.sum(self.s[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
 		self.mdl.sum(self.rd[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
 		self.mdl.sum(self.e[j] * switch_cost[j] for j in self.nodes))
+
+		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) +
+		#self.mdl.sum(self.x[i,j,w] * lc_cost[w] for i in self.rrhs for w in self.lambdas for j in self.nodes) +
+		#self.mdl.sum(self.x[i,j,w] * nodeCost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes) + 
+		#self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes) + 
+		#(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
+		#self.mdl.sum(self.g[i,j,w] * switch_cost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
+		#(self.mdl.sum(self.s[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
+		#self.mdl.sum(self.rd[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
+		#self.mdl.sum(self.e[j] * switch_cost[j] for j in self.nodes))
 
 	#solves the model
 	def solveILP(self):
@@ -863,7 +874,7 @@ fog = [
 du_processing = [
 [0.0, 0.0, 0.0, 0.0, 0.0],
 [1.0, 1.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0],
+[1.0, 0.0, 0.0, 0.0, 0.0],
 
 ]
 
@@ -879,21 +890,21 @@ nodeState = [0,0,0]
 
 nodeCost = [
 600.0,
-500.0,
+510.0,
 500.0,
 
 ]
 
 du_cost = [
 [100.0, 100.0, 100.0, 100.0, 100.0],
-[50.0, 50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 500.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 500.0],
 
 
 ]
 lc_cost = [
-20.0,
-20.0,
+99999.9,
+2000.9,
 20.0,
 20.0,
 20.0,
@@ -919,7 +930,7 @@ lambdas = range(0, 5)
 
 '''
 u = Util()
-antenas = u.newCreateRRHs(50)
+antenas = u.newCreateRRHs(4)
 #for i in antenas:
 #	print(i.rrhs_matrix)
 #for i in range(len(antenas)):
