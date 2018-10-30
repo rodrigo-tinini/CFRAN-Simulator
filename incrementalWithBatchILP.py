@@ -39,11 +39,11 @@ dus_total_capacity = [
 		[1.0, 1.0, 1.0, 1.0, 1.0],
 		]
 
-dus_capacity = [5,1,1]
+dus_capacity = [3,1,1,1,1]
 
 network_threshold = 0.8
-traffic_quocient = 50
-rrhs_quantity = 35
+traffic_quocient = 70
+rrhs_quantity = 42
 served_requests = 0
 inc_block = 0
 batch_block = 0
@@ -909,7 +909,7 @@ class Control_Plane(object):
 
 	#monitors the network and triggers the load balancing
 	def monitorLoad(self):
-		proc_loads = [0,0,0]
+		proc_loads = [0,0,0,0,0]
 		while True:
 			batch_done = False
 			#print("AQUIII")
@@ -1358,7 +1358,7 @@ class Control_Plane(object):
 		global served_requests
 		#global actives
 		while True:
-			proc_loads = [0,0,0]
+			proc_loads = [0,0,0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
 			#print(r.var_x)
@@ -1541,7 +1541,7 @@ class Util(object):
 	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0], env, service_time, cp)
+			r = RRH(i, [1,0,0,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
@@ -1831,10 +1831,10 @@ class Util(object):
 	#				act_fog.append(1)
 
 
-util = Util()
-env = simpy.Environment()
-cp = Control_Plane(env, util, "inc")
-cp.getProcUsage(plp)
+#util = Util()
+#env = simpy.Environment()
+#cp = Control_Plane(env, util, "inc")
+#cp.getProcUsage(plp)
 #rrhs = util.createRRHs(10, env, service_time, cp)
 #np.shuffle(rrhs)
 #t = Traffic_Generator(env, distribution, service_time, cp)

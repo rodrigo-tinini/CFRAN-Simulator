@@ -70,7 +70,10 @@ def cleanSolution(solution, ilp):
 def getInclusive(var):
 	inclusive = []
 	for i in var:
-		inclusive.append(i[0])
+		if type(i) == tuple:
+			inclusive.append(i[0])
+		else:
+			inclusive.append(i)
 	inclusive = set(inclusive)
 	inclusive = list(inclusive)
 	return inclusive
@@ -85,33 +88,46 @@ def getHigherValues(var):
 		#higher_values[i] = {}
 	for i in indexes:
 		for j in var:
-			if j[0] == i:
-				values[i][j] = var[j].solution_value
-	#now, gets the maximum value for each variable
+			if type(j) == tuple:
+				if j[0] == i:
+					values[i][j] = var[j].solution_value
+			else:
+				if j == i:
+					values[i][j] = var[j].solution_value
+	print(values)
+	#now, gets the maximum solution value for each decision variable
 	for i in range(len(values)):
-		#higher_values[max(values[i].items(), key=operator.itemgetter(1))[0]] = var[max(values[i].items(), key=operator.itemgetter(1))[0]] #Aqui eu retornava o valor real da solução do ILP
-		higher_values[max(values[i].items(), key=operator.itemgetter(1))[0]] = max(values[i].items(), key=operator.itemgetter(1))[0] #aqui eu retorno só a variavel com o maior valor e depois seto ela como 1
+		higher_values[max(values[i].items(), key=operator.itemgetter(1))[0]] = var[max(values[i].items(), key=operator.itemgetter(1))[0]].solution_value #Aqui eu retornava o valor real da solução do ILP
+		#higher_values[max(values[i].items(), key=operator.itemgetter(1))[0]] = max(values[i].items(), key=operator.itemgetter(1))[0] #aqui eu retorno só a variavel com o maior valor e depois seto ela como 1
 	for i in higher_values:
+		#print("aaa {}".format(i))
 		#set the higher decision variables as 1
-		higher_values[i]= 1
+		#higher_values[i]= 1 #COMENTEI AQUI PQ NA LINHA 95 ESTOU COLOCANDO O MAIOR VALOR DE CADA SOLUÇÃO ANTES DE ARREDONDAR PARA 1
 		#remove the high value variables from the decision var
+		#print("REMOVED {}".format(var[i]))
 		del var[i]
 		#print(higher_values)
 		#print(higher_values[i].solution_value)
 	return higher_values
 
-
-
+#return a rounded solution, considering the higher values from the decsion variables
+def getRoundedHigherValues(solution, ilp_module):
+	round_vars = ilp_module.DecisionVariables(getHigherValues(solution.x), getHigherValues(solution.u), getHigherValues(solution.k), 
+		getHigherValues(solution.rd), getHigherValues(solution.s), getHigherValues(solution.e), getHigherValues(solution.y), 
+		getHigherValues(solution.g), getHigherValues(solution.xn), getHigherValues(solution.z))
+	return round_vars
 
 #This algorithms takes solution values and consider them as probabilities
 #For each decision variable, it consider the higher value, perform the scheduling and discard the other values for the same variable
 #Does this to every variable and DO NOT run the ILP again
 def mostProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
+	#to keep the high values of each decision variable after the relaxation
+	x_high = {}
 	#choose the higher value of variable x
 	#first, take inclusive values of rrhs represented in var x
 	rrhs = getInclusive(sol.x)
-	getHigherValues(sol.x)
+	x_high = getHigherValues(sol.x)
 
 	#now, checks with value for var x has the higher value, set it as 1 and discard the others
 		#print(sol.x[i].solution_value)
@@ -140,14 +156,15 @@ def sortProbability(solution, ilp_module):
 def incSortProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
 
+#TESTS
 u = rlx.Util()
-antenas = u.newCreateRRHs(2)
+antenas = u.newCreateRRHs(10)
 np.shuffle(antenas)
 ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
 s = ilp.run()
 sol = ilp.return_solution_values()
 dec = ilp.return_decision_variables()
-#ilp.print_var_values()
+ilp.print_var_values()
 #ilp.updateValues(sol)
 #for i in ilp.y:
 #	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
@@ -155,4 +172,17 @@ print("Solving time: {}".format(s.solve_details.time))
 #cleanSolution(dec, ilp)
 #for i in antenas:
 #	print("{} is {}" .format(i.id,i.rrhs_matrix))
-mostProbability(dec, ilp)
+#mostProbability(dec, ilp)
+#cleanSolution(dec, rlx)
+#a = getRoundedHigherValues(dec,rlx)
+#print("HHAHAHAHAHHAHAHAHAHAHA")
+#for i in dec.e:
+#	print("bbbb {}".format(i))
+#print(getInclusive(dec.e))
+#print(a.e)
+#print(getHigherValues(dec.e))
+#getHigherValues(dec.x)
+#print(dec.x)
+#print(type(dec.e))
+#for i in dec.x:
+#	print("{} : {}".format(i, dec.x[i].solution_value))

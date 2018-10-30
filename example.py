@@ -585,7 +585,7 @@ plt.ylabel('Probability of Service Availability')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 8})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/service_availability{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/service_availability{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -600,7 +600,7 @@ plt.ylabel('Bandwidth Usage')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 8})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/lambda_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/lambda_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -615,7 +615,7 @@ plt.ylabel('Virtualized DUs Usage')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 8})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/procs_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/procs_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -630,7 +630,7 @@ plt.ylabel('Inter Node Service Interruption Probability')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/migrations{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/migrations{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -650,7 +650,7 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -667,7 +667,7 @@ plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -684,7 +684,7 @@ plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -701,7 +701,7 @@ plt.ylabel('Activated lambdas')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -718,7 +718,7 @@ plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -735,7 +735,7 @@ plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -752,7 +752,7 @@ plt.ylabel('Blocked RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -769,7 +769,7 @@ plt.ylabel('Solution Time')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -778,7 +778,7 @@ plt.clf()
 
 #Logging
 #power consumption
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_average_batch_power)
     filehandle.write("\n")
@@ -798,7 +798,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/power_consumption{}.txt'.f
     filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power4)
     filehandle.write("\n")
 #lambda usage
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/lambda_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/lambda_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_lambda_usage)
     filehandle.write("\n")
@@ -819,7 +819,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/lambda_usage{}.txt'.format
     filehandle.write("\n")
 
 #proc usage
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/dus_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/dus_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_proc_usage)
     filehandle.write("\n")
@@ -840,7 +840,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/dus_usage{}.txt'.format(nu
     filehandle.write("\n")
 
 #external migrations
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_migrations)
     filehandle.write("\n")
@@ -861,7 +861,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/external_migrations{}.txt'
     #filehandle.write("\n")
 
 #active nodes
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_nodes{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_nodes{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_nodes_mean)
     filehandle.write("\n")
@@ -882,7 +882,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_nodes{}.txt'
     filehandle.write("\n")
 
 #active lambdas
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_lambdas{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_lambdas{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_lambdas_mean)
     filehandle.write("\n")
@@ -903,7 +903,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_lambdas{}.tx
     filehandle.write("\n")
 
 #Inter vBBUs redirection of traffic
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_redirected{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_redirected{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_redir_mean)
     filehandle.write("\n")
@@ -924,7 +924,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_redirected{}.txt'.form
     filehandle.write("\n")
 
 #active switches
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_switches{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_switches{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_switches_mean)
     filehandle.write("\n")
@@ -945,7 +945,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_switches{}.t
     filehandle.write("\n")
 
 #blocked RRHs
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_blocked{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_blocked{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_blocked_mean)
     filehandle.write("\n")
@@ -966,7 +966,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_blocked{}.txt'.format(
     filehandle.write("\n")
 
 #average solution time
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_solution_time{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_solution_time{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_time_mean)
     filehandle.write("\n")
@@ -987,7 +987,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_solution_time{}.txt'.f
     filehandle.write("\n")
 
 #average cloud utilization
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_cloud_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_cloud_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_cloud)
     filehandle.write("\n")
@@ -1008,7 +1008,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_cloud_use{}.txt'.forma
     filehandle.write("\n")
 
 #average fog utilization
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_fog_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_fog_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_fog)
     filehandle.write("\n")
@@ -1029,7 +1029,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_fog_use{}.txt'.format(
     filehandle.write("\n")
 
 #number of migrations
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/amount_external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_count_migrations)
     filehandle.write("\n")
@@ -1047,7 +1047,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_external_migrations
     filehandle.write("\n")
 
 #amount of served RRHs
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_served_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/amount_served_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_served)
     filehandle.write("\n")
@@ -1065,7 +1065,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_served_rrhs{}.txt'.
     filehandle.write("\n")
 
 #amount of requested RRHs
-with open('/home/tinini/Área de Trabalho/nfv_cp/logs/requested_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/requested_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_reqs)
     filehandle.write("\n")
