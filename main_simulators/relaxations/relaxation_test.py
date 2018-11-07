@@ -250,21 +250,79 @@ class ILP(object):
 				if self.z[i].solution_value >= 1:
 					print("{} is {}".format(self.z[i], self.z[i].solution_value))
 
+	#return solution variables method for the relaxation case
+	def relaxReturnVariables(self, dec):
+		self.var_x = []
+		self.var_u = []
+		self.var_k = []
+		self.var_rd = []
+		self.var_s = []
+		self.var_e = []
+		self.var_y = []
+		self.var_g = []
+		self.var_xn = []
+		self.var_z = []
+		#if self.relaxed == True:
+		for i in dec.x:
+			if dec.x[i].solution_value > 0:
+				self.var_x.append(i)
+
+		for i in dec.u:
+			if dec.u[i].solution_value > 0:
+				self.var_u.append(i)
+
+		for i in dec.k:
+			if dec.k[i].solution_value > 0:
+				self.var_k.append(i)
+
+		for i in dec.rd:
+			if dec.rd[i].solution_value > 0:
+				self.var_rd.append(i)
+
+		for i in dec.s:
+			if dec.s[i].solution_value > 0:
+				self.var_s.append(i)
+
+		for i in dec.e:
+			if dec.e[i].solution_value > 0:
+				self.var_e.append(i)
+
+		for i in dec.y:
+			if dec.y[i].solution_value > 0:
+				self.var_y.append(i)
+
+		for i in dec.g:
+			if dec.g[i].solution_value > 0:
+				self.var_g.append(i)
+
+		for i in dec.xn:
+			if dec.xn[i].solution_value > 0:
+				self.var_xn.append(i)
+
+		for i in dec.z:
+			if dec.z[i].solution_value > 0:
+				self.var_z.append(i)
+
+		solution = DecisionVariables(self.var_x, self.var_u, self.var_k, self.var_rd, 
+			self.var_s, self.var_e, self.var_y, self.var_g, self.var_xn, self.var_z)
+		return solution
+
+
 	#return the decision variables
 	def return_decision_variables(self):
-		self.dec_x = self.x
-		self.dec_u = self.u
-		self.dec_k = self.k
-		self.dec_rd = self.rd
-		self.dec_s = self.s
-		self.dec_e = self.e
-		self.dec_y = self.y
-		self.dec_g = self.g
-		self.dec_xn = self.xn
-		self.dec_z = self.z
+		self.var_x = self.x
+		self.var_u = self.u
+		self.var_k = self.k
+		self.var_rd = self.rd
+		self.var_s = self.s
+		self.var_e = self.e
+		self.var_y = self.y
+		self.var_g = self.g
+		self.var_xn = self.xn
+		self.var_z = self.z
 
-		dec_variables = DecisionVariables(self.dec_x, self.dec_u, self.dec_k, self.dec_rd, self.dec_s, 
-			self.dec_e, self.dec_y, self.dec_g, self.dec_xn, self.dec_z)
+		dec_variables = DecisionVariables(self.var_x, self.var_u, self.var_k, self.var_rd, self.var_s, 
+			self.var_e, self.var_y, self.var_g, self.var_xn, self.var_z)
 		return dec_variables
 
 	#return the variables values
@@ -425,6 +483,59 @@ class ILP(object):
 
 		return solution
 
+
+	#this class updates the network state based on the result of the ILP relaxation
+	def relaxUpdate(self, solution):
+		#first, update the RRHs
+		for i in solution.var_x:
+			self.rrh[i[0]].var_x = i
+		for i in solution.var_u:
+			self.rrh[i[0]].var_u = i
+		#now, update the state of the network resources
+		#search the node(s) returned from the solution
+		for key in solution.var_x:
+			node_id = key[1]
+			rrhs_on_nodes[node_id] += 1
+			#node = pns[node_id]
+			if nodeState[node_id] == 0:
+				#not activated, updates costs
+				nodeCost[node_id] = 0
+				nodeState[node_id] = 1
+			lambda_id = key[2]
+			if lambda_state[lambda_id] == 0:
+				lambda_state[lambda_id] = 1
+				lc_cost[lambda_id] = 0
+				ln = lambda_node[lambda_id]
+				for i in range(len(ln)):
+					if i == node_id:
+						ln[i] = 1
+					else:
+						ln[i] = 0
+			wavelength_capacity[lambda_id] -= RRHband	
+			#updates the DUs capacity
+		for d in solution.var_u:
+			node_id = d[1]
+			du_id = d[2]
+			#update the DU capacitu
+			du = du_processing[node_id]
+			du[du_id] -= 1
+			if du_state[node_id][du_id] == 0:
+				#du was deactivated - activates it
+				du_state[node_id][du_id] = 1
+				du_cost[node_id][du_id] = 0.0
+		if solution.var_e:
+			for e in solution.var_e:
+				for i in range(len(switch_cost)):
+					if e == i:
+						if switch_state[i] == 0:
+							switch_state[i] = 1
+							switch_cost[i] = 0.0
+		if solution.var_k:
+			for k in solution.var_k:
+				for i in range(len(switchBandwidth)):
+					if k[1] == i:
+						switchBandwidth[i] -= RRHband
+
 	#this class updates the network state based on the result of the ILP solution
 	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
 	#and also updates the cost and capacity of the lambda used
@@ -434,10 +545,6 @@ class ILP(object):
 	#when they are passed to be either or not selected to a new RRH, thus guaranteeing that they are already turned on and no additional
 	#"turning on" cost will be computed
 	#Finally, the updated made by this method only acts upon the activated node (and its DUs) and the allocated lambda
-
-
-
-
 	def updateValues(self, solution):
 		self.updateRRH(solution)
 		#search the node(s) returned from the solution
@@ -638,16 +745,16 @@ class ILP(object):
 #encapsulates decision variables
 class DecisionVariables(object):
 	def __init__(self, var_x, var_u, var_k, var_rd, var_s, var_e, var_y, var_g, var_xn, var_z):
-		self.x = var_x
-		self.u = var_u
-		self.k = var_k
-		self.rd = var_rd
-		self.s = var_s
-		self.e = var_e
-		self.y = var_y
-		self.g = var_g
-		self.xn = var_xn
-		self.z = var_z
+		self.var_x = var_x
+		self.var_u = var_u
+		self.var_k = var_k
+		self.var_rd = var_rd
+		self.var_s = var_s
+		self.var_e = var_e
+		self.var_y = var_y
+		self.var_g = var_g
+		self.var_xn = var_xn
+		self.var_z = var_z
 
 #encapsulates the solution values
 class Solution(object):
@@ -889,8 +996,8 @@ du_state = [
 nodeState = [0,0,0]
 
 nodeCost = [
-600.0,
-510.0,
+0.0,
+500.0,
 500.0,
 
 ]
@@ -903,8 +1010,8 @@ du_cost = [
 
 ]
 lc_cost = [
-99999.9,
-2000.9,
+20.0,
+20.0,
 20.0,
 20.0,
 20.0,
