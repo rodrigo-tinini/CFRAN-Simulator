@@ -199,7 +199,7 @@ s = ilp.run()
 dec = ilp.return_decision_variables()
 #for i in dec.var_x:
 #	print(i)
-ilp.print_var_values()
+#ilp.print_var_values()
 #ilp.updateValues(sol)
 #for i in ilp.y:
 #	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
@@ -209,7 +209,9 @@ print("Solving time: {}".format(s.solve_details.time))
 mostProbability(dec,ilp)
 #for i in dec.var_x:
 #	print(i[0])
-#ilp.relaxUpdate(dec)
+ilp.relaxUpdate(dec)
+for i in dec.var_x:
+	print(i)
 #print(rlx.rrhs_on_nodes)
 #print(rlx.wavelength_capacity)
 #cleanSolution(dec, ilp)
