@@ -191,7 +191,7 @@ def sohpIncMostProbability(solution, ilp_module):
 
 #TESTS
 u = rlx.Util()
-antenas = u.newCreateRRHs(10)
+antenas = u.newCreateRRHs(2)
 np.shuffle(antenas)
 ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
 s = ilp.run()
@@ -199,7 +199,7 @@ s = ilp.run()
 dec = ilp.return_decision_variables()
 #for i in dec.var_x:
 #	print(i)
-#ilp.print_var_values()
+ilp.print_var_values()
 #ilp.updateValues(sol)
 #for i in ilp.y:
 #	print("{} is {}".format(ilp.y[i],ilp.y[i].solution_value))
@@ -207,11 +207,11 @@ print("Solving time: {}".format(s.solve_details.time))
 #for x in dec.var_x:
 #	print(x, dec.var_x[x].solution_value)
 mostProbability(dec,ilp)
-for i in dec.var_x:
-	print(i[0])
-ilp.relaxUpdate(dec)
-print(rlx.rrhs_on_nodes)
-print(rlx.wavelength_capacity)
+#for i in dec.var_x:
+#	print(i[0])
+#ilp.relaxUpdate(dec)
+#print(rlx.rrhs_on_nodes)
+#print(rlx.wavelength_capacity)
 #cleanSolution(dec, ilp)
 #for i in antenas:
 #	print("{} is {}" .format(i.id,i.rrhs_matrix))

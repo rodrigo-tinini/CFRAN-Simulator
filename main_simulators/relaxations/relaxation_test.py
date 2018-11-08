@@ -10,6 +10,52 @@ import matplotlib.pyplot as plt
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
+#some static methods
+#check if a DU in some node has free capacity
+def checkCapacityDU(node, du):
+	if du_processing[node][du] > 0:
+		return True
+	else:
+		return False
+
+#get a DU's capacity
+def getCapacityDU(node, du):
+	return du_processing[node][du]
+
+#check if a node has free processing capacity, considering all of its DUs
+def checkNodeCapacity(node):
+	capacity = 0.0
+	capacity = sum(du_processing[node])
+	if capacity > 0:
+		return True
+	else:
+		return False
+
+#get node free processing capacity
+def getNodeCapacity(node):
+	capacity = 0.0
+	capacity = sum(du_processing[node])
+	return capacity
+
+#check if a lambda has capacity for a request
+def checkLambdaCapacity(wavelength, bandwdith):
+	if wavelength_capacity[wavelength] >= bandwdith:
+		return True
+	else:
+		return False
+
+#get bandwidth capacity of a lambda
+def getLambdaCapacity(wavelength):
+	return wavelength_capacity[wavelength]
+
+#check if a lambda is free to be allocated on a given node
+def checkLambdaNode(node, wavelength):
+	if lambda_node[wavelength][node] == 1:
+		return True
+	else:
+		return False
+
+
 #create the ilp class
 class ILP(object):
 	def __init__(self, rrh, rrhs, nodes, lambdas, relaxed):
@@ -484,13 +530,50 @@ class ILP(object):
 		return solution
 
 
-	#this class updates the network state based on the result of the ILP relaxation
+	#this class updates the network state based on the result of the ILP relaxation - Pelo que estou vendo, vou ter que rodar o update para cada RRH, e não de uma vez como fazia
 	def relaxUpdate(self, solution):
-		#first, update the RRHs
+		#first, check if the nodes from the relaxation solution has capacity before allocating the RRHs on them
+		#update the node of the RRH
+		#tries to allocate the returned node - if it is the cloud and has not free capacity, allocates the rrh to the fog
 		for i in solution.var_x:
-			self.rrh[i[0]].var_x = i
+			if i[1] == 0 and checkNodeCapacity(i[1]):
+				self.rrh[i[0]].var_x = i#talvez eu tire essa linha depois
+				self.rrh[i[0]].node = i[1]
+			else:
+				if checkNodeCapacity(self.rrh[i[0]].fog):
+					self.rrh[i[0]].node = self.rrh[i[0]].fog
+				else:
+					pass #ele só entra aqui se nem a cloud nem a fog tem capacidade, aí eu tenho que bloqueá-lo
+			#allocate the lambda
+			if checkLambdaNode(i[1],i[2]) and checkLambdaCapacity(i[2]):
+				self.rrh[i[0]].wavelength = i[2]
+			else:#if the chosen lambda is not available, tries to get a previously lambda allocated on the node
+				for j in range(len(lambda_node[self.rrh[i[0]].node])):
+					if lambda_node[self.rrh[i[0]].node][j] == 0 and lambda_node[self.rrh[i[0]].node][j] != i[2]:
+						self.rrh[i[0]].wavelength = j
+						break
+				#if no lambda was found, take another one that is available
+				if self.rrh[i[0]].wavelength == None:
+					for j in range(len(lambda_state)):
+						if lambda_state[j] == 0: #this lambda is available
+							self.rrh[i[0]].wavelength = j
+							break
+				#if no lambda was allocated at all, blocks the request
+				if self.rrh[i[0]].wavelength == None:
+					pass #blocks the request
+
 		for i in solution.var_u:
-			self.rrh[i[0]].var_u = i
+			if checkCapacityDU(i[1],i[2]):
+				self.rrh[i[0]].var_u = i
+				self.rrh[i[0]].du = i[2]
+			#if the DU does not have free capacity, take another one that has free capacity
+			for j in range(len(du_processing[i[1]])):
+				if checkCapacityDU(du_processing[i[1], j]):
+					self.rrh[i[0]].du = j
+					break
+			#if no DU with capacity was found, blocks the requisition
+			if self.rrh[i[0]].du == None:
+				pass #blocks
 		#now, update the state of the network resources
 		#search the node(s) returned from the solution
 		for key in solution.var_x:
@@ -831,6 +914,10 @@ class RRH(object):
 		self.rrhs_matrix = rrhs_matrix
 		self.var_x = None
 		self.var_u = None
+		self.fog = None
+		self.node = None
+		self.wavelength = None
+		self.du = None
 
 #this class represents the input object to be passed to the ILP
 class ilpInput(object):
@@ -907,6 +994,14 @@ class Util(object):
 				rrhs.append(r)
 		return rrhs
 
+	#update which is the fog node of each RRH
+	def fogNodeRRH(self, rrhs):
+		for r in rrhs:
+			for i in range(len(r.rrhs_matrix)):
+				if i != 0 and r.rrhs_matrix[i] == 1:
+					r.fog = i
+
+
 	#create a list of RRHs with its own connected processing nodes
 	def newCreateRRHs(self, amount):
 		rrhs = []
@@ -914,6 +1009,7 @@ class Util(object):
 			r = RRH(i, [1,0,0])
 			rrhs.append(r)
 		self.setMatrix(rrhs)
+		self.fogNodeRRH(rrhs)
 		return rrhs
 
 	#set the rrhs_matrix for each rrh created
@@ -1038,8 +1134,11 @@ lambdas = range(0, 5)
 '''
 u = Util()
 antenas = u.newCreateRRHs(4)
-#for i in antenas:
-#	print(i.rrhs_matrix)
+for i in antenas:
+	print(i.rrhs_matrix)
+	print(i.fog)
+
+
 #for i in range(len(antenas)):
 #	print(antenas[i].rrhs_matrix)
 #np.shuffle(antenas)
