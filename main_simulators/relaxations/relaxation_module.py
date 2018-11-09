@@ -191,7 +191,7 @@ def sohpIncMostProbability(solution, ilp_module):
 
 #TESTS
 u = rlx.Util()
-antenas = u.newCreateRRHs(2)
+antenas = u.newCreateRRHs(4)
 np.shuffle(antenas)
 ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
 s = ilp.run()
@@ -210,8 +210,23 @@ mostProbability(dec,ilp)
 #for i in dec.var_x:
 #	print(i[0])
 ilp.relaxUpdate(dec)
+for i in antenas:
+	print("RRH {} node {}".format(i.id, i.node))
+	print("RRH {} lambda {}".format(i.id, i.wavelength))
+	print("RRH {} DU {}".format(i.id, i.du))
+	print("RRH {} is blocked? {}".format(i.id, i.blocked))
 for i in dec.var_x:
-	print(i)
+	print(i, dec.var_x[i])
+print("-------NODE COST---------")
+print(rlx.nodeCost)
+print("--------NODE STATE------")
+print(rlx.nodeState)
+print("--------LAMBDA COST-------")
+print(rlx.lc_cost)
+print("-------LAMBDA STATE-----")
+print(rlx.lambda_state)
+print("-----------DU CAPACITY--------")
+print(rlx.du_processing)
 #print(rlx.rrhs_on_nodes)
 #print(rlx.wavelength_capacity)
 #cleanSolution(dec, ilp)

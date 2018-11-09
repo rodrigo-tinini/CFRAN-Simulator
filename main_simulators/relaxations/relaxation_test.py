@@ -553,6 +553,7 @@ class ILP(object):
 				if checkNodeCapacity(self.rrh[i[0]].fog):
 					self.rrh[i[0]].node = self.rrh[i[0]].fog
 				else:
+					#print("-----------blocking--------")
 					self.rrh[i[0]].blocked = True#ele só entra aqui se nem a cloud nem a fog tem capacidade, aí eu tenho que bloqueá-lo
 			#allocate the lambda
 			if checkLambdaNode(i[1],i[2]) and checkLambdaCapacity(i[2]):
@@ -570,31 +571,46 @@ class ILP(object):
 							break
 				#if no lambda was allocated at all, blocks the request
 				if self.rrh[i[0]].wavelength == None:
+					#print("bloaueeeeeou lambda")
 					self.rrh[i[0]].blocked = True #blocks the request
 
 		#allocates the DU for the RRH
 		for i in solution.var_u:
 			#firsts check if the RRH was not blocked during node allocation
 			if self.rrh[i[0]].blocked == None:
+				#print("not blocked")
 				#first, check if the returned DU has cpacity
-				if checkCapacityDU(i[1],i[2]):
+				#print(checkCapacityDU(self.rrh[i[0]].node,i[2]))
+				#print(du_processing[self.rrh[i[0]].node], self.rrh[i[0]].node)
+				if checkCapacityDU(self.rrh[i[0]].node,i[2]):
+					print("TEEEM")
 					#if du is different from the lambda, check if the switch has capacity
 					if i[2] != self.rrh[i[0]].wavelength:
+						print("IS DIFFERENT")
 						if switchBandwidth[self.rrh[i[0]]] > 0:
 							self.rrh[i[0]].var_u = i
 							self.rrh[i[0]].du = i[2]
 					else:
+						print("IS EQUAL")
 						self.rrh[i[0]].var_u = i
 						self.rrh[i[0]].du = i[2]
 				#if the DU does not have free capacity, take another one that has free capacity -
 				# Pra eu pegar um diferente, eu tenho que ver se ele vai usar o switch - se for usar, o switch tem que ter capacidade, senão é bloqueado
 				#nesse mesmo contexto, eu tenho que mover toda a atualização do estado da rede para depois que aloco o DU, pq, só vou atualizar a rede se o RRH não foi bloqueado
-				for j in range(len(du_processing[i[1]])):
-					if checkCapacityDU(i[1], j):
-						if j != self.rrh[i[0]].wavelength:
-							if switchBandwidth[self.rrh[i[0]]] > 0:
+				else:
+					#print("heeeeere")
+					for j in range(len(du_processing[self.rrh[i[0]].node])):
+						#print("heeere2222")
+						if checkCapacityDU(self.rrh[i[0]].node, j):
+							#print("hereeeeee33333333")
+							if j != self.rrh[i[0]].wavelength:
+								print("EHHHHHHHHHHHHH")
+								if switchBandwidth[self.rrh[i[0]].node] > 0:
+									self.rrh[i[0]].du = j
+									break
+							else:
+								print("second DU option is equal to wavelength of the RRH")
 								self.rrh[i[0]].du = j
-								break
 				#if no DU with capacity was found, blocks the requisition
 				if self.rrh[i[0]].du == None:
 					self.rrh[i[0]].blocked = True #blocks
@@ -609,16 +625,18 @@ class ILP(object):
 						nodeCost[self.rrh[i[0]].node] = 0
 						nodeState[self.rrh[i[0]].node] = 1
 					#turn the VPON on if it is not
-					if lambda_state[self.rrh[i[2]]] == 0:
-						lambda_state[self.rrh[i[2]]] = 1
-						lc_cost[self.rrh[i[2]]] = 0
-						ln = lambda_node[self.rrh[i[2]]]
-						for i in range(len(ln)):
-							if i == node_id:
-								ln[i] = 1
+					node_id = self.rrh[i[0]].node
+					if lambda_state[self.rrh[i[0]].wavelength] == 0:
+						lambda_state[self.rrh[i[0]].wavelength] = 1
+						lc_cost[self.rrh[i[0]].wavelength] = 0
+						ln = lambda_node[self.rrh[i[0]].wavelength]
+						for j in range(len(ln)):
+							if j == node_id:
+								ln[j] = 1
 							else:
-								ln[i] = 0
-					wavelength_capacity[self.rrh[i[0]]] -= RRHband
+								ln[j] = 0
+					wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
+					#wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
 				#if self.rrh[i[0]].blocked == None:
 					node_id = self.rrh[i[0]].node
 					du_id = self.rrh[i[0]].du
@@ -1114,7 +1132,7 @@ fog = [
 du_processing = [
 [0.0, 0.0, 0.0, 0.0, 0.0],
 [1.0, 1.0, 0.0, 0.0, 0.0],
-[1.0, 0.0, 0.0, 0.0, 0.0],
+[1.0, 0.0, 0.0, 1.0, 0.0],
 
 ]
 
@@ -1129,7 +1147,7 @@ du_state = [
 nodeState = [0,0,0]
 
 nodeCost = [
-0.0,
+100.0,
 500.0,
 500.0,
 
