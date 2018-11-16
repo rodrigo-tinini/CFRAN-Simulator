@@ -33,7 +33,8 @@ total_requested = []
 sucs_reqs = 0
 total_allocated = []
 network_threshold = 0.8
-traffic_quocient = 200
+#traffic_quocient = 200
+traffic_quocient = 400
 rrhs_quantity = 35
 served_requests = 0
 #timestamp to change the load
@@ -233,6 +234,7 @@ class Control_Plane(object):
 				self.env.process(r.run())
 				power_consumption.append(g.overallPowerConsumption(self.graph))
 				execution_time.append(running_time)
+				#print(len(g.actives_rrhs))
 				#g.addActivated(r.id)
 				#print("++++++++++++++++++++++++++++++")
 				#print(g.fog_activated_rrhs)
@@ -242,6 +244,8 @@ class Control_Plane(object):
 				#print("Inserted {}".format(r.id))
 				#print(mincostFlow[r.id])
 			else:
+				#print("--------NO FLOW----------- FOR {}".format(len(g.actives_rrhs)))
+				#print(len(g.actives_rrhs))
 				blocking_prob += 1
 				#print("No flow was found!")
 				g.minusActivated(r.id)

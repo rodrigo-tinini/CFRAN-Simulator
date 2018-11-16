@@ -6,7 +6,7 @@ import random
 
 G = nx.DiGraph()
 #number of RRHs
-rrhs_amount = 45
+rrhs_amount = 160
 #consumption of a line card + a DU
 line_card_consumption = 20
 #keeps the power cost
@@ -16,9 +16,9 @@ cpri_line = 614
 #capacity of a vopn
 lambda_capacity = 16 * cpri_line
 #fog capacity
-fog_capacity = 32 * cpri_line
+fog_capacity = 16 * cpri_line
 #cloud capacity
-cloud_capacity = 160 *cpri_line
+cloud_capacity = 80 *cpri_line
 #node power costs
 fog_cost = 300
 cloud_cost = 1
@@ -101,6 +101,15 @@ random_nodes = []
 random_nodes.append("cloud")
 for i in range(fogs):
   random_nodes.append("fog{}".format(i))
+
+#to calculate the confidence interval
+def mean_confidence_interval(data, confidence=0.95):
+    a = 1.0*numpy.array(data)
+    n = len(a)
+    m, se = numpy.mean(a), scipy.stats.sem(a)
+    h = se * sp.stats.t._ppf((1+confidence)/2., n-1)
+    #return m, m-h, m+h
+    return h
 
 #rrh
 class RRH(object):
