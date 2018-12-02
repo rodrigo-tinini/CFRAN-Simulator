@@ -39,10 +39,10 @@ dus_total_capacity = [
 		[1.0, 1.0, 1.0, 1.0, 1.0],
 		]
 
-dus_capacity = [5,1,1]
+dus_capacity = [8,4,4]
 
 network_threshold = 0.8
-traffic_quocient = 50
+traffic_quocient = 80
 rrhs_quantity = 35
 served_requests = 0
 inc_block = 0
@@ -327,7 +327,7 @@ class Traffic_Generator(object):
 			#print("Departed{} Requested {} Accepted {}".format(served_requests,total_period_requests, sucs_reqs))
 			if self.cp.type == "inc":
 				self.countIncAverages()
-				print("Blocked were {}".format(total_inc_blocking))
+				#print("Blocked were {}".format(total_inc_blocking))
 			#count averages for the batch case
 			elif self.cp.type == "batch":
 				self.countBatchAverages()
@@ -817,6 +817,19 @@ class Control_Plane(object):
 				else:
 					act_fog.append(1)
 
+	#count external migration for only batch case - this method considers each vBBU migrated to account
+	def extSingleMigrations(self, ilp_module, copy_state):
+		global external_migrations
+		global daily_migrations
+		for i in copy_state.nodes:
+			if sum(copy_state.du_processing[i]) > sum(ilp_module.du_processing[i]) and sum(copy_state.du_processing[0]) < sum(ilp_module.du_processing[0]):
+				diff = sum(copy_state.du_processing[i]) - sum(ilp_module.du_processing[i])
+				print("MIgrated {}".format(diff))
+				external_migrations += diff
+				daily_migrations += diff
+
+
+	#this method considers only a full load migration of a fog node to the cloud - it does not account individual vBBUs migrations
 	#count external migrations
 	def extMigrations(self, ilp_module, copy_nodeState):
 		global external_migrations
@@ -1142,6 +1155,8 @@ class Control_Plane(object):
 		self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas)
 		#take a snapshot of the node states to account the migrations
 		copy_state = copy.copy(ilp_module.nodeState)
+		#take a snapshot of the network state
+		network_copy = copy.copy(ilp_module)
 		cp_l =  copy.copy(ilp_module.lambda_node)
 		cp_d = copy.copy(ilp_module.du_processing)
 		self.ilp.resetValues()
@@ -1176,7 +1191,10 @@ class Control_Plane(object):
 				b_redirected_rrhs.append(0)
 			#counts the current activated nodes, lambdas, DUs and switches
 			self.countNodes(ilp_module)
-			self.extMigrations(ilp_module, copy_state)
+			#counting each single vBBU migration - new method - Updated 2/12/2018
+			self.extSingleMigrations(ilp_module, network_copy)
+			#count migration only when all load from fog ndoe is migrated - old method
+			#self.extMigrations(ilp_module, copy_state)
 			for i in ilp_module.nodeState:
 				if i == 1:
 					count_nodes += 1
@@ -1541,7 +1559,7 @@ class Util(object):
 	def createRRHs(self, amount,env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0], env, service_time, cp)
+			r = RRH(i, [1,0,0,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs
