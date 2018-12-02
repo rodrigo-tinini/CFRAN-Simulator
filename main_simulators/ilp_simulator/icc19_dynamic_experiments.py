@@ -13,6 +13,10 @@ import icc19ILP as plp
 import copy
 import simulator as sim
 
+#lists of blocking probabilities
+inc_blocking_prob = []
+batch_blocking_prob = []
+
 #lists of power consumptions means
 total_inc_power = []
 total_batch_power = []
@@ -148,14 +152,19 @@ inc_batch_served2 = []
 inc_batch_served3 = []
 inc_batch_served4 = []
 
+
+#general function to reload modules
+def reloadModule(aModule):
+    importlib.reload(aModule)
+
 #lists
-exec_number = 50
+exec_number = 40
 util = sim.Util()
 #sim.load_threshold = 10
 #incremental simulation
 
 #number_of_rrhs = sim.rrhs_quantity
-number_of_rrhs = 45
+number_of_rrhs = 64
 
 for i in range(exec_number):
 	b_mig = []
@@ -189,6 +198,7 @@ for i in range(exec_number):
 	total_batch_fog.append(sim.avg_act_fog)
 	batch_ext.append(sim.count_ext_migrations)
 	avg_batch_availability.append(sim.avg_service_availability)
+	#batch_blocking_prob.append(numpy.divide(sim.total_batch_blocking, sim.total_requested))
 	#b_mig = [i/sim.daily_migrations for i in sim.avg_external_migrations]
 	#total_batch_migrations.append(copy.copy(b_mig))
 	print(sum(sim.avg_external_migrations))
@@ -197,9 +207,9 @@ for i in range(exec_number):
 	batch_req.append(sim.total_requested)
 	#print(total_batch_migrations)
 	util.resetParams()
+	#reloadModule(plp)
 
 
-'''
 for i in range(exec_number):
 	print("STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---")
 	print("Execution # {}".format(i))
@@ -233,8 +243,9 @@ for i in range(exec_number):
 	avg_inc_availability.append(sim.avg_service_availability)
 	inc_served.append(sim.avg_total_allocated)
 	inc_req.append(sim.total_requested)
+	inc_blocking_prob.append(numpy.divide(sim.total_inc_blocking, sim.total_requested))
 	util.resetParams()
-
+'''
 #batch simulation
 
 for i in range(exec_number):
@@ -432,6 +443,13 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 #means
+#total blocking probability
+total_inc_blocking_prob = [float(sum(col))/len(col) for col in zip(*inc_blocking_prob)]
+total_batch_blocking_prob= []
+total_inc_batch_blocking_prob= []
+total_inc_batch2_blocking_prob= []
+total_inc_batch3_blocking_prob= []
+total_inc_batch4_blocking_prob= []
 #total requested
 total_batch_reqs = [float(sum(col))/len(col) for col in zip(*batch_req)]
 total_inc_reqs = [float(sum(col))/len(col) for col in zip(*inc_req)]
@@ -559,8 +577,23 @@ def mean_confidence_interval(data, confidence=0.95):
     return h
 
 #confidence intervals
+batch_power_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_power)]
+batch_lambda_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_lambda_usage)]
+batch_migrations_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*batch_ext)]
+batch_blocking_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_blocked)]
+batch_exec_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_time)]
+batch_migration_probability_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_migrations)]
+batch_availability_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*avg_batch_availability)]
+
+inc_blocking_prob_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*inc_blocking_prob)] 
+inc_power_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_power)]
+inc_lambda_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_lambda_usage)]
+#inc_migrations_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*batch_ext)]
+inc_blocking_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_blocked)]
+inc_exec_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_time)]
+inc_availability_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*avg_inc_availability)]
 #inc_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_power)]
-batch_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_power)]
+#batch_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_power)]
 #inc_batch_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_batch)]
 #inc_batch_ci2 = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_batch2)]
 
@@ -795,14 +828,69 @@ with open('/home/tinini/Área de Trabalho/testes/power_conficdence{}.txt'.format
     filehandle.writelines("%s\n" % p for p in batch_ci)
     filehandle.write("\n")
 '''
+
+#confidence intervals
+#service availability
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/service_availability_probability_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_availability_ci)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in inc_availability_ci)  
+#migration probability
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/migrations_probability_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_migration_probability_ci)
+#blocking probability
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/blocking_prob_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in inc_blocking_prob_ci)
 #power consumption
-with open('/home/tinini/Área de Trabalho/testes/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/power_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_power_ci)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in inc_power_ci)
+
+#lambda usage
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/lambda_usage_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_lambda_ci)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in inc_lambda_ci)    
+
+#blocking
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/blocking_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_blocking_ci)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in inc_blocking_ci)
+
+#exec time
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/exec_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_exec_ci)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in inc_exec_ci)
+
+#migrations
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/migration_ci{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in batch_migrations_ci)
+
+#power consumption
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_average_batch_power)
     filehandle.write("\n")
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in total_average_inc_power)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power)
     filehandle.write("\n")
@@ -815,16 +903,22 @@ with open('/home/tinini/Área de Trabalho/testes/power_consumption{}.txt'.format
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power4)
     filehandle.write("\n")
-
-
+'''
+#logging of means
+#blocking probability
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_blocking_probability{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in total_inc_blocking_prob)
+    filehandle.write("\n")
 #lambda usage
-with open('/home/tinini/Área de Trabalho/testeslambda_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/lambda_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_lambda_usage)
     filehandle.write("\n")
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_inc_lambda_usage)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_lambda_usage)
     filehandle.write("\n")
@@ -837,6 +931,7 @@ with open('/home/tinini/Área de Trabalho/testeslambda_usage{}.txt'.format(numbe
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_lambda_usage4)
     filehandle.write("\n")
+'''
 
 #proc usage
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/dus_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -846,6 +941,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/dus_usage{}.txt'.format(nu
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_inc_proc_usage)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_proc_usage)
     filehandle.write("\n")
@@ -858,12 +954,14 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/dus_usage{}.txt'.format(nu
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_proc_usage4)
     filehandle.write("\n")
+	'''
 
 #external migrations
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_migrations)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_migrations)
     filehandle.write("\n")
@@ -879,6 +977,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/external_migrations{}.txt'
     #filehandle.write("Inc\n\n")
     #filehandle.writelines("%s\n" % p for p in avg_total_inc_migrations)
     #filehandle.write("\n")
+	'''
 
 #active nodes
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_nodes{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -888,6 +987,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_nodes{}.txt'
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in inc_nodes_mean)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in inc_batch_nodes_mean)
     filehandle.write("\n")
@@ -900,6 +1000,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_nodes{}.txt'
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in inc_batch_nodes_mean4)
     filehandle.write("\n")
+    '''
 
 #active lambdas
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_lambdas{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -909,6 +1010,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_lambdas{}.tx
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in inc_lambdas_mean)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in inc_batch_lambdas_mean)
     filehandle.write("\n")
@@ -921,6 +1023,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_lambdas{}.tx
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in inc_batch_lambdas_mean4)
     filehandle.write("\n")
+	'''
 
 #Inter vBBUs redirection of traffic
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_redirected{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -930,6 +1033,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_redirected{}.txt'.form
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in inc_redir_mean)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in inc_batch_redir_mean)
     filehandle.write("\n")
@@ -942,6 +1046,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_redirected{}.txt'.form
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in inc_batch_redir_mean4)
     filehandle.write("\n")
+	'''
 
 #active switches
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_switches{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -951,6 +1056,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_switches{}.t
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in inc_switches_mean)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in inc_batch_switches_mean)
     filehandle.write("\n")
@@ -963,6 +1069,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_activated_switches{}.t
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in inc_batch_switches_mean4)
     filehandle.write("\n")
+	'''
 
 #blocked RRHs
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_blocked{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -972,6 +1079,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_blocked{}.txt'.format(
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in inc_blocked_mean)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in inc_batch_blocked_mean)
     filehandle.write("\n")
@@ -984,6 +1092,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_blocked{}.txt'.format(
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in inc_batch_blocked_mean4)
     filehandle.write("\n")
+	'''
 
 #average solution time
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_solution_time{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -993,6 +1102,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_solution_time{}.txt'.f
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in inc_time_mean)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in inc_batch_time_mean)
     filehandle.write("\n")
@@ -1005,6 +1115,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_solution_time{}.txt'.f
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in inc_batch_time_mean4)
     filehandle.write("\n")
+	'''
 
 #average cloud utilization
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_cloud_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -1014,6 +1125,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_cloud_use{}.txt'.forma
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_inc_cloud)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_cloud)
     filehandle.write("\n")
@@ -1026,6 +1138,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_cloud_use{}.txt'.forma
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_cloud4)
     filehandle.write("\n")
+	'''
 
 #average fog utilization
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_fog_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -1035,6 +1148,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_fog_use{}.txt'.format(
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_inc_fog)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_fog)
     filehandle.write("\n")
@@ -1047,12 +1161,14 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/avg_fog_use{}.txt'.format(
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in avg_total_inc_batch_fog4)
     filehandle.write("\n")
+	'''
 
 #number of migrations
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_count_migrations)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in total_inc_batch_count_migrations)
     filehandle.write("\n")
@@ -1065,12 +1181,14 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_external_migrations
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in total_inc_batch_count_migrations4)
     filehandle.write("\n")
+	'''
 
 #amount of served RRHs
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_served_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_served)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in total_inc_served)
     filehandle.write("\n")
@@ -1083,6 +1201,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/amount_served_rrhs{}.txt'.
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in total_inc_batch_served4)
     filehandle.write("\n")
+	'''
 
 #amount of requested RRHs
 with open('/home/tinini/Área de Trabalho/nfv_cp/logs/requested_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
@@ -1092,6 +1211,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/requested_rrhs{}.txt'.form
     filehandle.write("Inc\n\n")
     filehandle.writelines("%s\n" % p for p in total_inc_reqs)
     filehandle.write("\n")
+    '''
     filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
     filehandle.writelines("%s\n" % p for p in total_inc_batch_reqs)
     filehandle.write("\n")
@@ -1104,4 +1224,14 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/logs/requested_rrhs{}.txt'.form
     filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
     filehandle.writelines("%s\n" % p for p in total_inc_batch_reqs4)
     filehandle.write("\n")
+	'''
 
+#service availability
+with open('/home/tinini/Área de Trabalho/nfv_cp/logs/service_availability{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("Batch\n\n")
+    filehandle.writelines("%s\n" % p for p in total_batch_avai)
+    filehandle.write("\n")
+    filehandle.write("Inc\n\n")
+    filehandle.writelines("%s\n" % p for p in total_inc_avai)
+    filehandle.write("\n")
+    '''

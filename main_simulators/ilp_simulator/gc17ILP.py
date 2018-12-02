@@ -28,7 +28,7 @@ rrhs_on_nodes = [0,0,0,0,0,0]
 
 cpri_rate = 614.4
 
-node_capacity = [98304, 19660.8, 19660.8, 19660.8, 19660.8, 19660.8]
+node_capacity = [49152, 9830.4, 9830.4, 9830.4, 9830.4, 9830.4]
 
 #du cost of each node
 cost_du = [100.0, 50.0, 50.0, 50.0, 50.0, 50.0]
@@ -155,7 +155,7 @@ rrhs = range(0,1)
 #number of nodes
 nodes = range(0, 6)
 #number of lambdas
-lambdas = range(0, 60)
+lambdas = range(0, 10)
 
 #populate the wavelength data structures
 def setLambdas():

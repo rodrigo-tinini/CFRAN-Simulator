@@ -24,17 +24,17 @@ def genLogs(s):
 #old gen logs, for simple executions of the ILP considering only one policy to log
 def genLogs():
 	#power consumption
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/power/power_consumption_{}.txt'.format(amount),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/sbrcILP/power/power_consumption_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in power_consumption)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/exec_time/execution_time_{}.txt'.format(amount),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/sbrcILP/exec/execution_time_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in execution_time)
 	    filehandle.write("\n")
 	    #filehandle.write("\n")
-	with open('/home/tinini/Área de Trabalho/Simulador/CFRAN-Simulator/ilp_static/logs/incremental/delay/minimum_average_delay_{}.txt'.format(amount),'a') as filehandle:  
+	with open('/home/tinini/Área de Trabalho/sbrcILP/delay/minimum_average_delay_{}.txt'.format(amount),'a') as filehandle:  
 	    filehandle.write("{}\n\n".format(i))
 	    filehandle.writelines("%s\n" % p for p in average_delay)
 	    filehandle.write("\n")
@@ -71,11 +71,12 @@ util = gc.Util()
 #old execution considering automatic increase of number of RRHs
 
 amount = 5
-for i in range(60):
+for i in range(32):
 	print("AMOUNT IS {}".format(amount))
 	importlib.reload(gc)
 	antenas = []
 	antenas = util.staticCreateRRHs(amount)
+	print(len(antenas))
 	util.setExperiment(antenas, gc.fog_amount)
 	#for i in antenas:
 	#	print(i.rrhs_matrix)
