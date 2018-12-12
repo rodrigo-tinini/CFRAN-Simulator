@@ -593,6 +593,8 @@ class ILP(object):
 						if switchBandwidth[self.rrh[i[0]].node] >= RRHband:
 							self.rrh[i[0]].var_u = i
 							self.rrh[i[0]].du = i[2]
+						else:#if the switch has no capacity, what to do? define that
+							pass
 					else:
 						#print("IS EQUAL")
 						self.rrh[i[0]].var_u = i
@@ -607,11 +609,13 @@ class ILP(object):
 						if checkCapacityDU(self.rrh[i[0]].node, j):
 							#print("hereeeeee33333333")
 							if j != self.rrh[i[0]].wavelength:
-								print("IS EQUAL")
+								print("IS DIFFERENT TOO")
 								print(switchBandwidth[self.rrh[i[0]].node])
 								if switchBandwidth[self.rrh[i[0]].node] >= RRHband:
 									self.rrh[i[0]].du = j
 									break
+								else:#if the switch has no capacity, what to do? define that
+									pass
 							else:
 								#print("second DU option is equal to wavelength of the RRH")
 								self.rrh[i[0]].du = j
