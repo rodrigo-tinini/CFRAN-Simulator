@@ -585,15 +585,16 @@ class ILP(object):
 				#print(checkCapacityDU(self.rrh[i[0]].node,i[2]))
 				#print(du_processing[self.rrh[i[0]].node], self.rrh[i[0]].node)
 				if checkCapacityDU(self.rrh[i[0]].node,i[2]):
-					print("TEEEM")
+					#print("TEEEM")
 					#if du is different from the lambda, check if the switch has capacity
 					if i[2] != self.rrh[i[0]].wavelength:
 						print("IS DIFFERENT")
-						if switchBandwidth[self.rrh[i[0]].node] > 0:
+						print(switchBandwidth[self.rrh[i[0]].node])
+						if switchBandwidth[self.rrh[i[0]].node] >= RRHband:
 							self.rrh[i[0]].var_u = i
 							self.rrh[i[0]].du = i[2]
 					else:
-						print("IS EQUAL")
+						#print("IS EQUAL")
 						self.rrh[i[0]].var_u = i
 						self.rrh[i[0]].du = i[2]
 				#if the DU does not have free capacity, take another one that has free capacity -
@@ -606,12 +607,13 @@ class ILP(object):
 						if checkCapacityDU(self.rrh[i[0]].node, j):
 							#print("hereeeeee33333333")
 							if j != self.rrh[i[0]].wavelength:
-								print("EHHHHHHHHHHHHH")
-								if switchBandwidth[self.rrh[i[0]].node] > 0:
+								print("IS EQUAL")
+								print(switchBandwidth[self.rrh[i[0]].node])
+								if switchBandwidth[self.rrh[i[0]].node] >= RRHband:
 									self.rrh[i[0]].du = j
 									break
 							else:
-								print("second DU option is equal to wavelength of the RRH")
+								#print("second DU option is equal to wavelength of the RRH")
 								self.rrh[i[0]].du = j
 				#if no DU with capacity was found, blocks the requisition
 				if self.rrh[i[0]].du == None:
@@ -1241,6 +1243,12 @@ rrhs = range(0,1)
 nodes = range(0, 3)
 #number of lambdas
 lambdas = range(0, 4)
+
+
+
+
+
+
 
 '''
 u = Util()

@@ -188,14 +188,14 @@ def sophMostProbability(solution, ilp):
 def sohpIncMostProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
 
-'''
+
 #TESTS
 u = rlx.Util()
-antenas = u.newCreateRRHs(1000, None, None, None)
+antenas = u.newCreateRRHs(20, None, None, None)
 np.shuffle(antenas)
 ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
 s = ilp.run()
-print(s)
+#print(s)
 #sol = ilp.return_solution_values()
 dec = ilp.return_decision_variables()
 #for i in dec.var_x:
@@ -210,17 +210,17 @@ print("Solving time: {}".format(s.solve_details.time))
 mostProbability(dec,ilp)
 #for i in dec.var_x:
 #	print(i[0])
+print(rlx.switchBandwidth)
 ilp.relaxUpdate(dec)
-'''
-'''
-for i in antenas:
-	print("RRH {} node {}".format(i.id, i.node))
-	print("RRH {} lambda {}".format(i.id, i.wavelength))
-	print("RRH {} DU {}".format(i.id, i.du))
-	print("RRH {} is blocked? {}".format(i.id, i.blocked))
-for i in dec.var_x:
-	print(i, dec.var_x[i])
-'''
+
+#for i in antenas:
+#	print("RRH {} node {}".format(i.id, i.node))
+#	print("RRH {} lambda {}".format(i.id, i.wavelength))
+#	print("RRH {} DU {}".format(i.id, i.du))
+#	print("RRH {} is blocked? {}".format(i.id, i.blocked))
+#for i in dec.var_x:
+#	print(i, dec.var_x[i])
+
 #print("-------NODE COST---------")
 #print(rlx.nodeCost)
 #print("--------NODE STATE------")
@@ -231,13 +231,13 @@ for i in dec.var_x:
 #print(rlx.lambda_state)
 #print("-----------DU CAPACITY--------")
 #print(rlx.du_processing)
-'''
+
 print("---------SWITCH STATE--------------")
 print(rlx.switch_cost)
 print(rlx.switchBandwidth)
 print(rlx.switch_state)
 print(u.getPowerConsumption())
-'''
+
 
 #----------------------------END OF TESTS---------------------------------------------
 #print(rlx.rrhs_on_nodes)
