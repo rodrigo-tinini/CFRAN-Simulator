@@ -86,6 +86,7 @@ class ILP(object):
 
 	#run the formulation
 	def run(self):
+		print("Run Being Called")
 		self.setModel()
 		self.setConstraints()
 		self.setObjective()
@@ -222,6 +223,7 @@ class ILP(object):
 
 	#solves the model
 	def solveILP(self):
+		print("SOLVING")
 		self.sol = self.mdl.solve()
 		return self.sol
 
@@ -587,7 +589,7 @@ class ILP(object):
 					#if du is different from the lambda, check if the switch has capacity
 					if i[2] != self.rrh[i[0]].wavelength:
 						print("IS DIFFERENT")
-						if switchBandwidth[self.rrh[i[0]]] > 0:
+						if switchBandwidth[self.rrh[i[0]].node] > 0:
 							self.rrh[i[0]].var_u = i
 							self.rrh[i[0]].du = i[2]
 					else:
@@ -671,7 +673,7 @@ class ILP(object):
 		for i in self.lambdas:
 			lbda_capacity = checkLambdaCapacity(i) 
 			if not lbda_capacity:
-				lambda_cost[i] = 999999999
+				lc_cost[i] = 999999999
 
 	#this class updates the network state based on the result of the ILP solution
 	#it takes the node activated and updates its costs, the lambda allocated and the DUs capacity, either activate or not the switch
@@ -801,10 +803,8 @@ class ILP(object):
 		global wavelength_capacity, lambda_state, switch_state
 		#to keep the amount of RRHs being processed on each node
 		rrhs_on_nodes = [0,0,0]
-
 		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 		lambda_node = [
-		[1,1,1],
 		[1,1,1],
 		[1,1,1],
 		[1,1,1],
@@ -819,18 +819,28 @@ class ILP(object):
 		[1,1,0,0,0,0,0,0,0,0],
 		]
 		du_processing = [
-		[5.0, 5.0, 5.0, 5.0, 5.0],
-		[2.0, 2.0, 2.0, 2.0, 2.0],
-		[2.0, 2.0, 2.0, 2.0, 2.0],
+		[8.0, 8.0, 8.0, 8.0],
+		[4.0, 4.0, 4.0, 4.0 ],
+		[4.0, 4.0, 4.0, 4.0 ],
+
 
 
 
 		]
 
+		#used to calculate the processing usage of the node
+		dus_total_capacity = [
+		[8.0, 8.0, 8.0, 8.0],
+		[4.0, 4.0, 4.0, 4.0 ],
+		[4.0, 4.0, 4.0, 4.0 ],
+
+
+		]
+
 		du_state = [
-		[0, 0, 0, 0, 0],
-		[0, 0, 0, 0, 0],
-		[0, 0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
+		[0, 0, 0, 0],
 
 
 		]
@@ -838,44 +848,46 @@ class ILP(object):
 		nodeState = [0,0,0]
 
 		nodeCost = [
-		600.0,
-		500.0,
-		500.0,
+		0.0,
+		300.0,
+		300.0,
+
 
 		]
 
 		du_cost = [
-		[100.0, 100.0, 100.0, 100.0, 100.0],
-		[50.0, 50.0, 50.0, 50.0, 50.0],
-		[50.0, 50.0, 50.0, 50.0, 50.0],
+		[100.0, 100.0, 100.0, 100.0],
+		[50.0, 50.0, 50.0, 50.0],
+		[50.0, 50.0, 50.0, 50.0],
 
 
 		]
+
 		lc_cost = [
 		20.0,
 		20.0,
 		20.0,
 		20.0,
-		20.0,
+
 
 		]
 
 		switch_cost = [15.0, 15.0, 15.0]
 		switchBandwidth = [10000.0,10000.0,10000.0]
-		wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+		wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
 		RRHband = 614.4;
 		#lc_cost = 20
 		B = 1000000
 		cloud_du_capacity = 9.0
 		fog_du_capacity = 1.0
-		lambda_state = [0,0,0,0,0]
+		lambda_state = [0,0,0,0]
 		switch_state = [0,0,0]
 		#number of rrhs
 		rrhs = range(0,1)
 		#number of nodes
 		nodes = range(0, 3)
 		#number of lambdas
-		lambdas = range(0, 5)
+		lambdas = range(0, 4)
 
 
 
@@ -963,16 +975,46 @@ class ProcessingNode(object):
 
 #this class represents a RRH containing its possible processing nodes
 class RRH(object):
-	def __init__(self, aId, rrhs_matrix):
+	def __init__(self, aId, rrhs_matrix, env, service_time, cp):
+		#self.id = aId
+		#self.rrhs_matrix = rrhs_matrix
+		#self.var_x = None
+		#self.var_u = None
+		#self.fog = None
+		#self.node = None
+		#self.wavelength = None
+		#self.du = None
+		#self.blocked = None
 		self.id = aId
 		self.rrhs_matrix = rrhs_matrix
 		self.var_x = None
 		self.var_u = None
+		self.env = env
+		self.service_time = service_time
+		self.cp = cp
+		self.generationTime = 0.0
+		self.waitingTime = 0.0
 		self.fog = None
 		self.node = None
 		self.wavelength = None
 		self.du = None
 		self.blocked = None
+
+	#updates the generation time
+	def updateGenTime(self, gen_time):
+		self.generationTime = gen_time
+
+	#updates the waiting time
+	def updateWaitTime(self, wait_time):
+		self.waitingTime = wait_time - self.generationTime
+
+	def run(self):
+		t = np.uniform((next_time -self.env.now)/4, next_time -self.env.now)
+		#t = np.expovariate(1/1000)
+		#print("Interval time is {}".format(next_time -self.env.now))
+		#print("Service is {}".format(t))
+		yield self.env.timeout(t)
+		self.cp.departs.put(self)
 
 #this class represents the input object to be passed to the ILP
 class ilpInput(object):
@@ -1058,10 +1100,10 @@ class Util(object):
 
 
 	#create a list of RRHs with its own connected processing nodes
-	def newCreateRRHs(self, amount):
+	def newCreateRRHs(self, amount, env, service_time, cp):
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0])
+			r = RRH(i, [1,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		self.fogNodeRRH(rrhs)
@@ -1112,9 +1154,10 @@ util = Util()
 #to keep the amount of RRHs being processed on each node
 rrhs_on_nodes = [0,0,0]
 
+#to keep the amount of RRHs being processed on each node
+rrhs_on_nodes = [0,0,0]
 #to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 lambda_node = [
-[1,1,1],
 [1,1,1],
 [1,1,1],
 [1,1,1],
@@ -1128,18 +1171,29 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 [1,1,0,0,0,0,0,0,0,0],
 ]
-
 du_processing = [
-[1.0, 1.0, 1.0, 1.0, 1.0],
-[1.0, 1.0, 0.0, 0.0, 0.0],
-[1.0, 0.0, 0.0, 1.0, 0.0],
+[8.0, 8.0, 8.0, 8.0],
+[4.0, 4.0, 4.0, 4.0 ],
+[4.0, 4.0, 4.0, 4.0 ],
+
+
+
+
+]
+
+#used to calculate the processing usage of the node
+dus_total_capacity = [
+[8.0, 8.0, 8.0, 8.0],
+[4.0, 4.0, 4.0, 4.0 ],
+[4.0, 4.0, 4.0, 4.0 ],
+
 
 ]
 
 du_state = [
-[0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0],
+[0, 0, 0, 0],
+[0, 0, 0, 0],
+[0, 0, 0, 0],
 
 
 ]
@@ -1147,44 +1201,46 @@ du_state = [
 nodeState = [0,0,0]
 
 nodeCost = [
-100.0,
-500.0,
-500.0,
+0.0,
+300.0,
+300.0,
+
 
 ]
 
 du_cost = [
-[100.0, 100.0, 100.0, 100.0, 100.0],
-[50.0, 50.0, 50.0, 500.0, 50.0],
-[50.0, 50.0, 50.0, 50.0, 500.0],
+[100.0, 100.0, 100.0, 100.0],
+[50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0],
 
 
 ]
+
 lc_cost = [
 20.0,
 20.0,
 20.0,
 20.0,
-20.0,
+
 
 ]
 
 switch_cost = [15.0, 15.0, 15.0]
 switchBandwidth = [10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
-lambda_state = [0,0,0,0,0]
+lambda_state = [0,0,0,0]
 switch_state = [0,0,0]
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
 nodes = range(0, 3)
 #number of lambdas
-lambdas = range(0, 5)
+lambdas = range(0, 4)
 
 '''
 u = Util()

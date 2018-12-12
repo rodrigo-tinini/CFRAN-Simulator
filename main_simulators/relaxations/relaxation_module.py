@@ -151,8 +151,8 @@ def incMostProbability(solution, ilp_module):
 #(e.g., sorted value is 0.3, variables has 0.1 and 0.5, so we define it will be fit in the interval between the first value and the second, śo, the first value for the decision variable is chosen,
 #perform the scheduling and discard the other values for the same variable
 #Does this to every variable and DO NOT run the ILP again
-def sortProbability(solution, ilp_module):
-	sol = cleanSolution(solution, ilp_module)
+#def sortProbability(solution, ilp_module):
+#	sol = cleanSolution(solution, ilp_module)
 
 #This algorithms takes solutions values and consider them as probabilities
 #it takes the first decision variable (in a first-fit manner),a value between 0 and 1 is sorted from a uniform distribution, find the value of the decision variable where the sorted value fits within 
@@ -160,8 +160,8 @@ def sortProbability(solution, ilp_module):
 # then discard the other values for the same variable
 #Schedule the decision variable and, outside this function, the relaxation module is executed again, and then, 
 #this algorithm is executed for the remaining variables, schedule one, run ILP relaxaed again, and so on
-def incSortProbability(solution, ilp_module):
-	sol = cleanSolution(solution, ilp_module)
+#def incSortProbability(solution, ilp_module):
+#	sol = cleanSolution(solution, ilp_module)
 
 #-------------------------------------SOPHITICATED HEURISTICS - Consider first the activation of processing nodes and the lambdas (variables Xn and Zwn with higher values)-----------------
 #Only after nodes were activated and lambdas placed, does a first-fit bin packing to allocate RRHs from variables Xiwj
@@ -188,13 +188,14 @@ def sophMostProbability(solution, ilp):
 def sohpIncMostProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
 
-
+'''
 #TESTS
 u = rlx.Util()
-antenas = u.newCreateRRHs(4)
+antenas = u.newCreateRRHs(1000, None, None, None)
 np.shuffle(antenas)
 ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
 s = ilp.run()
+print(s)
 #sol = ilp.return_solution_values()
 dec = ilp.return_decision_variables()
 #for i in dec.var_x:
@@ -210,6 +211,8 @@ mostProbability(dec,ilp)
 #for i in dec.var_x:
 #	print(i[0])
 ilp.relaxUpdate(dec)
+'''
+'''
 for i in antenas:
 	print("RRH {} node {}".format(i.id, i.node))
 	print("RRH {} lambda {}".format(i.id, i.wavelength))
@@ -217,6 +220,7 @@ for i in antenas:
 	print("RRH {} is blocked? {}".format(i.id, i.blocked))
 for i in dec.var_x:
 	print(i, dec.var_x[i])
+'''
 #print("-------NODE COST---------")
 #print(rlx.nodeCost)
 #print("--------NODE STATE------")
@@ -227,12 +231,13 @@ for i in dec.var_x:
 #print(rlx.lambda_state)
 #print("-----------DU CAPACITY--------")
 #print(rlx.du_processing)
+'''
 print("---------SWITCH STATE--------------")
 print(rlx.switch_cost)
 print(rlx.switchBandwidth)
 print(rlx.switch_state)
 print(u.getPowerConsumption())
-
+'''
 
 #----------------------------END OF TESTS---------------------------------------------
 #print(rlx.rrhs_on_nodes)
