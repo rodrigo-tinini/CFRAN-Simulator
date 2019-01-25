@@ -339,6 +339,7 @@ class Traffic_Generator(object):
 				print("Blocked were {}".format(total_inc_batch_blocking))
 			self.action = self.env.process(self.run())
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print(plp.rrhs_on_nodes)
 			total_requested.append(total_period_requests)
 			#print(avg_act_cloud)
 			#print(avg_act_fog)
@@ -1182,11 +1183,11 @@ class Control_Plane(object):
 		network_copy = copy.copy(ilp_module.rrhs_on_nodes)
 		cp_l =  copy.copy(ilp_module.lambda_node)
 		cp_d = copy.copy(ilp_module.du_processing)
-		print(self.ilp)
+		#print(self.ilp)
 		self.ilp.resetValues()
 		solution = self.ilp.run()
 		if solution == None:
-			print("No Solution")
+			#print("No Solution")
 			print(plp.du_processing)
 			rrhs.append(r)
 			actives.remove(r)
@@ -1199,7 +1200,7 @@ class Control_Plane(object):
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 		else:
-			print("Solution Found")
+			#print("Solution Found")
 			sucs_reqs += 1
 			#print(solution.solve_details.time)
 			#solution_values = self.ilp.return_solution_values()

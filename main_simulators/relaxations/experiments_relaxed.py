@@ -165,7 +165,7 @@ util = sim.Util()
 #incremental simulation
 
 #number_of_rrhs = sim.rrhs_quantity
-number_of_rrhs = 4
+number_of_rrhs = 20
 
 for i in range(exec_number):
 	b_mig = []
@@ -210,7 +210,7 @@ for i in range(exec_number):
 	#print(total_batch_migrations)
 	util.resetParams()
 	#reloadModule(plp)
-
+'''
 
 for i in range(exec_number):
 	print("STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---")
@@ -249,7 +249,7 @@ for i in range(exec_number):
 	print(sim.total_requested)
 	inc_blocking_prob.append(numpy.divide(sim.total_inc_blocking, sim.total_requested))
 	util.resetParams()
-
+'''
 
 
 #batch with load threshold simulation

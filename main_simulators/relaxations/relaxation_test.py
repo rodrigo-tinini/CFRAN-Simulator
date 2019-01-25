@@ -125,7 +125,7 @@ class ILP(object):
 
 	#run the formulation
 	def run(self):
-		print("Run Being Called")
+		#print("Run Being Called")
 		self.setModel()
 		self.setConstraints()
 		self.setObjective()
@@ -262,7 +262,7 @@ class ILP(object):
 
 	#solves the model
 	def solveILP(self):
-		print("SOLVING")
+		#print("SOLVING")
 		self.sol = self.mdl.solve()
 		return self.sol
 
@@ -609,16 +609,16 @@ class ILP(object):
 			#allocate the lambda
 			if checkLambdaNode(self.rrh[i[0]].node,i[2]) and checkLambdaCapacity(i[2]):
 				#move wavelength capacity update here
-				print(wavelength_capacity)
+				#print(wavelength_capacity)
 				self.rrh[i[0]].wavelength = i[2]
 				wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
 				if lambda_state[self.rrh[i[0]].wavelength] == 0:
 					lambda_state[self.rrh[i[0]].wavelength] = 1
 					lc_cost[self.rrh[i[0]].wavelength] = 0
 				blockLambda(self.rrh[i[0]].wavelength, self.rrh[i[0]].node)
-				print(lambda_node[self.rrh[i[0]].wavelength])
+				#print(lambda_node[self.rrh[i[0]].wavelength])
 			else:#if the chosen lambda is not available, tries to get a previously lambda allocated on the node
-				print("NOOOOOO")
+				#print("NOOOOOO")
 				for j in range(len(lambda_node)):
 					#another lambda is allocated on the node
 					if lambda_node[j][self.rrh[i[0]].node] == 1 and lambda_node[j][self.rrh[i[0]].node] != i[2]:
@@ -630,7 +630,7 @@ class ILP(object):
 							if lambda_state[self.rrh[i[0]].wavelength] == 0:
 								lambda_state[self.rrh[i[0]].wavelength] = 1
 							lc_cost[self.rrh[i[0]].wavelength] = 0
-							print("going to break")
+							#print("going to break")
 							break
 
 
@@ -646,7 +646,7 @@ class ILP(object):
 				#		break
 				#if no lambda was found, take another one that is available
 				if self.rrh[i[0]].wavelength == None:
-					print("anottttheeer")
+					#print("anottttheeer")
 					for j in range(len(lambda_state)):
 						if lambda_state[j] == 0: #this lambda is available
 							self.rrh[i[0]].wavelength = j
@@ -655,9 +655,9 @@ class ILP(object):
 								lambda_state[self.rrh[i[0]].wavelength] = 1
 							lc_cost[self.rrh[i[0]].wavelength] = 0
 							blockLambda(self.rrh[i[0]].wavelength, self.rrh[i[0]].node)
-							print("took {}".format(j))
-							print("RRH is on VPON {}".format(self.rrh[i[0]].wavelength))
-							print(lambda_node)
+							#print("took {}".format(j))
+							#print("RRH is on VPON {}".format(self.rrh[i[0]].wavelength))
+							#print(lambda_node)
 							break
 				#if no lambda was allocated at all, blocks the request
 				if self.rrh[i[0]].wavelength == None:
@@ -1029,11 +1029,13 @@ class ILP(object):
 	#This method takes the RRH to be deallocated and free the resources from the
 	#data structures of the node, lambda, du and switches
 	def deallocateRRH(self, rrh):
+		print("Deallocating {}".format(rrh.var_x[0]))
 		#take the decision variables on the rrh and release the resources
 		#take the node, lambda and DU
 		node_id = rrh.var_x[1]
 		rrhs_on_nodes[node_id] -= 1
 		lambda_id = rrh.var_x[2]
+		print("Freeing DU {}".format(rrh.var_u[2]))
 		du = rrh.var_u[2]
 		#find the wavelength
 		wavelength_capacity[lambda_id] += RRHband
