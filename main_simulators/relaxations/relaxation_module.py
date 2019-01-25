@@ -208,8 +208,8 @@ print("Solving time: {}".format(s.solve_details.time))
 #for x in dec.var_x:
 #	print(x, dec.var_x[x].solution_value)
 mostProbability(dec,ilp)
-#for i in dec.var_x:
-#	print(i[0])
+#for i in dec.var_u:
+#	print(i[2])
 print(rlx.switchBandwidth)
 ilp.relaxUpdate(dec)
 
@@ -225,17 +225,18 @@ ilp.relaxUpdate(dec)
 #print(rlx.nodeCost)
 #print("--------NODE STATE------")
 #print(rlx.nodeState)
-#print("--------LAMBDA COST-------")
-#print(rlx.lc_cost)
+print("--------LAMBDA COST-------")
+print(rlx.lc_cost)
+print(rlx.wavelength_capacity)
 #print("-------LAMBDA STATE-----")
 #print(rlx.lambda_state)
 #print("-----------DU CAPACITY--------")
 #print(rlx.du_processing)
 
-print("---------SWITCH STATE--------------")
-print(rlx.switch_cost)
-print(rlx.switchBandwidth)
-print(rlx.switch_state)
+#print("---------SWITCH STATE--------------")
+#print(rlx.switch_cost)
+#print(rlx.switchBandwidth)
+#print(rlx.switch_state)
 print(u.getPowerConsumption())
 
 

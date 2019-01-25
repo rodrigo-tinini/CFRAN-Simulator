@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
+
+
 #some static methods
 #check if a DU in some node has free capacity
 def checkCapacityDU(node, du):
@@ -39,7 +41,7 @@ def getNodeCapacity(node):
 
 #check if a lambda has capacity for a request
 def checkLambdaCapacity(wavelength):
-	if wavelength_capacity[wavelength] >= 0:
+	if wavelength_capacity[wavelength] >= 614.4:
 		return True
 	else:
 		return False
@@ -54,6 +56,14 @@ def checkLambdaCapacityRRH(wavelength, bandwdith):
 #get bandwidth capacity of a lambda
 def getLambdaCapacity(wavelength):
 	return wavelength_capacity[wavelength]
+
+#block an already allocated lambda in other nodes
+def blockLambda(wavelength, node):
+	ln = lambda_node[wavelength]
+	for i in range(len(ln)):
+		if i != node:
+			ln[i] = 0
+
 
 #check if a lambda is free to be allocated on a given node
 def checkLambdaNode(node, wavelength):
@@ -597,23 +607,75 @@ class ILP(object):
 					#print("-----------blocking--------")
 					self.rrh[i[0]].blocked = True#ele só entra aqui se nem a cloud nem a fog tem capacidade, aí eu tenho que bloqueá-lo
 			#allocate the lambda
-			if checkLambdaNode(rrh[i[0]].node,i[2]) and checkLambdaCapacity(i[2]):
+			if checkLambdaNode(self.rrh[i[0]].node,i[2]) and checkLambdaCapacity(i[2]):
+				#move wavelength capacity update here
+				print(wavelength_capacity)
 				self.rrh[i[0]].wavelength = i[2]
+				wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
+				if lambda_state[self.rrh[i[0]].wavelength] == 0:
+					lambda_state[self.rrh[i[0]].wavelength] = 1
+					lc_cost[self.rrh[i[0]].wavelength] = 0
+				blockLambda(self.rrh[i[0]].wavelength, self.rrh[i[0]].node)
+				print(lambda_node[self.rrh[i[0]].wavelength])
 			else:#if the chosen lambda is not available, tries to get a previously lambda allocated on the node
-				for j in range(len(lambda_node[self.rrh[i[0]].node])):
-					if lambda_node[self.rrh[i[0]].node][j] == 0 and lambda_node[self.rrh[i[0]].node][j] != i[2]:
-						self.rrh[i[0]].wavelength = j
-						break
+				print("NOOOOOO")
+				for j in range(len(lambda_node)):
+					#another lambda is allocated on the node
+					if lambda_node[j][self.rrh[i[0]].node] == 1 and lambda_node[j][self.rrh[i[0]].node] != i[2]:
+						#check if it has capacity
+						if checkLambdaCapacity(j):
+							#it has free capacity
+							self.rrh[i[0]].wavelength = j
+							wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
+							if lambda_state[self.rrh[i[0]].wavelength] == 0:
+								lambda_state[self.rrh[i[0]].wavelength] = 1
+							lc_cost[self.rrh[i[0]].wavelength] = 0
+							print("going to break")
+							break
+
+
+				#for j in range(len(lambda_node[self.rrh[i[0]].node])):
+				#	print(j)
+				#	if lambda_node[self.rrh[i[0]].node][j] == 0 and lambda_node[self.rrh[i[0]].node][j] != i[2]:
+				#		self.rrh[i[0]].wavelength = j
+				#		wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
+				#		if lambda_state[self.rrh[i[0]].wavelength] == 0:
+				#			lambda_state[self.rrh[i[0]].wavelength] = 1
+				#		lc_cost[self.rrh[i[0]].wavelength] = 0
+				#		print("going to break")
+				#		break
 				#if no lambda was found, take another one that is available
 				if self.rrh[i[0]].wavelength == None:
+					print("anottttheeer")
 					for j in range(len(lambda_state)):
 						if lambda_state[j] == 0: #this lambda is available
 							self.rrh[i[0]].wavelength = j
+							wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
+							if lambda_state[self.rrh[i[0]].wavelength] == 0:
+								lambda_state[self.rrh[i[0]].wavelength] = 1
+							lc_cost[self.rrh[i[0]].wavelength] = 0
+							blockLambda(self.rrh[i[0]].wavelength, self.rrh[i[0]].node)
+							print("took {}".format(j))
+							print("RRH is on VPON {}".format(self.rrh[i[0]].wavelength))
+							print(lambda_node)
 							break
 				#if no lambda was allocated at all, blocks the request
 				if self.rrh[i[0]].wavelength == None:
 					#print("bloaueeeeeou lambda")
 					self.rrh[i[0]].blocked = True #blocks the request
+			#turn the VPON on if it is not
+			#if self.rrh[i[0]].blocked == None:
+			#	node_id = self.rrh[i[0]].node
+			#	if lambda_state[self.rrh[i[0]].wavelength] == 0:
+			#		lambda_state[self.rrh[i[0]].wavelength] = 1
+			#		lc_cost[self.rrh[i[0]].wavelength] = 0
+			#		ln = lambda_node[self.rrh[i[0]].wavelength]
+			#		for j in range(len(ln)):
+			#			if j == node_id:
+			#				ln[j] = 1
+			#			else:
+			#				ln[j] = 0
+					
 
 		#allocates the DU for the RRH
 		for i in solution.var_u:
@@ -627,8 +689,8 @@ class ILP(object):
 					#print("TEEEM")
 					#if du is different from the lambda, check if the switch has capacity
 					if i[2] != self.rrh[i[0]].wavelength:
-						print("IS DIFFERENT")
-						print(switchBandwidth[self.rrh[i[0]].node])
+						#print("IS DIFFERENT")
+						#print(switchBandwidth[self.rrh[i[0]].node])
 						if switchBandwidth[self.rrh[i[0]].node] >= RRHband:
 							self.rrh[i[0]].var_u = i
 							self.rrh[i[0]].du = i[2]
@@ -651,8 +713,8 @@ class ILP(object):
 						if checkCapacityDU(self.rrh[i[0]].node, j):
 							#print("hereeeeee33333333")
 							if j != self.rrh[i[0]].wavelength:
-								print("IS DIFFERENT TOO")
-								print(switchBandwidth[self.rrh[i[0]].node])
+								#print("IS DIFFERENT TOO")
+								#print(switchBandwidth[self.rrh[i[0]].node])
 								if switchBandwidth[self.rrh[i[0]].node] >= RRHband:
 									self.rrh[i[0]].du = j
 									break
@@ -678,17 +740,17 @@ class ILP(object):
 						nodeCost[self.rrh[i[0]].node] = 0
 						nodeState[self.rrh[i[0]].node] = 1
 					#turn the VPON on if it is not
-					node_id = self.rrh[i[0]].node
-					if lambda_state[self.rrh[i[0]].wavelength] == 0:
-						lambda_state[self.rrh[i[0]].wavelength] = 1
-						lc_cost[self.rrh[i[0]].wavelength] = 0
-						ln = lambda_node[self.rrh[i[0]].wavelength]
-						for j in range(len(ln)):
-							if j == node_id:
-								ln[j] = 1
-							else:
-								ln[j] = 0
-					wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
+					#node_id = self.rrh[i[0]].node
+					#if lambda_state[self.rrh[i[0]].wavelength] == 0:
+					#	lambda_state[self.rrh[i[0]].wavelength] = 1
+					#	lc_cost[self.rrh[i[0]].wavelength] = 0
+					#	ln = lambda_node[self.rrh[i[0]].wavelength]
+					#	for j in range(len(ln)):
+					#		if j == node_id:
+					#			ln[j] = 1
+					#		else:
+					#			ln[j] = 0
+					#wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
 					#wavelength_capacity[self.rrh[i[0]].wavelength] -= RRHband
 				#if self.rrh[i[0]].blocked == None:
 					node_id = self.rrh[i[0]].node
