@@ -698,6 +698,8 @@ class ILP(object):
 							if checkCapacityDU(self.rrh[i[0]].node, self.rrh[i[0]].wavelength): #the DU equal to the lambda has capacity, allocate it
 								self.rrh[i[0]].du = self.rrh[i[0]].wavelength
 							else:
+								print("NOOOOOOOOO {}".format(self.rrh[i[0]]))
+								print(self.rrh[i[0]].du)
 								pass
 					else:
 						#print("IS EQUAL")
@@ -722,6 +724,8 @@ class ILP(object):
 									if checkCapacityDU(self.rrh[i[0]].node, self.rrh[i[0]].wavelength): #the DU equal to the lambda has capacity, allocate it
 										self.rrh[i[0]].du = self.rrh[i[0]].wavelength
 									else:
+										print("NOOOOOOOOO {}".format(self.rrh[i[0]]))
+										print(self.rrh[i[0]].du)
 										pass
 							else:
 								#print("second DU option is equal to wavelength of the RRH")
@@ -729,6 +733,7 @@ class ILP(object):
 				#if no DU with capacity was found, blocks the requisition
 				if self.rrh[i[0]].du == None:
 					self.rrh[i[0]].blocked = True #blocks
+					print("RRH {} blocked by DU".format(self.rrh[i[0]]))
 				#now, if the rrhs was not blocked, update the state of the DUs at the processing nodes
 				#now, if the RRH was not blocked, update the network state
 				if self.rrh[i[0]].blocked == None:
@@ -1029,7 +1034,7 @@ class ILP(object):
 	#This method takes the RRH to be deallocated and free the resources from the
 	#data structures of the node, lambda, du and switches
 	def deallocateRRH(self, rrh):
-		print("Deallocating {}".format(rrh.var_x[0]))
+		print("Deallocating {}".format(rrh.id))
 		#take the decision variables on the rrh and release the resources
 		#take the node, lambda and DU
 		node_id = rrh.var_x[1]
