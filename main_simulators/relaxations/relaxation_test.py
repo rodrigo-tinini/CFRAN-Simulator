@@ -90,10 +90,10 @@ def getFirstFreeVPON(node):
 
 #get the lambda with most allocated RRHs
 def getMaxLoadVPON(node):
-	return max(nodes_vpons_capacity[node], key=nodes_vpons_capacity[node].get)
+	vp = max(nodes_vpons_capacity[node], key=nodes_vpons_capacity[node].get)
 
 #get the lambda with least allocated RRHs
-def getMaxLoadVPON(node):
+def getMinLoadVPON(node):
 	return min(nodes_vpons_capacity[node], key=nodes_vpons_capacity[node].get)
 
 #update the capacity of the vpons allocated in each node:
@@ -584,6 +584,9 @@ class ILP(object):
 	#In the post processing algorithms below, the allocation of variables is done based on the Xiwj variables
 	#So, we try to allocate resources considering the allocation returned for each RRH, in other words, the results of Xiwj will lead the allocation of resources
 
+	
+
+
 	#this is a naive post processing algorithm - the reasons for that are showed below
 	#this class updates the network state based on the result of the ILP relaxation - Pelo que estou vendo, vou ter que rodar o update para cada RRH, e não de uma vez como fazia
 	#this is the post processing algorithm that allcoates all RRHs returned on the solution at the same time
@@ -724,12 +727,13 @@ class ILP(object):
 									if checkCapacityDU(self.rrh[i[0]].node, self.rrh[i[0]].wavelength): #the DU equal to the lambda has capacity, allocate it
 										self.rrh[i[0]].du = self.rrh[i[0]].wavelength
 									else:
-										print("NOOOOOOOOO {}".format(self.rrh[i[0]]))
+										print("NOOOaaaaaaaaOOOOOO {}".format(self.rrh[i[0]]))
 										print(self.rrh[i[0]].du)
 										pass
 							else:
 								#print("second DU option is equal to wavelength of the RRH")
 								self.rrh[i[0]].du = j
+				#print(self.rrh[i[0]].du)
 				#if no DU with capacity was found, blocks the requisition
 				if self.rrh[i[0]].du == None:
 					self.rrh[i[0]].blocked = True #blocks
@@ -763,6 +767,7 @@ class ILP(object):
 					#update the DU capacitu
 					du = du_processing[node_id]
 					du[du_id] -= 1
+					print(du_processing[node_id])
 					if du_state[node_id][du_id] == 0:
 						#du was deactivated - activates it
 						du_state[node_id][du_id] = 1
@@ -793,6 +798,9 @@ class ILP(object):
 			lbda_capacity = checkLambdaCapacity(i) 
 			if not lbda_capacity:
 				lc_cost[i] = 999999999
+		for i in self.rrh:
+			if i.du == None:
+				print("DU VAZIO")
 
 	#this method tries to minimize lambdas on the nodes, so, regardless of the lambdas returned on the Xiwj variables, if there is a activate VPON in a node, it is allocated to the RRH i
 	#this will probably increase the switch delay, but will reduce the amount of lambdas per node and so the blocking probability
@@ -1034,18 +1042,22 @@ class ILP(object):
 	#This method takes the RRH to be deallocated and free the resources from the
 	#data structures of the node, lambda, du and switches
 	def deallocateRRH(self, rrh):
-		print("Deallocating {}".format(rrh.id))
+		#print("Deallocating {}".format(rrh.id))
 		#take the decision variables on the rrh and release the resources
 		#take the node, lambda and DU
-		node_id = rrh.var_x[1]
+		#node_id = rrh.var_x[1]
+		node_id = rrh.node
 		rrhs_on_nodes[node_id] -= 1
-		lambda_id = rrh.var_x[2]
-		print("Freeing DU {}".format(rrh.var_u[2]))
-		du = rrh.var_u[2]
+		#lambda_id = rrh.var_x[2]
+		lambda_id = rrh.wavelength
+		#print("Freeing DU {}".format(rrh.var_u[2]))
+		#du = rrh.var_u[2]
+		du = rrh.du
 		#find the wavelength
 		wavelength_capacity[lambda_id] += RRHband
 		#updates the DU capacity
 		node = du_processing[node_id]
+		#print("Deallocatin DU {}".format(du))
 		node[du] += 1
 		#verify if the du needs to be turned off
 		if node_id == 0:
@@ -1454,7 +1466,7 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 ]
 du_processing = [
-[8.0, 8.0, 8.0, 8.0],
+[8.0, 8.0, 0.0, 0.0],
 [4.0, 4.0, 4.0, 4.0 ],
 [4.0, 4.0, 4.0, 4.0 ],
 
