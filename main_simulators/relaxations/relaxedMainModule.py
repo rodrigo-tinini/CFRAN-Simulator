@@ -3,10 +3,42 @@ import simpy
 import functools
 import random as np
 import time
+import copy
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
+
+#returns the most loaded VPON in a processing node
+def getMostLoadedVPON(node, n_state):
+	vpons = copy.deepcopy(n_state.nodes_vpons_capacity[node])
+	while(vpons):
+		mostLoaded = max(vpons, key = vpons.__getitem__)
+		if vpons[mostLoaded] >= n_state.RRHband:
+			return mostLoaded
+		else:
+			del vpons[mostLoaded]
+
+#returns the least loaded VPON in a processing node
+def getLeastLoadedVPON(node, n_state):
+	vpons = copy.deepcopy(n_state.nodes_vpons_capacity[node])
+	while(vpons):
+		mostLoaded = min(vpons, key = vpons.__getitem__())
+		if vpons[mostLoaded] >= n_state.RRHband:
+			return mostLoaded
+		else:
+			del vpons[mostLoaded]
+
+#test
+#nodes_vpons_capacity = {}
+#for i in range(3):
+#	nodes_vpons_capacity[i] = {}
+#RRHband = 2001
+#nodes_vpons_capacity[0][0] = 2001
+#nodes_vpons_capacity[0][1] = 2000
+#v = getMostLoadedVPON(0)
+#print(v)
+#print(nodes_vpons_capacity)
 
 #this method returns the u variable given the RRH index
 def getVarU(aIndex, solution):
@@ -104,7 +136,7 @@ def FirstFitRelaxMinVPON(rrh, solution, n_state):
 		if rrh[i[0]].blocked == False:
 			#verifies if the node has an activate VPON
 			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
-				#if it has, gets the first free VPON - MODIFY THIS TO TAKE THE VPON MOST LOADED
+				#if it has, gets the first free VPON
 				vpon = getFirstFreeVPON(rrh[i[0]])
 				#check if there is capacity on this VPON
 				if vpon:#allocate the RRH on this VPON
@@ -127,8 +159,6 @@ def FirstFitRelaxMinVPON(rrh, solution, n_state):
 		#gets the VDU returned on the solution
 		vdu = var_u[2]
 		if rrh[i[0]].blocked != True:
-			#break
-		else:
 			#check if the VDU returned has capacity and if the switch will be used
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1:
 				#allocates this VDU on the RRH and did not use the switch
@@ -181,7 +211,7 @@ def NaiveVDUFirstFitRelaxMinVPON(rrh, solution, n_state):
 		if rrh[i[0]].blocked == False:
 			#verifies if the node has an activate VPON
 			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
-				#if it has, gets the first free VPON - MODIFY THIS TO TAKE THE VPON MOST LOADED
+				#if it has, gets the first free VPON
 				vpon = getFirstFreeVPON(rrh[i[0]])
 				#check if there is capacity on this VPON
 				if vpon:#allocate the RRH on this VPON
@@ -204,8 +234,6 @@ def NaiveVDUFirstFitRelaxMinVPON(rrh, solution, n_state):
 		#gets the VDU returned on the solution
 		vdu = var_u[2]
 		if rrh[i[0]].blocked != True:
-			#break
-		else:
 			#check if the VDU returned has capacity and if the switch will be used
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1:
 				#allocates this VDU on the RRH and did not use the switch
@@ -297,7 +325,7 @@ def mostLoadedVPON(solution, n_state):
 			#verifies if the node has an activate VPON
 			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
 				#if it has, gets the most loaded VPON
-				vpon = rlx.getMaxLoadVPON(rrh[i[0]])
+				vpon = getMostLoadedVPON(rrh[i[0]], n_state)
 				#check if there is capacity on this VPON
 				if vpon:#allocate the RRH on this VPON
 					updateVponState(rrh[i[0]], vpon)
@@ -319,8 +347,6 @@ def mostLoadedVPON(solution, n_state):
 		#gets the VDU returned on the solution
 		vdu = var_u[2]
 		if rrh[i[0]].blocked != True:
-			#break
-		else:
 			#check if the VDU returned has capacity and if the switch will be used
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1:
 				#allocates this VDU on the RRH and did not use the switch
@@ -380,8 +406,8 @@ def minLoadedVPON(solution, n_state):
 		if rrh[i[0]].blocked == False:
 			#verifies if the node has an activate VPON
 			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
-				#if it has, gets the most loaded VPON
-				vpon = rlx.getMinLoadVPON(rrh[i[0]])
+				#if it has, gets the least loaded VPON
+				vpon = getLeastLoadedVPON(rrh[i[0]], n_state)
 				#check if there is capacity on this VPON
 				if vpon:#allocate the RRH on this VPON
 					updateVponState(rrh[i[0]], vpon)
@@ -403,8 +429,6 @@ def minLoadedVPON(solution, n_state):
 		#gets the VDU returned on the solution
 		vdu = var_u[2]
 		if rrh[i[0]].blocked != True:
-			#break
-		else:
 			#check if the VDU returned has capacity and if the switch will be used
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1:
 				#allocates this VDU on the RRH and did not use the switch
@@ -510,7 +534,7 @@ class NetworkState(object):
 		#bandwidth capacity of each wavelength
 		self.wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
 		#basic CPRI line used
-		self.RRHband = 614.4;
+		self.RRHband = 614.4
 		#capacity of each VDU on the cloud
 		self.cloud_du_capacity = 9.0
 		#capacity of each VDU in a fog node
@@ -521,9 +545,9 @@ class NetworkState(object):
 		self.switch_state = [0,0,0]
 
 	#modify the parameters
-	def newValuesNetState(self, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState
-		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband. cloud_du_capacity, 
-		fog_du_capacity, lambda_state, switch_state, RRHband, cloud_du_capacity, fog_du_capacity, lambda_state,switch_state):
+	def newValuesNetState(self, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
+		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
+		fog_du_capacity, lambda_state, switch_state):
 		#to keep the amount of RRHs being processed on each node
 		self.rrhs_on_nodes = rrhs_on_nodes
 		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
@@ -549,7 +573,7 @@ class NetworkState(object):
 		#bandwidth capacity of each wavelength
 		self.wavelength_capacity = wavelength_capacity
 		#basic CPRI line used
-		self.RRHband = RRHband;
+		self.RRHband = RRHband
 		#capacity of each VDU on the cloud
 		self.cloud_du_capacity = cloud_du_capacity
 		#capacity of each VDU in a fog node
