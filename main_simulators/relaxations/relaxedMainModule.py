@@ -4,15 +4,36 @@ import functools
 import random as np
 import time
 import copy
+import operator
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
 
+#returns the most loaded VDU in a processing node
+def getMostLoadedVDU(node, n_state):
+	vdus = copy.deepcopy(n_state.du_processing[node])
+	while vdus:
+		v = min(n_state.du_processing[node])
+		if v == 0:
+			del vdus[vdus.index(v)]
+		else:
+			return lista.index(v)
+
+#returns the least loaded VDU in a processing node
+def getLeastLoadedVDU(node, n_state):
+	vdus = copy.deepcopy(n_state.du_processing[node])
+	while vdus:
+		v = max(n_state.du_processing[node])
+		if v == 0:
+			del vdus[vdus.index(v)]
+		else:
+			return lista.index(v)
+
 #returns the most loaded VPON in a processing node
 def getMostLoadedVPON(node, n_state):
 	vpons = copy.deepcopy(n_state.nodes_vpons_capacity[node])
-	while(vpons):
+	while vpons:
 		mostLoaded = max(vpons, key = vpons.__getitem__)
 		if vpons[mostLoaded] >= n_state.RRHband:
 			return mostLoaded
@@ -22,7 +43,7 @@ def getMostLoadedVPON(node, n_state):
 #returns the least loaded VPON in a processing node
 def getLeastLoadedVPON(node, n_state):
 	vpons = copy.deepcopy(n_state.nodes_vpons_capacity[node])
-	while(vpons):
+	while vpons:
 		mostLoaded = min(vpons, key = vpons.__getitem__())
 		if vpons[mostLoaded] >= n_state.RRHband:
 			return mostLoaded
@@ -376,16 +397,6 @@ def mostLoadedVPON(solution, n_state):
 #this method reduces the VPONs and VDUs used in a node
 #it will always try to allocate the most loaded VPON in a node and the most loaded VDU
 def mostLoadedVponVDU(solution, n_state):
-	pass
-
-#this method reduces the VPONs and VDUs used in a node
-#it will always try to allocate the most loaded VPON in a node and the most loaded VDU that matches the VPONs allocated firstly
-def mostLoadedEqualVponVDU(solution, n_state):
-	pass
-
-#this method allocates the vBBU in the least loaded VPON in a node, then in the one returned on the solution, then, in another one available
-def minLoadedVPON(solution, n_state):
-	#iterate over each RRH on the solution
 	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
 	for i in solution.var_x:
 		#the node has capacity on its VDUs?
@@ -406,7 +417,182 @@ def minLoadedVPON(solution, n_state):
 		if rrh[i[0]].blocked == False:
 			#verifies if the node has an activate VPON
 			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
-				#if it has, gets the least loaded VPON
+				#if it has, gets the most loaded VPON
+				vpon = getMostLoadedVPON(rrh[i[0]], n_state)
+				#check if there is capacity on this VPON
+				if vpon:#allocate the RRH on this VPON
+					updateVponState(rrh[i[0]], vpon)
+			#if not, take the VPON returned on the solution
+			#check if the VPON returned on the solution has capacity to support the RRH
+			elif checkLambdaNode(rrh[i[0]].node,i[2]) and checkLambdaCapacity(i[2]):
+				#allocate the VPON to the RRH and its node and update its state
+				updateVponState(rrh[i[0]], i[2])
+			#if neither an already allocated VPON or the returned one has capacity, take another one that is free
+			elif getFreeVPON():
+				pass
+			#no free non-allocated was found, then blocks the requisition and reverts the allocation done in the processing node
+			else:
+				rrh[i[0]].blocked = True
+				freeNodeResources()
+		#if until this moment RRH was not blocked, tries to allocate the VDU
+		#get var_u - which contains the VDU
+		var_u = getVarU(i, solution)
+		#gets the VDU returned on the solution
+		vdu = var_u[2]
+		if rrh[i[0]].blocked != True:
+			#tries to allocate on the most loaded VDU
+			most_vdu = getMostLoadedVDU(rrh[i[0]].node, n_state)
+			if checkAvailabilityVDU(most_vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1
+				rrh[i[0]].du = most_vdu
+				updateVDU(most_vdu, rrh[i[0]].node)
+			elif checkAvailabilityVDU(most_vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 0:
+				#allocates the VDU and activates the ethernet switch
+				rrh[i[0]].du = most_vdu
+				updateVDU(most_vdu, rrh[i[0]].node)
+				updateSwitch(rrh[i[0]].node)
+			elif not checkAvailabilityVDU(most_vdu, rrh[i[0]].node, rrh[i[0]].wavelength):
+				#if the most loaded VDU or the switch has no free capacity, tries to get the returned on the solution and then, another one free
+				if vdu != most_vdu:
+					if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1
+						rrh[i[0]].du = vdu
+						updateVDU(vdu, rrh[i[0]].node)
+					elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 0:
+						#allocates the VDU and activates the ethernet switch
+						rrh[i[0]].du = vdu
+						updateVDU(vdu, rrh[i[0]].node)
+						updateSwitch(rrh[i[0]].node)
+				if rrh[i[0]].du == None:
+				#elif not checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength):
+					#the most loaded VDU or the switch has no free capacity, so, get the first fit VDU different from the returned on the solution
+					for d in range(len(n_state.du_processing[rrh[i[0]].node])):
+						if not checkSwitchUse:
+							if rlx.checkCapacityDU(rrh[i[0]].node, d):
+								rrh[i[0]].du = d
+								updateVDU(d, rrh[i[0]].node)
+								break
+						if rlx.checkCapacityDU(rrh[i[0]].node, d):
+							if checkSwitchUse(d, rrh[i[0]].wavelength) and checkSwitchCapacity(rrh[i[0]].node):
+								rrh[i[0]].du = d
+								updateVDU(d, rrh[i[0]].node)
+								updateSwitch(rrh[i[0]].node)
+								break
+		if rrh[i[0]].du == None:
+			rrh[i[0]].blocked = True
+			freeNodeResources()
+
+#it will always try to allocate the least loaded VPON in a node and the least loaded VDU
+def leastLoadedVponVDU(solution, n_state):
+	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
+	for i in solution.var_x:
+		#the node has capacity on its VDUs?
+		if i[1] == 0 and rlx.checkNodeCapacity(i[1]):
+			#it has, allocate the node to the RRH
+			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
+			rrh[i[0]].node = i[1]
+		else:
+			if rlx.checkNodeCapacity(rrh[i[0]].fog):
+					rrh[i[0]].node = rrh[i[0]].fog
+		#update the node cost, number of allocated RRHs and capacity
+		if rrh[i[0]].node != None:
+			updateNode(rrh[i[0]])
+		#if no node was allocated, blocks the requisition
+		else:
+			rrh[i[0]].blocked = True
+		#now, if a node was found for the RRH, tries to allocate the VPON
+		if rrh[i[0]].blocked == False:
+			#verifies if the node has an activate VPON
+			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
+				#if it has, gets the most loaded VPON
+				vpon = getLeastLoadedVPON(rrh[i[0]], n_state)
+				#check if there is capacity on this VPON
+				if vpon:#allocate the RRH on this VPON
+					updateVponState(rrh[i[0]], vpon)
+			#if not, take the VPON returned on the solution
+			#check if the VPON returned on the solution has capacity to support the RRH
+			elif checkLambdaNode(rrh[i[0]].node,i[2]) and checkLambdaCapacity(i[2]):
+				#allocate the VPON to the RRH and its node and update its state
+				updateVponState(rrh[i[0]], i[2])
+			#if neither an already allocated VPON or the returned one has capacity, take another one that is free
+			elif getFreeVPON():
+				pass
+			#no free non-allocated was found, then blocks the requisition and reverts the allocation done in the processing node
+			else:
+				rrh[i[0]].blocked = True
+				freeNodeResources()
+		#if until this moment RRH was not blocked, tries to allocate the VDU
+		#get var_u - which contains the VDU
+		var_u = getVarU(i, solution)
+		#gets the VDU returned on the solution
+		vdu = var_u[2]
+		if rrh[i[0]].blocked != True:
+			#tries to allocate on the most loaded VDU
+			least_vdu = getLeastLoadedVDU(rrh[i[0]].node, n_state)
+			if checkAvailabilityVDU(least_vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1
+				rrh[i[0]].du = least_vdu
+				updateVDU(least_vdu, rrh[i[0]].node)
+			elif checkAvailabilityVDU(least_vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 0:
+				#allocates the VDU and activates the ethernet switch
+				rrh[i[0]].du = least_vdu
+				updateVDU(least_vdu, rrh[i[0]].node)
+				updateSwitch(rrh[i[0]].node)
+			elif not checkAvailabilityVDU(least_vdu, rrh[i[0]].node, rrh[i[0]].wavelength):
+				#if the most loaded VDU or the switch has no free capacity, tries to get the returned on the solution and then, another one free
+				if vdu != least_vdu:
+					if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1
+						rrh[i[0]].du = vdu
+						updateVDU(vdu, rrh[i[0]].node)
+					elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 0:
+						#allocates the VDU and activates the ethernet switch
+						rrh[i[0]].du = vdu
+						updateVDU(vdu, rrh[i[0]].node)
+						updateSwitch(rrh[i[0]].node)
+				if rrh[i[0]].du == None:
+				#elif not checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength):
+					#the most loaded VDU or the switch has no free capacity, so, get the first fit VDU different from the returned on the solution
+					for d in range(len(n_state.du_processing[rrh[i[0]].node])):
+						if not checkSwitchUse:
+							if rlx.checkCapacityDU(rrh[i[0]].node, d):
+								rrh[i[0]].du = d
+								updateVDU(d, rrh[i[0]].node)
+								break
+						if rlx.checkCapacityDU(rrh[i[0]].node, d):
+							if checkSwitchUse(d, rrh[i[0]].wavelength) and checkSwitchCapacity(rrh[i[0]].node):
+								rrh[i[0]].du = d
+								updateVDU(d, rrh[i[0]].node)
+								updateSwitch(rrh[i[0]].node)
+								break
+		if rrh[i[0]].du == None:
+			rrh[i[0]].blocked = True
+			freeNodeResources()
+
+#this method reduces the VPONs and VDUs used in a node
+#it will always try to allocate the most loaded VPON in a node and the most loaded VDU that matches the VPONs allocated firstly
+def mostLoadedEqualVponVDU(solution, n_state):
+	pass
+
+#this method allocates the vBBU in the least loaded VPON in a node, then in the one returned on the solution, then, in another one available
+def leastLoadedVPON(solution, n_state):
+	#iterate over each RRH on the solution
+	for i in solution.var_x:
+		#the node has capacity on its VDUs?
+		if i[1] == 0 and rlx.checkNodeCapacity(i[1]):
+			#it has, allocate the node to the RRH
+			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
+			rrh[i[0]].node = i[1]
+		else:
+			if rlx.checkNodeCapacity(rrh[i[0]].fog):
+					rrh[i[0]].node = rrh[i[0]].fog
+		#update the node cost, number of allocated RRHs and capacity
+		if rrh[i[0]].node != None:
+			updateNode(rrh[i[0]])
+		#if no node was allocated, blocks the requisition
+		else:
+			rrh[i[0]].blocked = True
+		#now, if a node was found for the RRH, tries to allocate the VPON
+		if rrh[i[0]].blocked == False:
+			#verifies if the node has an activate VPON
+			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
+				#if it has, gets the most loaded VPON
 				vpon = getLeastLoadedVPON(rrh[i[0]], n_state)
 				#check if there is capacity on this VPON
 				if vpon:#allocate the RRH on this VPON
@@ -451,6 +637,108 @@ def minLoadedVPON(solution, n_state):
 							rrh[i[0]].du = d
 							updateSwitch(rrh[i[0]].node)
 							break
+		if rrh[i[0]].du == None:
+			rrh[i[0]].blocked = True
+			freeNodeResources()
+
+#this naive most loaded VPON heuristic allocates the most loaded VPON and on the returned VDU only and no other else
+def naiveMostLoadedVPON(solution, n_state):
+	#iterate over each RRH on the solution
+	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
+	for i in solution.var_x:
+		#the node has capacity on its VDUs?
+		if i[1] == 0 and rlx.checkNodeCapacity(i[1]):
+			#it has, allocate the node to the RRH
+			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
+			rrh[i[0]].node = i[1]
+		else:
+			if rlx.checkNodeCapacity(rrh[i[0]].fog):
+					rrh[i[0]].node = rrh[i[0]].fog
+		#update the node cost, number of allocated RRHs and capacity
+		if rrh[i[0]].node != None:
+			updateNode(rrh[i[0]])
+		#if no node was allocated, blocks the requisition
+		else:
+			rrh[i[0]].blocked = True
+		#now, if a node was found for the RRH, tries to allocate the VPON
+		if rrh[i[0]].blocked == False:
+			#verifies if the node has an activate VPON
+			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
+				#if it has, gets the most loaded VPON
+				vpon = getMostLoadedVPON(rrh[i[0]], n_state)
+				#check if there is capacity on this VPON
+				if vpon:#allocate the RRH on this VPON
+					updateVponState(rrh[i[0]], vpon)
+			else:
+				rrh[i[0]].blocked = True
+				freeNodeResources()
+		#if until this moment RRH was not blocked, tries to allocate the VDU
+		#get var_u - which contains the VDU
+		var_u = getVarU(i, solution)
+		#gets the VDU returned on the solution
+		vdu = var_u[2]
+		if rrh[i[0]].blocked != True:
+			#check if the VDU returned has capacity and if the switch will be used
+			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1:
+				#allocates this VDU on the RRH and did not use the switch
+				rrh[i[0]].du = vdu
+				updateVDU(vdu, rrh[i[0]].node)
+			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 0:
+				#allocates the VDU and activates the ethernet switch
+				rrh[i[0]].du = vdu
+				updateVDU(vdu, rrh[i[0]].node)
+				updateSwitch(rrh[i[0]].node)
+		if rrh[i[0]].du == None:
+			rrh[i[0]].blocked = True
+			freeNodeResources()
+
+#this naive least loaded VPON heuristic allocates the least loaded VPON only and the VDU of the solution and no other else
+def naiveLeastLoadedVPON(solution, n_state):
+	#iterate over each RRH on the solution
+	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
+	for i in solution.var_x:
+		#the node has capacity on its VDUs?
+		if i[1] == 0 and rlx.checkNodeCapacity(i[1]):
+			#it has, allocate the node to the RRH
+			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
+			rrh[i[0]].node = i[1]
+		else:
+			if rlx.checkNodeCapacity(rrh[i[0]].fog):
+					rrh[i[0]].node = rrh[i[0]].fog
+		#update the node cost, number of allocated RRHs and capacity
+		if rrh[i[0]].node != None:
+			updateNode(rrh[i[0]])
+		#if no node was allocated, blocks the requisition
+		else:
+			rrh[i[0]].blocked = True
+		#now, if a node was found for the RRH, tries to allocate the VPON
+		if rrh[i[0]].blocked == False:
+			#verifies if the node has an activate VPON
+			if rlx.checkNodeVPON(rrh[i[0]].node):#has active VPONs
+				#if it has, gets the most loaded VPON
+				vpon = getLeastLoadedVPON(rrh[i[0]], n_state)
+				#check if there is capacity on this VPON
+				if vpon:#allocate the RRH on this VPON
+					updateVponState(rrh[i[0]], vpon)
+			else:
+				rrh[i[0]].blocked = True
+				freeNodeResources()
+		#if until this moment RRH was not blocked, tries to allocate the VDU
+		#get var_u - which contains the VDU
+		var_u = getVarU(i, solution)
+		#gets the VDU returned on the solution
+		vdu = var_u[2]
+		if rrh[i[0]].blocked != True:
+			#check if the VDU returned has capacity and if the switch will be used
+			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 1:
+				#allocates this VDU on the RRH and did not use the switch
+				rrh[i[0]].du = vdu
+				updateVDU(vdu, rrh[i[0]].node)
+			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength) == 0:
+				#allocates the VDU and activates the ethernet switch
+				rrh[i[0]].du = vdu
+				updateVDU(vdu, rrh[i[0]].node)
+				updateSwitch(rrh[i[0]].node)
 		if rrh[i[0]].du == None:
 			rrh[i[0]].blocked = True
 			freeNodeResources()
@@ -626,4 +914,5 @@ class NetworkStateCollection(object):
 
 	#get the best solution for a given metric
 	def getBestSolution(self, metric, method):
-		best_metric = 
+		sol = method(self.network_states, key = operator.attrgetter("metric"))
+		return sol.aId
