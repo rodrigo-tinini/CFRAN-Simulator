@@ -508,46 +508,14 @@ def updateSwitch(node, n_state):
 #update the "real" network state
 class NetworkState(object):
 	#constructor 1
-	def __init__(self):
-		#to keep the amount of RRHs being processed on each node
-		self.rrhs_on_nodes = [0,0,0]
-		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
-		self.lambda_node = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],]
-		#capacity of each VDU
-		self.du_processing = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],]
-		#used to calculate the processing usage of the node
-		self.dus_total_capacity = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],]
-		#state of each VDU
-		self.du_state = [[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0],]
-		#state of each node
-		self.nodeState = [0,0,0]
-		#power cost of each processing node
-		self.nodeCost = [0.0,300.0,300.0,]
-		#power cost of each VDu
-		self.du_cost = [[100.0, 100.0, 100.0, 100.0],[50.0, 50.0, 50.0, 50.0],[50.0, 50.0, 50.0, 50.0],]
-		#power cost of each Line Card
-		self.lc_cost = [20.0,20.0,20.0,20.0,]
-		#power cost of the backplane switch
-		self.switch_cost = [15.0, 15.0, 15.0]
-		#bandwidth capacity of the backplane switch
-		self.switchBandwidth = [10000.0,10000.0,10000.0]
-		#bandwidth capacity of each wavelength
-		self.wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
-		#basic CPRI line used
-		self.RRHband = 614.4
-		#capacity of each VDU on the cloud
-		self.cloud_du_capacity = 9.0
-		#capacity of each VDU in a fog node
-		self.fog_du_capacity = 1.0
-		#state of each wavelength/VPON
-		self.lambda_state = [0,0,0,0]
-		#state of the backplane switch in each processing node
-		self.switch_state = [0,0,0]
-
-	#modify the parameters
-	def newValuesNetState(self, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
-		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
-		fog_du_capacity, lambda_state, switch_state):
+	def __init__(self, aId, rrhs_on_nodes = [0,0,0],lambda_node = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],],du_processing = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],],
+		dus_total_capacity = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],], du_state = [[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0],], nodeState = [0,0,0], 
+		nodeCost = [0.0,300.0,300.0,], du_cost = [[100.0, 100.0, 100.0, 100.0],[50.0, 50.0, 50.0, 50.0],[50.0, 50.0, 50.0, 50.0],], lc_cost = [20.0,20.0,20.0,20.0,], 
+		switch_cost = [15.0, 15.0, 15.0], switchBandwidth = [10000.0,10000.0,10000.0], wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0], RRHband = 614.4, 
+		cloud_du_capacity = 9.0, fog_du_capacity = 1.0, lambda_state = [0,0,0,0], switch_state = [0,0,0], delay = None, power = None, lambda_wastage = None, 
+		execution_time = None, migration_probability = None , total_migrations = None):
+		#Id of this network state
+		self.aId = aId
 		#to keep the amount of RRHs being processed on each node
 		self.rrhs_on_nodes = rrhs_on_nodes
 		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
@@ -582,3 +550,80 @@ class NetworkState(object):
 		self.lambda_state = lambda_state
 		#state of the backplane switch in each processing node
 		self.switch_state = switch_state
+		#metrics obtained on the solution
+		self.delay = delay
+		self.power = power
+		self.lambda_wastage = lambda_wastage
+		self.execution_time = execution_time
+		self.migration_probability = migration_probability
+		self.total_migrations = total_migrations
+	'''
+	def __init__(self, aId):
+		#Id of this solution
+		self.aId = aId
+		#to keep the amount of RRHs being processed on each node
+		self.rrhs_on_nodes = [0,0,0]
+		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
+		self.lambda_node = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],]
+		#capacity of each VDU
+		self.du_processing = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],]
+		#used to calculate the processing usage of the node
+		self.dus_total_capacity = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],]
+		#state of each VDU
+		self.du_state = [[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0],]
+		#state of each node
+		self.nodeState = [0,0,0]
+		#power cost of each processing node
+		self.nodeCost = [0.0,300.0,300.0,]
+		#power cost of each VDu
+		self.du_cost = [[100.0, 100.0, 100.0, 100.0],[50.0, 50.0, 50.0, 50.0],[50.0, 50.0, 50.0, 50.0],]
+		#power cost of each Line Card
+		self.lc_cost = [20.0,20.0,20.0,20.0,]
+		#power cost of the backplane switch
+		self.switch_cost = [15.0, 15.0, 15.0]
+		#bandwidth capacity of the backplane switch
+		self.switchBandwidth = [10000.0,10000.0,10000.0]
+		#bandwidth capacity of each wavelength
+		self.wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
+		#basic CPRI line used
+		self.RRHband = 614.4
+		#capacity of each VDU on the cloud
+		self.cloud_du_capacity = 9.0
+		#capacity of each VDU in a fog node
+		self.fog_du_capacity = 1.0
+		#state of each wavelength/VPON
+		self.lambda_state = [0,0,0,0]
+		#state of the backplane switch in each processing node
+		self.switch_state = [0,0,0]
+		#metrics obtained on this solution
+		self.delay = None
+		self.power = None
+		self.lambda_wastage = None
+		self.execution_time = None
+		self.migration_probability = None
+		self.total_migrations = None
+	'''
+	
+
+#this class encapsulates several network state to get the one with the best metric
+class NetworkStateCollection(object):
+	#amount is the number of times that the relaxation will be executed, thus, generation an "amoun" number of solutions
+	def __init__(self, amount):
+		#list of network state objects
+		self.network_states = []
+
+	#create the network state objects
+	def initStates(self, amount, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
+		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
+		fog_du_capacity, lambda_state, switch_state, delay, power, lambda_wastage, execution_time, migration_probability, total_migrations):
+		#create a network state object for each relaxation execution
+		for i in range(amount):
+			ns = NetworkState(i, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
+		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
+		fog_du_capacity, lambda_state, switch_state, delay, power, lambda_wastage, execution_time, migration_probability, total_migrations)
+			#put the object on the list
+			self.network_states.append(ns)
+
+	#get the best solution for a given metric
+	def getBestSolution(self, metric, method):
+		best_metric = 
