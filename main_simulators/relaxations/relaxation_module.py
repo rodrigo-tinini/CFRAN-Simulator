@@ -241,7 +241,7 @@ print(rlx.nodeState)
 #print(rlx.lc_cost)
 print(rlx.wavelength_capacity)
 #print("-------LAMBDA STATE-----")
-#print(rlx.lambda_state)
+print(rlx.lambda_state)
 #print("-----------DU CAPACITY--------")
 #print(rlx.du_processing)
 
