@@ -6,6 +6,7 @@ import time
 from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import relaxedMainModule as rl
 #Main relaxation module
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
@@ -587,7 +588,7 @@ class ILP(object):
 	
 
 
-	#this is a naive post processing algorithm - the reasons for that are showed below
+	#this is a naive post processing algorithm - the reasons for that are shown below
 	#this class updates the network state based on the result of the ILP relaxation - Pelo que estou vendo, vou ter que rodar o update para cada RRH, e não de uma vez como fazia
 	#this is the post processing algorithm that allcoates all RRHs returned on the solution at the same time
 	#this algorithm takes the lambda and the DU returned from the solution and tries to allocate them, regardless if the DU and the lambda are the same
@@ -1292,7 +1293,7 @@ class RRH(object):
 		self.node = None
 		self.wavelength = None
 		self.du = None
-		self.blocked = None
+		self.blocked = False
 
 	#updates the generation time
 	def updateGenTime(self, gen_time):
@@ -1466,7 +1467,7 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 ]
 du_processing = [
-[8.0, 8.0, 0.0, 0.0],
+[8.0, 8.0, 8.0, 8.0],
 [4.0, 4.0, 4.0, 4.0 ],
 [4.0, 4.0, 4.0, 4.0 ],
 

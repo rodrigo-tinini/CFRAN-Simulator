@@ -6,6 +6,7 @@ import operator
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
+import relaxedMainModule as rl
 
 #This algorith takes the output of the relaxed ILP (solution object) and treat constraints that
 #needed to be removed from the ILP formulation in order to relax the formulation and run it
@@ -188,10 +189,10 @@ def sophMostProbability(solution, ilp):
 def sohpIncMostProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
 
-'''
+
 #TESTS
 u = rlx.Util()
-antenas = u.newCreateRRHs(64, None, None, None)
+antenas = u.newCreateRRHs(20, None, None, None)
 np.shuffle(antenas)
 ilp = rlx.ILP(antenas, range(len(antenas)), rlx.nodes, rlx.lambdas, True)
 s = ilp.run()
@@ -211,8 +212,20 @@ mostProbability(dec,ilp)
 #for i in dec.var_u:
 #	print(i[2])
 #print(rlx.switchBandwidth)
-ilp.relaxUpdate(dec)
-'''
+#ilp.relaxUpdate(dec)
+
+rl.firstFitRelaxMinVPON(antenas, dec, rlx)
+#rl.naiveVDUFirstFitRelaxMinVPON(antenas, dec, rlx)
+#rl.relaxUpdateMostLoaded(antenas, dec, rlx)
+#rl.relaxUpdateLeastLoaded(antenas, dec, rlx)
+#rl.naiveRelaxUpdate(antenas, dec, rlx)
+#rl.mostLoadedVPON(antenas, dec, rlx)
+#rl.mostLoadedVponVDU(antenas, dec, rlx)
+#rl.leastLoadedVponVDU(antenas, dec, rlx)
+#rl.leastLoadedVPON(antenas, dec, rlx)
+#rl.naiveMostLoadedVPON(antenas, dec, rlx)
+#rl.naiveLeastLoadedVPON(antenas, dec, rlx)
+
 #for i in antenas:
 #	print("RRH {} node {}".format(i.id, i.node))
 #	print("RRH {} lambda {}".format(i.id, i.wavelength))
@@ -220,24 +233,23 @@ ilp.relaxUpdate(dec)
 #	print("RRH {} is blocked? {}".format(i.id, i.blocked))
 #for i in dec.var_x:
 #	print(i, dec.var_x[i])
-
 #print("-------NODE COST---------")
-#print(rlx.nodeCost)
+print(rlx.nodeCost)
 #print("--------NODE STATE------")
-#print(rlx.nodeState)
+print(rlx.nodeState)
 #print("--------LAMBDA COST-------")
 #print(rlx.lc_cost)
-#print(rlx.wavelength_capacity)
+print(rlx.wavelength_capacity)
 #print("-------LAMBDA STATE-----")
 #print(rlx.lambda_state)
 #print("-----------DU CAPACITY--------")
 #print(rlx.du_processing)
 
 #print("---------SWITCH STATE--------------")
-#print(rlx.switch_cost)
-#print(rlx.switchBandwidth)
-#print(rlx.switch_state)
-#print(u.getPowerConsumption())
+print(rlx.switch_cost)
+print(rlx.switchBandwidth)
+print(rlx.switch_state)
+print(u.getPowerConsumption())
 
 
 #----------------------------END OF TESTS---------------------------------------------
