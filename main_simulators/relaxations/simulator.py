@@ -9,8 +9,12 @@ import matplotlib.pyplot as plt
 #import batch_teste as lp
 import relaxation_test as plp
 import relaxation_module as rlx
+import relaxedMainModule as rm
 import copy
 import sys
+
+
+
 #to count the availability of the service
 total_service_availability = []
 avg_service_availability = []
@@ -788,7 +792,7 @@ class Traffic_Generator(object):
 
 #control plane that controls the allocations and deallocations
 class Control_Plane(object):
-	def __init__(self, env, util, type):
+	def __init__(self, env, util, type, number_of_runs):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
@@ -804,6 +808,12 @@ class Control_Plane(object):
 		if self.type == "load_inc_batch":
 			self.load_balancing = self.env.process(self.monitorLoad())
 			#self.cloud_balancing = self.env.process(self.cloudMonitor())
+		#number of runs of the relaxed ILP model
+		self.number_of_runs = number_of_runs
+		#to keep the different solutions for each run of the relazed ILP model
+		self.network_states = []
+
+
 
 	#batch scheduling1
 	def batchSched2(self, antenas, ilp_module):
@@ -1083,6 +1093,48 @@ class Control_Plane(object):
 			elif self.type == "load_inc_batch":
 				self.loadIncBatchSched(r, antenas, plp)
 
+	#encapsulates the generation of auxiliary network states
+	def generateNetworkStates(self):
+		for i in self.number_of_runs:
+				self.network_states.append(rm.NetworkState(i))
+		self.RelaxSolutions = rm.NetworkStateCollection(self.network_states)
+
+
+	#call the relaxation solution
+	def runRelaxation(self, relaxHeuristic, antenas, ilp_module):
+		#create the auxiliary network states
+		#decides the paramaters of the auxiliary network states depending on the type of algorithm being called, e.g. incremental or batch
+		if self.type == "inc":
+		#maintain the same state of the network, i.e do not reset the values of the original network (parameters of the plp file or another object used)
+			for i in self.number_of_runs:
+				self.network_states.append(rm.NetworkState(i, ilp_module.rrhs_on_nodes, ilp_module.lambda_node, ilp_module.du_processing, ilp_module.dus_total_capacity, ilp_module.du_state, ilp_module.nodeState,
+		ilp_module.nodeCost, ilp_module.du_cost, ilp_module.lc_cost, ilp_module.switch_cost, ilp_module.switchBandwidth, ilp_module.wavelength_capacity, ilp_module.RRHband, ilp_module.cloud_du_capacity, 
+		ilp_module.fog_du_capacity, ilp_module.lambda_state, ilp_module.switch_state))
+			self.RelaxSolutions = rm.NetworkStateCollection(self.network_states)
+		elif self.type == "batch":
+			for i in self.number_of_runs:
+				self.network_states.append(rm.NetworkState(i))
+			self.RelaxSolutions = rm.NetworkStateCollection(self.network_states)
+
+		#execute each run of the relaxation for each auxiliary network state
+		for i in self.RelaxSolutions.network_states:
+			#create the ILP object
+			self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas, True)
+			#gets the solution
+			solution = self.ilp.run()
+			#verifies if a solution was found and, if so, updates this auxiliary network state
+			if solution != None:
+				#get the solution values
+				solution_values = self.ilp.return_solution_values()
+				#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
+				rm.relaxHeuristic(antenas, solution_values, i)
+				#now, set some result metrics on the auxiliary network state
+				#execution time
+				i.setMetric(execution_time, solution.solve_details.time)
+				#power consumption
+				i.setMetric(power, self.util.getPowerConsumption(ilp_module))
+
+
 	#incremental scheduling
 	def incSched(self, r, antenas, ilp_module, incremental_power_consumption, redirected_rrhs, 
 		activated_nodes, activated_lambdas, activated_dus, activated_switchs, inc_blocking):
@@ -1186,7 +1238,7 @@ class Control_Plane(object):
 		#print(self.ilp)
 		self.ilp.resetValues()
 		solution = self.ilp.run()
-		print("Allocating {}".format(r.id))
+		#print("Allocating {}".format(r.id))
 		if solution == None:
 			print("No Solution")
 			print(plp.du_processing)
@@ -1415,6 +1467,9 @@ class Control_Plane(object):
 			#print("Departing {}".format(r.id))
 			self.ilp.deallocateRRH(r)
 			#self.ilp.resetValues()
+			r.wavelength = None
+			r.du = None
+			r.node = None
 			r.var_x = None
 			r.var_u = None
 			r.enabled = False

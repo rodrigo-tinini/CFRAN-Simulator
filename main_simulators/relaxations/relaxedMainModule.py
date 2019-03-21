@@ -1079,6 +1079,19 @@ class NetworkState(object):
 		self.execution_time = execution_time
 		self.migration_probability = migration_probability
 		self.total_migrations = total_migrations
+		#metrics of the solution provided by the ILP
+		self.solution = None
+		self.solution_values = None
+
+	#set the value of any metric
+	def setMetric(self, metric, aValue):
+		self.metric = aValue
+
+	#set the solution variables returned from the ILP
+	def setSolutionValues(self, solution, solutionValue):
+		self.solution = solution
+		self.solution_values = setSolutionValues
+
 	'''
 	def __init__(self, aId):
 		#Id of this solution
@@ -1126,27 +1139,42 @@ class NetworkState(object):
 		self.total_migrations = None
 	'''
 	
-
+#The class below is unutilized in the current version of the simulator
+#The methos getBestSolution, getSlutionBestID and getSolutionValuesID were moved to the class NetworkStates
 #this class encapsulates several network state to get the one with the best metric
 class NetworkStateCollection(object):
-	#amount is the number of times that the relaxation will be executed, thus, generation an "amoun" number of solutions
-	def __init__(self, amount):
+	#amount is the number of times that the relaxation will be executed, thus, generates an "amount" number of solutions
+	def __init__(self, network_states):
 		#list of network state objects
-		self.network_states = []
+		self.network_states = network_states
 
 	#create the network state objects
-	def initStates(self, amount, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
-		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
-		fog_du_capacity, lambda_state, switch_state, delay, power, lambda_wastage, execution_time, migration_probability, total_migrations):
-		#create a network state object for each relaxation execution
-		for i in range(amount):
-			ns = NetworkState(i, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
-		nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
-		fog_du_capacity, lambda_state, switch_state, delay, power, lambda_wastage, execution_time, migration_probability, total_migrations)
-			#put the object on the list
-			self.network_states.append(ns)
+	#def initStates(self, amount, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
+	#	nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
+	#	fog_du_capacity, lambda_state, switch_state, delay, power, lambda_wastage, execution_time, migration_probability, total_migrations):
+	#	#create a network state object for each relaxation execution
+	#	for i in range(amount):
+	#		ns = NetworkState(i, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,
+	#	nodeCost, du_cost, lc_cost, switch_cost, switchBandwidth, wavelength_capacity, RRHband, cloud_du_capacity, 
+	#	fog_du_capacity, lambda_state, switch_state, delay, power, lambda_wastage, execution_time, migration_probability, total_migrations)
+	#		#put the object on the list
+	#		self.network_states.append(ns)
 
 	#get the best solution for a given metric
-	def getBestSolution(self, metric, method):
+	def getBestSolution(self, metric, method, network_states):
 		sol = method(self.network_states, key = operator.attrgetter("metric"))
 		return sol.aId
+
+	#return the ILP solution from the auxiliary network state with best metric found
+	def getSolutionBestID(self, n_state_id):
+		for i in self.network_states:
+			if i.aId = n_state_id:
+				return i.solution
+
+	#return the ILP solution variables from the auxiliary network state with best metric found
+	def getSolutionValuesID(self, n_state_id):
+		for i in self.network_states:
+			if i.aId = n_state_id:
+				return i.solution_values
+
+	
