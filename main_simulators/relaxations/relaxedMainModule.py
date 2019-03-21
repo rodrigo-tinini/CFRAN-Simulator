@@ -1079,6 +1079,8 @@ class NetworkState(object):
 		self.execution_time = execution_time
 		self.migration_probability = migration_probability
 		self.total_migrations = total_migrations
+		#to keep record of an old network state to calculate vBBUs migrations
+		self.old_network_state = None
 		#metrics of the solution provided by the ILP
 		self.solution = None
 		self.solution_values = None
@@ -1160,21 +1162,24 @@ class NetworkStateCollection(object):
 	#		#put the object on the list
 	#		self.network_states.append(ns)
 
+	#get best network state
+	def getBestNetworkState(self, metric, method):
+		sol = method(self.network_states, key = operator.attrgetter("metric"))
+		return sol
+
 	#get the best solution for a given metric
-	def getBestSolution(self, metric, method, network_states):
+	def getBestSolutionID(self, metric, method):
 		sol = method(self.network_states, key = operator.attrgetter("metric"))
 		return sol.aId
 
 	#return the ILP solution from the auxiliary network state with best metric found
-	def getSolutionBestID(self, n_state_id):
+	def getBestSolution(self, n_state_id):
 		for i in self.network_states:
 			if i.aId = n_state_id:
 				return i.solution
 
 	#return the ILP solution variables from the auxiliary network state with best metric found
-	def getSolutionValuesID(self, n_state_id):
+	def getSolutionValues(self, n_state_id):
 		for i in self.network_states:
 			if i.aId = n_state_id:
 				return i.solution_values
-
-	

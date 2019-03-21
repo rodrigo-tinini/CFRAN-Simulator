@@ -792,7 +792,7 @@ class Traffic_Generator(object):
 
 #control plane that controls the allocations and deallocations
 class Control_Plane(object):
-	def __init__(self, env, util, type, number_of_runs):
+	def __init__(self, env, util, type, number_of_runs, relaxHeuristic, postProcessingHeuristic, metric, method):
 		self.env = env
 		self.requests = simpy.Store(self.env)
 		self.departs = simpy.Store(self.env)
@@ -812,6 +812,10 @@ class Control_Plane(object):
 		self.number_of_runs = number_of_runs
 		#to keep the different solutions for each run of the relazed ILP model
 		self.network_states = []
+		self.relaxHeuristic = relaxHeuristic
+		self.postProcessingHeuristic = postProcessingHeuristic,
+		self.metric = metric
+		self.method = method
 
 
 
@@ -988,6 +992,8 @@ class Control_Plane(object):
 			count_dus = 0
 			count_switches = 0
 			block = 0
+			runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+			'''
 			#print("Calling Batch")
 			batch_list = copy.copy(actives)
 			#batch_list.append(r)
@@ -1055,7 +1061,7 @@ class Control_Plane(object):
 					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 				if count_dus > 0:
 					proc_usage.append(len(actives)/self.getProcUsage(plp))
-
+				'''
 
 	#calculate the usage of each processing node
 	def getProcUsage(self, plp):
@@ -1097,42 +1103,217 @@ class Control_Plane(object):
 	def generateNetworkStates(self):
 		for i in self.number_of_runs:
 				self.network_states.append(rm.NetworkState(i))
-		self.RelaxSolutions = rm.NetworkStateCollection(self.network_states)
+		self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
 
 
 	#call the relaxation solution
-	def runRelaxation(self, relaxHeuristic, antenas, ilp_module):
+	def runRelaxation(self, relaxHeuristic, postProcessingHeuristic, antenas, ilp_module, metric, method):
+		#to compute the solution time
+		solution_time = 0
+		#to verify with at least one solution was found
+		foundSolution = False
 		#create the auxiliary network states
 		#decides the paramaters of the auxiliary network states depending on the type of algorithm being called, e.g. incremental or batch
+		#Verify if it is the incremental algorithm to be executed
 		if self.type == "inc":
-		#maintain the same state of the network, i.e do not reset the values of the original network (parameters of the plp file or another object used)
+			#maintain the same state of the network, i.e do not reset the values of the original network (parameters of the plp file or another object used)
 			for i in self.number_of_runs:
 				self.network_states.append(rm.NetworkState(i, ilp_module.rrhs_on_nodes, ilp_module.lambda_node, ilp_module.du_processing, ilp_module.dus_total_capacity, ilp_module.du_state, ilp_module.nodeState,
-		ilp_module.nodeCost, ilp_module.du_cost, ilp_module.lc_cost, ilp_module.switch_cost, ilp_module.switchBandwidth, ilp_module.wavelength_capacity, ilp_module.RRHband, ilp_module.cloud_du_capacity, 
-		ilp_module.fog_du_capacity, ilp_module.lambda_state, ilp_module.switch_state))
-			self.RelaxSolutions = rm.NetworkStateCollection(self.network_states)
+					ilp_module.nodeCost, ilp_module.du_cost, ilp_module.lc_cost, ilp_module.switch_cost, ilp_module.switchBandwidth, ilp_module.wavelength_capacity, ilp_module.RRHband, ilp_module.cloud_du_capacity, 
+					ilp_module.fog_du_capacity, ilp_module.lambda_state, ilp_module.switch_state))
+			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
+			#execute each run of the relaxation for each auxiliary network state
+			for i in self.relaxSolutions.network_states:
+				start = time.time()
+				#create the ILP object
+				self.ilp = plp.ILP(antenas, range(len(antenas)), i.nodes, i.lambdas, True)
+				#gets the solution
+				solution = self.ilp.run()
+				#verifies if a solution was found and, if so, updates this auxiliary network state
+				if solution != None:
+					foundSolution = True
+					#get the solution values
+					solution_values = self.ilp.return_decision_variables()
+					#performs the post processing relaxation algorithm
+					rlx.postProcessingHeuristic(solution_values, i)
+					#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
+					rm.relaxHeuristic(antenas, solution_values, i)
+					#now, set some result metrics on the auxiliary network state
+					#execution time
+					i.setMetric(execution_time, solution.solve_details.time)
+					#power consumption
+					i.setMetric(power, self.util.getPowerConsumption(ilp_module))
+				end = time.time()
+				solution_time += end - start
+			#verifies with at least one solution was found, if so, continues, else, break
+			if foundSolution == True:
+				sucs_reqs += 1
+				#gets the best solution
+				bestSolution = self.relaxSolutions.getBestNetworkState(self.metric, self.method)
+				#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
+				rm.relaxHeuristic(antenas, bestSolution.solution_values, ilp_module)
+				#updates the execution time of this solution, which is the relaxed ILP solving time + the relaxation scheduling updating procedure
+				time_inc.append(solution_time)
+				r.updateWaitTime(self.env.now)
+				for i in antenas:
+					self.env.process(i.run())
+					actives.append(i)
+					antenas.remove(i)
+					incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+				#count the activeresources
+				self.countNodes(ilp_module)
+				#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
+				#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
+				#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
+				if solution_values.var_k:
+					redirected_rrhs.append(len(solution_values.var_k))
+				else:
+					redirected_rrhs.append(0)
+				for i in bestSolution.nodeState:
+					if i == 1:
+						count_nodes += 1
+				activated_nodes.append(count_nodes)
+				for i in bestSolution.lambda_state:
+					if i == 1:
+						count_lambdas += 1
+				activated_lambdas.append(count_lambdas)
+				for i in bestSolution.du_state:
+					for j in i:
+						if j == 1:
+							count_dus += 1
+				activated_dus.append(count_dus)
+				for i in bestSolution.switch_state:
+					if i == 1:
+						count_switches += 1
+				activated_switchs.append(count_switches)
+				#count DUs and lambdas usage
+				if count_lambdas > 0:
+					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+				if count_dus > 0:
+					proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
+				return solution
+			else:
+				print("Incremental Blocking")
+				#print("Nodes actives are: {}".format(plp.nodeState))
+				#print("Lambdas actives are: {}".format(plp.lambda_node))
+				#print("DUs load are: {}".format(plp.du_processing))
+				#verifies if it is the nfv control plane
+				if self.type == "load_inc_batch":
+					inc_blocking.append(1)
+					#s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+					#inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
+				else:
+					rrhs.append(r)
+					np.shuffle(rrhs)
+					antenas = []
+					#print("Incremental Blocking")
+					inc_blocking.append(1)
+					incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+					return solution
+		#Verify if it is the batch algorithm to be executed
 		elif self.type == "batch":
+			#create auxiliary network states with values reset
 			for i in self.number_of_runs:
 				self.network_states.append(rm.NetworkState(i))
-			self.RelaxSolutions = rm.NetworkStateCollection(self.network_states)
+			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
+			for i in self.relaxSolutions.network_states:
+				#take a snapshot of the node states to account the migrations
+				copy_state = copy.copy(ilp_module.nodeState)
+				#take a snapshot of the network and its elements state
+				network_copy = copy.copy(ilp_module.rrhs_on_nodes)
+				cp_l =  copy.copy(ilp_module.lambda_node)
+				cp_d = copy.copy(ilp_module.du_processing)
+				start = time.time()
+				#prepare data to execute the ILP
+				#batch_list = copy.copy(actives)
+				#batch_list.append(r)
+				actives.append(r)
+				#create the ILP object
+				self.ilp = plp.ILP(antenas, range(len(antenas)), i.nodes, i.lambdas, True)
+				#gets the solution
+				solution = self.ilp.run()
+				#verifies if a solution was found and, if so, updates this auxiliary network state
+				if solution != None:
+					foundSolution = True
+					#get the solution values
+					solution_values = self.ilp.return_decision_variables()
+					rlx.postProcessingHeuristic(solution_values, i)
+					#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
+					rm.relaxHeuristic(antenas, solution_values, i)
+					i.old_network_state = network_copy
+					#now, set some result metrics on the auxiliary network state
+					#execution time
+					i.setMetric(execution_time, solution.solve_details.time)
+					#power consumption
+					i.setMetric(power, self.util.getPowerConsumption(ilp_module))
+				end = time.time()
+				solution_time += end - start
+			if foundSolution == True:
+				sucs_reqs += 1
+				#gets the best solution
+				bestSolution = self.relaxSolutions.getBestNetworkState(self.metric, self.method)
+				#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
+				rm.relaxHeuristic(antenas, bestSolution.solution_values, ilp_module)
+				#updates the execution time of this solution, which is the relaxed ILP solving time + the relaxation scheduling updating procedure
+				batch_time.append(solution_time)
+				time_b.append(solution_time)
+				r.updateWaitTime(self.env.now+solution.solve_details.time)
+				#print("Gen is {} ".format(r.generationTime))
+				#print("NOW {} ".format(r.waitingTime))
+				self.env.process(r.run())
+				batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
+				batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
+				#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
+				#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
+				#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
+				if solution_values.var_k:
+					b_redirected_rrhs.append(len(solution_values.var_k))
+				else:
+					b_redirected_rrhs.append(0)
+				#counts the current activated nodes, lambdas, DUs and switches
+				self.countNodes(ilp_module)
+				#counting each single vBBU migration - new method - Updated 2/12/2018
+				self.extSingleMigrations(bestSolution, bestSolution.old_network_state)
+				#count migration only when all load from fog ndoe is migrated - old method
+				#self.extMigrations(ilp_module, copy_state)
+				for i in bestSolution.nodeState:
+					if i == 1:
+						count_nodes += 1
+				b_activated_nodes.append(count_nodes)
+				for i in bestSolution.lambda_state:
+					if i == 1:
+						count_lambdas += 1
+				b_activated_lambdas.append(count_lambdas)
+				for i in bestSolution.du_state:
+					for j in i:
+						if j == 1:
+							count_dus += 1
+				b_activated_dus.append(count_dus)
+				for i in ilp_module.switch_state:
+					if i == 1:
+						count_switches += 1
+				b_activated_switchs.append(count_switches)
+				#count DUs and lambdas usage
+				if count_lambdas > 0:
+					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+				if count_dus > 0:
+					proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
+				return solution
+			else:
+				print("No Solution")
+				#print(plp.du_processing)
+				rrhs.append(r)
+				actives.remove(r)
+				np.shuffle(rrhs)
+				#print("Batch Blocking")
+				#print("Cant Schedule {} RRHs".format(len(actives)))
+				#print("Nodes state {}".format(copy_state))
+				#print("Lambdas nodes {}".format(cp_l))
+				#print("DUs load {}".format(cp_d))
+				batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+				batch_blocking.append(1)
 
-		#execute each run of the relaxation for each auxiliary network state
-		for i in self.RelaxSolutions.network_states:
-			#create the ILP object
-			self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas, True)
-			#gets the solution
-			solution = self.ilp.run()
-			#verifies if a solution was found and, if so, updates this auxiliary network state
-			if solution != None:
-				#get the solution values
-				solution_values = self.ilp.return_solution_values()
-				#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
-				rm.relaxHeuristic(antenas, solution_values, i)
-				#now, set some result metrics on the auxiliary network state
-				#execution time
-				i.setMetric(execution_time, solution.solve_details.time)
-				#power consumption
-				i.setMetric(power, self.util.getPowerConsumption(ilp_module))
+		
 
 
 	#incremental scheduling
@@ -1144,71 +1325,9 @@ class Control_Plane(object):
 		count_switches = 0
 		#print("Calling Incremental")
 		block = 0
-		self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas, True)
-		solution = self.ilp.run()
-		if solution == None:
-			print("Incremental Blocking")
-			#print("Nodes actives are: {}".format(plp.nodeState))
-			#print("Lambdas actives are: {}".format(plp.lambda_node))
-			#print("DUs load are: {}".format(plp.du_processing))
-			#verifies if it is the nfv control plane
-			if self.type == "load_inc_batch":
-				inc_blocking.append(1)
-				#s = self.batchSched(r, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				#inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
-			else:
-				rrhs.append(r)
-				np.shuffle(rrhs)
-				antenas = []
-				#print("Incremental Blocking")
-				inc_blocking.append(1)
-				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
-				return solution
-		else:
-			#print("Success")
-			#print("Nodes actives are: {}".format(plp.nodeState))
-			#print("Lambdas actives are: {}".format(plp.lambda_node))
-			#print("DUs load are: {}".format(plp.du_processing))
-			#print("Success")
-			solution_values = self.ilp.return_solution_values()
-			self.ilp.updateValues(solution_values)
-			time_inc.append(solution.solve_details.time)
-			r.updateWaitTime(self.env.now)
-			for i in antenas:
-				self.env.process(i.run())
-				actives.append(i)
-				#print("ACTIVE IS {}".format(len(actives)))
-				antenas.remove(i)
-				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
-			#count the activeresources
-			self.countNodes(ilp_module)
-			if solution_values.var_k:
-				redirected_rrhs.append(len(solution_values.var_k))
-			else:
-				redirected_rrhs.append(0)
-			for i in ilp_module.nodeState:
-				if i == 1:
-					count_nodes += 1
-			activated_nodes.append(count_nodes)
-			for i in ilp_module.lambda_state:
-				if i == 1:
-					count_lambdas += 1
-			activated_lambdas.append(count_lambdas)
-			for i in ilp_module.du_state:
-				for j in i:
-					if j == 1:
-						count_dus += 1
-			activated_dus.append(count_dus)
-			for i in ilp_module.switch_state:
-				if i == 1:
-					count_switches += 1
-			activated_switchs.append(count_switches)
-			#count DUs and lambdas usage
-			if count_lambdas > 0:
-				lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
-			if count_dus > 0:
-				proc_usage.append(len(actives)/self.getProcUsage(ilp_module))
-			return solution
+		#call the relaxations
+		runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+		
 
 	#batch scheduling
 	def batchSched(self, r, ilp_module, batch_power_consumption,b_redirected_rrhs,
@@ -1219,89 +1338,9 @@ class Control_Plane(object):
 		count_dus = 0
 		count_switches = 0
 		block = 0
-		#print("Calling Batch")
-		#print(len(actives))
-		#print("Nodes state {}".format(ilp_module.nodeState))
-		#print("Lambdas nodes {}".format(ilp_module.lambda_node))
-		#print("DUs load {}".format(ilp_module.du_processing))
-		#print("*****************")
-		batch_list = copy.copy(actives)
-		batch_list.append(r)
-		actives.append(r)
-		self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas, True)
-		#take a snapshot of the node states to account the migrations
-		copy_state = copy.copy(ilp_module.nodeState)
-		#take a snapshot of the network DUs state
-		network_copy = copy.copy(ilp_module.rrhs_on_nodes)
-		cp_l =  copy.copy(ilp_module.lambda_node)
-		cp_d = copy.copy(ilp_module.du_processing)
-		#print(self.ilp)
-		self.ilp.resetValues()
-		solution = self.ilp.run()
-		#print("Allocating {}".format(r.id))
-		if solution == None:
-			print("No Solution")
-			print(plp.du_processing)
-			rrhs.append(r)
-			actives.remove(r)
-			np.shuffle(rrhs)
-			#print("Batch Blocking")
-			#print("Cant Schedule {} RRHs".format(len(actives)))
-			#print("Nodes state {}".format(copy_state))
-			#print("Lambdas nodes {}".format(cp_l))
-			#print("DUs load {}".format(cp_d))
-			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
-			batch_blocking.append(1)
-		else:
-			#print("Solution Found")
-			sucs_reqs += 1
-			#print(solution.solve_details.time)
-			#solution_values = self.ilp.return_solution_values()
-			solution_values = self.ilp.return_decision_variables()#calling relaxation post data processing here
-			#self.ilp.updateValues(solution_values)
-			rlx.mostProbability(solution_values, self.ilp)#calling relaxation post data processing here
-			self.ilp.relaxUpdate(solution_values)#calling relaxation post data processing here
-			batch_time.append(solution.solve_details.time)
-			time_b.append(solution.solve_details.time)
-			r.updateWaitTime(self.env.now+solution.solve_details.time)
-			#print("Gen is {} ".format(r.generationTime))
-			#print("NOW {} ".format(r.waitingTime))
-			self.env.process(r.run())
-			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
-			batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
-			if solution_values.var_k:
-				b_redirected_rrhs.append(len(solution_values.var_k))
-			else:
-				b_redirected_rrhs.append(0)
-			#counts the current activated nodes, lambdas, DUs and switches
-			self.countNodes(ilp_module)
-			#counting each single vBBU migration - new method - Updated 2/12/2018
-			self.extSingleMigrations(ilp_module, network_copy)
-			#count migration only when all load from fog ndoe is migrated - old method
-			#self.extMigrations(ilp_module, copy_state)
-			for i in ilp_module.nodeState:
-				if i == 1:
-					count_nodes += 1
-			b_activated_nodes.append(count_nodes)
-			for i in ilp_module.lambda_state:
-				if i == 1:
-					count_lambdas += 1
-			b_activated_lambdas.append(count_lambdas)
-			for i in ilp_module.du_state:
-				for j in i:
-					if j == 1:
-						count_dus += 1
-			b_activated_dus.append(count_dus)
-			for i in ilp_module.switch_state:
-				if i == 1:
-					count_switches += 1
-			b_activated_switchs.append(count_switches)
-			#count DUs and lambdas usage
-			if count_lambdas > 0:
-				lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
-			if count_dus > 0:
-				proc_usage.append(len(actives)/self.getProcUsage(ilp_module))
-			return solution
+		#call the relaxations
+		runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+		
 
 	#calculates the average waiting time of RRHs to be scheduled
 	def averageWaitingTime(self, antenas):
@@ -1486,6 +1525,8 @@ class Control_Plane(object):
 				count_dus = 0
 				count_switches = 0
 				block = 0
+				runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+				'''
 				#print("Calling Batch")
 				batch_list = copy.copy(actives)
 				#batch_list.append(r)
@@ -1554,6 +1595,7 @@ class Control_Plane(object):
 					if count_dus > 0:
 						proc_usage.append(len(actives)/self.getProcUsage(plp))
 				#self.count_batch_resources(plp,batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
+				'''
 			elif self.type == "inc_batch":
 				self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
 		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
