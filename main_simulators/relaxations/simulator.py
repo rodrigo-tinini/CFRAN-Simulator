@@ -813,7 +813,7 @@ class Control_Plane(object):
 		#to keep the different solutions for each run of the relazed ILP model
 		self.network_states = []
 		self.relaxHeuristic = relaxHeuristic
-		self.postProcessingHeuristic = postProcessingHeuristic,
+		self.postProcessingHeuristic = postProcessingHeuristic
 		self.metric = metric
 		self.method = method
 
@@ -992,7 +992,7 @@ class Control_Plane(object):
 			count_dus = 0
 			count_switches = 0
 			block = 0
-			runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+			self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
 			'''
 			#print("Calling Batch")
 			batch_list = copy.copy(actives)
@@ -1107,7 +1107,8 @@ class Control_Plane(object):
 
 
 	#call the relaxation solution
-	def runRelaxation(self, relaxHeuristic, postProcessingHeuristic, antenas, ilp_module, metric, method):
+	def runRelaxation(self, relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, antenas = None, r = None):
+		print(ilp_module == plp)
 		#to compute the solution time
 		solution_time = 0
 		#to verify with at least one solution was found
@@ -1117,7 +1118,7 @@ class Control_Plane(object):
 		#Verify if it is the incremental algorithm to be executed
 		if self.type == "inc":
 			#maintain the same state of the network, i.e do not reset the values of the original network (parameters of the plp file or another object used)
-			for i in self.number_of_runs:
+			for i in range(self.number_of_runs):
 				self.network_states.append(rm.NetworkState(i, ilp_module.rrhs_on_nodes, ilp_module.lambda_node, ilp_module.du_processing, ilp_module.dus_total_capacity, ilp_module.du_state, ilp_module.nodeState,
 					ilp_module.nodeCost, ilp_module.du_cost, ilp_module.lc_cost, ilp_module.switch_cost, ilp_module.switchBandwidth, ilp_module.wavelength_capacity, ilp_module.RRHband, ilp_module.cloud_du_capacity, 
 					ilp_module.fog_du_capacity, ilp_module.lambda_state, ilp_module.switch_state))
@@ -1126,7 +1127,7 @@ class Control_Plane(object):
 			for i in self.relaxSolutions.network_states:
 				start = time.time()
 				#create the ILP object
-				self.ilp = plp.ILP(antenas, range(len(antenas)), i.nodes, i.lambdas, True)
+				self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas, True)
 				#gets the solution
 				solution = self.ilp.run()
 				#verifies if a solution was found and, if so, updates this auxiliary network state
@@ -1135,9 +1136,16 @@ class Control_Plane(object):
 					#get the solution values
 					solution_values = self.ilp.return_decision_variables()
 					#performs the post processing relaxation algorithm
-					rlx.postProcessingHeuristic(solution_values, i)
+					#gets the method
+					print()
+					postProc = getattr(rlx, self.postProcessingHeuristic)
+					postProc(solution_values, ilp_module)
+					#rlx.postProcessingHeuristic(solution_values, i)
 					#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
-					rm.relaxHeuristic(antenas, solution_values, i)
+					#gets the method
+					relaxMethod = getattr(rm, self.relaxHeuristic)
+					relaxMethod(antenas, solution_values, i)
+					#rm.relaxHeuristic(antenas, solution_values, i)
 					#now, set some result metrics on the auxiliary network state
 					#execution time
 					i.setMetric(execution_time, solution.solve_details.time)
@@ -1213,7 +1221,7 @@ class Control_Plane(object):
 		#Verify if it is the batch algorithm to be executed
 		elif self.type == "batch":
 			#create auxiliary network states with values reset
-			for i in self.number_of_runs:
+			for i in range(self.number_of_runs):
 				self.network_states.append(rm.NetworkState(i))
 			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
 			for i in self.relaxSolutions.network_states:
@@ -1229,7 +1237,7 @@ class Control_Plane(object):
 				#batch_list.append(r)
 				actives.append(r)
 				#create the ILP object
-				self.ilp = plp.ILP(antenas, range(len(antenas)), i.nodes, i.lambdas, True)
+				self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas, True)
 				#gets the solution
 				solution = self.ilp.run()
 				#verifies if a solution was found and, if so, updates this auxiliary network state
@@ -1237,9 +1245,16 @@ class Control_Plane(object):
 					foundSolution = True
 					#get the solution values
 					solution_values = self.ilp.return_decision_variables()
-					rlx.postProcessingHeuristic(solution_values, i)
+					#perform the post processing procedure
+					#gets the post processing method
+					postMethod = getattr(rlx, self.postProcessingHeuristic)
+					postMethod(solution_values, ilp_module)
+					#rlx.postProcessingHeuristic(solution_values, i)
 					#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
-					rm.relaxHeuristic(antenas, solution_values, i)
+					#gets the metho
+					relaxMethod = getattr(rm, self.relaxHeuristic)
+					relaxMethod(actives, solution_values, i)
+					#rm.relaxHeuristic(antenas, solution_values, i)
 					i.old_network_state = network_copy
 					#now, set some result metrics on the auxiliary network state
 					#execution time
@@ -1326,7 +1341,8 @@ class Control_Plane(object):
 		#print("Calling Incremental")
 		block = 0
 		#call the relaxations
-		runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+		print(ilp_module.rrhs_on_nodes)
+		self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method, antenas)
 		
 
 	#batch scheduling
@@ -1339,7 +1355,7 @@ class Control_Plane(object):
 		count_switches = 0
 		block = 0
 		#call the relaxations
-		runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+		self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method, None, r)
 		
 
 	#calculates the average waiting time of RRHs to be scheduled
@@ -1525,7 +1541,7 @@ class Control_Plane(object):
 				count_dus = 0
 				count_switches = 0
 				block = 0
-				runRelaxation(self.relaxHeuristic, antenas, ilp_module, self.metric, self.method)
+				self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
 				'''
 				#print("Calling Batch")
 				batch_list = copy.copy(actives)
@@ -1998,6 +2014,22 @@ class Util(object):
 	#				act_cloud.append(1)
 	#			else:
 	#				act_fog.append(1)
+
+
+#Relaxation testing
+number_of_rrhs = 10
+util = Util()
+env = simpy.Environment()
+cp = Control_Plane(env, util, "batch", 2, "firstFitRelaxMinVPON", "mostProbability", "power", "min")
+rrhs = util.createRRHs(number_of_rrhs, env, service_time, cp)
+#sim.rrhs = u.newCreateRRHs(number_of_rrhs, env, sim.service_time, cp)
+np.shuffle(rrhs)
+t = Traffic_Generator(env, distribution, service_time, cp)
+print("\Begin at "+str(env.now))
+env.run(until = 86401)
+print("\End at "+str(env.now))
+print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+
 
 
 '''

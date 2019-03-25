@@ -1175,11 +1175,11 @@ class NetworkStateCollection(object):
 	#return the ILP solution from the auxiliary network state with best metric found
 	def getBestSolution(self, n_state_id):
 		for i in self.network_states:
-			if i.aId = n_state_id:
+			if i.aId == n_state_id:
 				return i.solution
 
 	#return the ILP solution variables from the auxiliary network state with best metric found
 	def getSolutionValues(self, n_state_id):
 		for i in self.network_states:
-			if i.aId = n_state_id:
+			if i.aId == n_state_id:
 				return i.solution_values
