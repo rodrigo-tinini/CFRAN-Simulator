@@ -1087,12 +1087,104 @@ class NetworkState(object):
 
 	#set the value of any metric
 	def setMetric(self, metric, aValue):
-		self.metric = aValue
+		aMetric = getattr(metric)
+		self.aMetric = aValue
+		#self.metric = aValue
 
 	#set the solution variables returned from the ILP
 	def setSolutionValues(self, solution, solutionValue):
 		self.solution = solution
 		self.solution_values = setSolutionValues
+
+	#methods from the ILP class, copied here for availability when the relaxation process is evaluating several solutions
+	#check if a DU in some node has free capacity
+def checkCapacityDU(self, node, du):
+	if self.du_processing[node][du] > 0:
+		return True
+	else:
+		return False
+
+#get a DU's capacity
+def getCapacityDU(self, node, du):
+	return self.du_processing[node][du]
+
+#check if a node has free processing capacity, considering all of its DUs
+def checkNodeCapacity(self, node):
+	capacity = 0.0
+	capacity = sum(self.du_processing[node])
+	if capacity > 0:
+		return True
+	else:
+		return False
+
+#get node free processing capacity
+def getNodeCapacity(self, node):
+	capacity = 0.0
+	capacity = sum(self.du_processing[node])
+	return capacity
+
+#check if a lambda has capacity for a request
+def checkLambdaCapacity(self, wavelength):
+	if self.wavelength_capacity[wavelength] >= 614.4:
+		return True
+	else:
+		return False
+
+#check if a lambda has capacity for a request
+def checkLambdaCapacityRRH(self, wavelength, bandwdith):
+	if self.wavelength_capacity[wavelength] >= bandwdith:
+		return True
+	else:
+		return False
+
+#get bandwidth capacity of a lambda
+def getLambdaCapacity(self, wavelength):
+	return self.wavelength_capacity[wavelength]
+
+#block an already allocated lambda in other nodes
+def blockLambda(self, wavelength, node):
+	ln = self.lambda_node[wavelength]
+	for i in range(len(ln)):
+		if i != node:
+			ln[i] = 0
+
+
+#check if a lambda is free to be allocated on a given node
+def checkLambdaNode(self, node, wavelength):
+	if self.lambda_node[wavelength][node] == 1:
+		return True
+	else:
+		return False
+
+#check if node has at least one activated VPON
+def checkNodeVPON(self, node):
+	if self.nodes_lambda[node]:
+		return True
+	else:
+		return False
+
+#get the first available VPON in a node
+def getFirstFreeVPON(self, node):
+	if checkNodeVPON(node):
+		for i in self.nodes_lambda[node]:
+			if getLambdaCapacity(i) >= self.RRHband:
+				return i
+	else:#no VPON here
+		return None
+
+#get the lambda with most allocated RRHs
+def getMaxLoadVPON(self, node):
+	vp = max(self.nodes_vpons_capacity[node], key=self.nodes_vpons_capacity[node].get)
+
+#get the lambda with least allocated RRHs
+def getMinLoadVPON(self, node):
+	return min(self.nodes_vpons_capacity[node], key=self.nodes_vpons_capacity[node].get)
+
+#update the capacity of the vpons allocated in each node:
+def updateNodeVPONsCapacity(self):
+	for i in self.nodes_vpons_capacity:
+		for j in self.nodes_vpons_capacity[i]:
+			self.nodes_vpons_capacity[i][j] = self.wavelength_capacity[j]
 
 	'''
 	def __init__(self, aId):
