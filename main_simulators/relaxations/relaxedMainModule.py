@@ -1087,7 +1087,7 @@ class NetworkState(object):
 
 	#set the value of any metric
 	def setMetric(self, metric, aValue):
-		aMetric = getattr(metric)
+		aMetric = getattr(self, metric)
 		self.aMetric = aValue
 		#self.metric = aValue
 
