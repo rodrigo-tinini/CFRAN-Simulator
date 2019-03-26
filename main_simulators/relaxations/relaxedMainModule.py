@@ -10,6 +10,7 @@ from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
+import builtins
 
 #returns the most loaded VDU in a processing node
 def getMostLoadedVDU(node, n_state):
@@ -171,6 +172,8 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 	#iterate over each RRH on the solution
 	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
 	for i in solution.var_x:
+		print("Solution for {} in N State {}".format(i[0], n_state.aId))
+		#print(n_state.nodes_lambda)
 		#the node has capacity on its VDUs?
 		if i[1] == 0 and rlx.checkNodeCapacity(i[1]):
 			#it has, allocate the node to the RRH
@@ -182,30 +185,45 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		#update the node cost, number of allocated RRHs and capacity
 		if rrh[i[0]].node != None:
 			updateNode(rrh[i[0]], n_state)
+			#print("found node")
 		#if no node was allocated, blocks the requisition
 		else:
 			rrh[i[0]].blocked = True
 		#now, if a node was found for the RRH, tries to allocate the VPON
 		if rrh[i[0]].blocked == False:
-			print("não ta bloqueado", rrh[i[0]].id)
+			#print("não ta bloqueado")
 			#verifies if the node has an activate VPON
 			if checkNodeVPON(rrh[i[0]].node, n_state):#has active VPONs
-				print("AQUI")
+				#print(n_state.lambda_node)
+				#print("AQUI")
+				#print(n_state.nodes_lambda)
+				#print(i[2])
+				#print("*********")
 				#if it has, gets the first free VPON
 				vpon = getFirstFreeVPON(rrh[i[0]], i, n_state)
-				print(vpon)
+				#print("hi",vpon)
 				#check if there is capacity on this VPON
 				if vpon != -1:#allocate the RRH on this VPON
 					updateVponState(rrh[i[0]], vpon, n_state)
+				else:
+					pass
+					#print("eh -1")
 			#if not, take the VPON returned on the solution
 			#check if the VPON returned on the solution has capacity to support the RRH
 			elif rlx.checkLambdaNode(rrh[i[0]].node,i[2]) and rlx.checkLambdaCapacity(i[2]):
-				print("AQUI2")
+				#print("AQUI2")
+				#print(n_state.nodes_lambda)
+				#print(i[2])
+				#print("*********")
 				#allocate the VPON to the RRH and its node and update its state
 				updateVponState(rrh[i[0]], i[2], n_state)
+				print(n_state.nodes_lambda)
 			#if neither an already allocated VPON or the returned one has capacity, take another one that is free
 			elif getFreeVPON(rrh[i[0]], n_state):
-				print("AQUI3")
+				#print("AQUI3")
+				#print(n_state.nodes_lambda)
+				#print(i[2])
+				#print("*********")
 				pass
 			#no free non-allocated was found, then blocks the requisition and reverts the allocation done in the processing node
 			else:
@@ -213,6 +231,8 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				rrh[i[0]].blocked = True
 				freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state)
 				break
+		else:
+			print(rrh[i[0]].blocked)
 		#if until this moment RRH was not blocked, tries to allocate the VDU
 		#get var_u - which contains the VDU
 		var_u = getVarU(i, solution)
@@ -1030,12 +1050,11 @@ def updateSwitch(node, n_state):
 #update the "real" network state
 class NetworkState(object):
 	#constructor 1
-	def __init__(self, aId, rrhs_on_nodes = [0,0,0],lambda_node = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],],du_processing = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],],
+	def __init__(self, aId, nodes_amount, rrhs_on_nodes = [0,0,0],lambda_node = [[1,1,1],[1,1,1],[1,1,1],[1,1,1],],du_processing = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],],
 		dus_total_capacity = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],], du_state = [[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0],], nodeState = [0,0,0], 
 		nodeCost = [0.0,300.0,300.0,], du_cost = [[100.0, 100.0, 100.0, 100.0],[50.0, 50.0, 50.0, 50.0],[50.0, 50.0, 50.0, 50.0],], lc_cost = [20.0,20.0,20.0,20.0,], 
 		switch_cost = [15.0, 15.0, 15.0], switchBandwidth = [10000.0,10000.0,10000.0], wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0], RRHband = 614.4, 
-		cloud_du_capacity = 9.0, fog_du_capacity = 1.0, lambda_state = [0,0,0,0], switch_state = [0,0,0], delay = None, power = None, lambda_wastage = None, 
-		execution_time = None, migration_probability = None , total_migrations = None):
+		cloud_du_capacity = 9.0, fog_du_capacity = 1.0, lambda_state = [0,0,0,0], switch_state = [0,0,0], nodes_lambda = None, nodes_vpons_capacity = None):
 		#Id of this network state
 		self.aId = aId
 		#to keep the amount of RRHs being processed on each node
@@ -1072,13 +1091,27 @@ class NetworkState(object):
 		self.lambda_state = lambda_state
 		#state of the backplane switch in each processing node
 		self.switch_state = switch_state
+		#lambdas in each node
+		if nodes_lambda == None:
+			self.nodes_lambda = {}
+			for i in nodes_amount:
+				self.nodes_lambda[i] = []
+		else:
+			self.nodes_lambda = nodes_lambda
+		#capacity of each VPON in each node
+		if nodes_vpons_capacity == None:
+			self.nodes_vpons_capacity = {}
+			for i in nodes_amount:
+				self.nodes_vpons_capacity[i] = {}
+		else:
+			self.nodes_vpons_capacity = nodes_vpons_capacity
 		#metrics obtained on the solution
-		self.delay = delay
-		self.power = power
-		self.lambda_wastage = lambda_wastage
-		self.execution_time = execution_time
-		self.migration_probability = migration_probability
-		self.total_migrations = total_migrations
+		self.delay = None
+		self.power = None
+		self.lambda_wastage = None
+		self.execution_time = None
+		self.migration_probability = None
+		self.total_migrations = None
 		#to keep record of an old network state to calculate vBBUs migrations
 		self.old_network_state = None
 		#metrics of the solution provided by the ILP
@@ -1098,93 +1131,97 @@ class NetworkState(object):
 
 	#methods from the ILP class, copied here for availability when the relaxation process is evaluating several solutions
 	#check if a DU in some node has free capacity
-def checkCapacityDU(self, node, du):
-	if self.du_processing[node][du] > 0:
-		return True
-	else:
-		return False
+	def checkCapacityDU(self, node, du):
+		if self.du_processing[node][du] > 0:
+			return True
+		else:
+			return False
 
-#get a DU's capacity
-def getCapacityDU(self, node, du):
-	return self.du_processing[node][du]
+	#get a DU's capacity
+	def getCapacityDU(self, node, du):
+		return self.du_processing[node][du]
 
-#check if a node has free processing capacity, considering all of its DUs
-def checkNodeCapacity(self, node):
-	capacity = 0.0
-	capacity = sum(self.du_processing[node])
-	if capacity > 0:
-		return True
-	else:
-		return False
+	#check if a node has free processing capacity, considering all of its DUs
+	def checkNodeCapacity(self, node):
+		capacity = 0.0
+		capacity = sum(self.du_processing[node])
+		if capacity > 0:
+			return True
+		else:
+			return False
 
-#get node free processing capacity
-def getNodeCapacity(self, node):
-	capacity = 0.0
-	capacity = sum(self.du_processing[node])
-	return capacity
+	#get node free processing capacity
+	def getNodeCapacity(self, node):
+		capacity = 0.0
+		capacity = sum(self.du_processing[node])
+		return capacity
 
-#check if a lambda has capacity for a request
-def checkLambdaCapacity(self, wavelength):
-	if self.wavelength_capacity[wavelength] >= 614.4:
-		return True
-	else:
-		return False
+	#check if a lambda has capacity for a request
+	def checkLambdaCapacity(self, wavelength):
+		if self.wavelength_capacity[wavelength] >= 614.4:
+			return True
+		else:
+			return False
 
-#check if a lambda has capacity for a request
-def checkLambdaCapacityRRH(self, wavelength, bandwdith):
-	if self.wavelength_capacity[wavelength] >= bandwdith:
-		return True
-	else:
-		return False
+	#check if a lambda has capacity for a request
+	def checkLambdaCapacityRRH(self, wavelength, bandwdith):
+		if self.wavelength_capacity[wavelength] >= bandwdith:
+			return True
+		else:
+			return False
 
-#get bandwidth capacity of a lambda
-def getLambdaCapacity(self, wavelength):
-	return self.wavelength_capacity[wavelength]
+	#get bandwidth capacity of a lambda
+	def getLambdaCapacity(self, wavelength):
+		return self.wavelength_capacity[wavelength]
 
-#block an already allocated lambda in other nodes
-def blockLambda(self, wavelength, node):
-	ln = self.lambda_node[wavelength]
-	for i in range(len(ln)):
-		if i != node:
-			ln[i] = 0
+	#block an already allocated lambda in other nodes
+	def blockLambda(self, wavelength, node):
+		ln = self.lambda_node[wavelength]
+		for i in range(len(ln)):
+			if i != node:
+				ln[i] = 0
 
 
-#check if a lambda is free to be allocated on a given node
-def checkLambdaNode(self, node, wavelength):
-	if self.lambda_node[wavelength][node] == 1:
-		return True
-	else:
-		return False
+	#check if a lambda is free to be allocated on a given node
+	def checkLambdaNode(self, node, wavelength):
+		if self.lambda_node[wavelength][node] == 1:
+			return True
+		else:
+			return False
 
-#check if node has at least one activated VPON
-def checkNodeVPON(self, node):
-	if self.nodes_lambda[node]:
-		return True
-	else:
-		return False
+	#check if node has at least one activated VPON
+	def checkNodeVPON(self, node):
+		if self.nodes_lambda[node]:
+			print(self.nodes_lambda[node])
+			return True
+		else:
+			print("SUHSUSUHS")
+			return False
 
-#get the first available VPON in a node
-def getFirstFreeVPON(self, node):
-	if checkNodeVPON(node):
-		for i in self.nodes_lambda[node]:
-			if getLambdaCapacity(i) >= self.RRHband:
-				return i
-	else:#no VPON here
-		return None
+	#get the first available VPON in a node
+	def getFirstFreeVPON(self, node):
+		if checkNodeVPON(node):
+			for i in self.nodes_lambda[node]:
+				if getLambdaCapacity(i) >= self.RRHband:
+					return i
+				else:
+					print("NOVPON")
+		else:#no VPON here
+			return None
 
-#get the lambda with most allocated RRHs
-def getMaxLoadVPON(self, node):
-	vp = max(self.nodes_vpons_capacity[node], key=self.nodes_vpons_capacity[node].get)
+	#get the lambda with most allocated RRHs
+	def getMaxLoadVPON(self, node):
+		vp = max(self.nodes_vpons_capacity[node], key=self.nodes_vpons_capacity[node].get)
 
-#get the lambda with least allocated RRHs
-def getMinLoadVPON(self, node):
-	return min(self.nodes_vpons_capacity[node], key=self.nodes_vpons_capacity[node].get)
+	#get the lambda with least allocated RRHs
+	def getMinLoadVPON(self, node):
+		return min(self.nodes_vpons_capacity[node], key=self.nodes_vpons_capacity[node].get)
 
-#update the capacity of the vpons allocated in each node:
-def updateNodeVPONsCapacity(self):
-	for i in self.nodes_vpons_capacity:
-		for j in self.nodes_vpons_capacity[i]:
-			self.nodes_vpons_capacity[i][j] = self.wavelength_capacity[j]
+	#update the capacity of the vpons allocated in each node:
+	def updateNodeVPONsCapacity(self):
+		for i in self.nodes_vpons_capacity:
+			for j in self.nodes_vpons_capacity[i]:
+				self.nodes_vpons_capacity[i][j] = self.wavelength_capacity[j]
 
 	'''
 	def __init__(self, aId):
@@ -1256,12 +1293,14 @@ class NetworkStateCollection(object):
 
 	#get best network state
 	def getBestNetworkState(self, metric, method):
-		sol = method(self.network_states, key = operator.attrgetter("metric"))
+		function = getattr(builtins, method)
+		sol = function(self.network_states, key = operator.attrgetter(metric))
 		return sol
 
 	#get the best solution for a given metric
 	def getBestSolutionID(self, metric, method):
-		sol = method(self.network_states, key = operator.attrgetter("metric"))
+		function = getattr(builtins, method)
+		sol = function(self.network_states, key = operator.attrgetter(metric))
 		return sol.aId
 
 	#return the ILP solution from the auxiliary network state with best metric found
