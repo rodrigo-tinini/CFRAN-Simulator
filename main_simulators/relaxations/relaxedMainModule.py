@@ -10,7 +10,8 @@ from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
-import builtins
+import builtins#all n=built-in python methods
+import pdb#debugger module
 
 #returns the most loaded VDU in a processing node
 def getMostLoadedVDU(node, n_state):
@@ -172,7 +173,8 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 	#iterate over each RRH on the solution
 	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
 	for i in solution.var_x:
-		print("Solution for {} in N State {}".format(i[0], n_state.aId))
+		#print("Solution for {} in N State {}".format(i[0], n_state.aId))
+		#pdb.set_trace()#debugging breakpoint
 		#print(n_state.nodes_lambda)
 		#the node has capacity on its VDUs?
 		if i[1] == 0 and rlx.checkNodeCapacity(i[1]):
@@ -217,7 +219,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				#print("*********")
 				#allocate the VPON to the RRH and its node and update its state
 				updateVponState(rrh[i[0]], i[2], n_state)
-				print(n_state.nodes_lambda)
+				#print(n_state.nodes_lambda)
 			#if neither an already allocated VPON or the returned one has capacity, take another one that is free
 			elif getFreeVPON(rrh[i[0]], n_state):
 				#print("AQUI3")
@@ -241,12 +243,12 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		if rrh[i[0]].blocked != True:
 			#check if the VDU returned has capacity and if the switch will be used
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 1:
-				print("SEM SWITCH")
+				#print("SEM SWITCH")
 				#allocates this VDU on the RRH and did not use the switch
 				rrh[i[0]].du = vdu
 				updateVDU(vdu, rrh[i[0]].node, n_state)
 			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 0:
-				print("COM SWITCH DU {} e VPON {}".format(vdu, rrh[i[0]].wavelength))
+				#print("COM SWITCH DU {} e VPON {}".format(vdu, rrh[i[0]].wavelength))
 				#allocates the VDU and activates the ethernet switch
 				rrh[i[0]].du = vdu
 				updateVDU(vdu, rrh[i[0]].node, n_state)
@@ -1045,6 +1047,45 @@ def updateSwitch(node, n_state):
 		n_state.switch_state[node] = 1
 		n_state.switch_cost[node] = 0.0
 
+#update the "real" network state with the best solution found by many iterations of the relaxation (or any other algorithm)
+def updateRealNetworkState(auxiliaryNetwork, realNetwork):
+	realNetwork.rrhs_on_nodes = auxiliaryNetwork.rrhs_on_nodes
+	#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
+	realNetwork.lambda_node = auxiliaryNetwork.lambda_node
+	#capacity of each VDU
+	realNetwork.du_processing = auxiliaryNetwork.du_processing
+	#used to calculate the processing usage of the node
+	realNetwork.dus_total_capacity = auxiliaryNetwork.dus_total_capacity
+	#state of each VDU
+	realNetwork.du_state = auxiliaryNetwork.du_state
+	#state of each node
+	realNetwork.nodeState = auxiliaryNetwork.nodeState
+	#power cost of each processing node
+	realNetwork.nodeCost = auxiliaryNetwork.nodeCost
+	#power cost of each VDu
+	realNetwork.du_cost = auxiliaryNetwork.du_cost
+	#power cost of each Line Card
+	realNetwork.lc_cost = auxiliaryNetwork.lc_cost
+	#power cost of the backplane switch
+	realNetwork.switch_cost = auxiliaryNetwork.switch_cost
+	#bandwidth capacity of the backplane switch
+	realNetwork.switchBandwidth =  auxiliaryNetwork.switchBandwidth
+	#bandwidth capacity of each wavelength
+	realNetwork.wavelength_capacity = auxiliaryNetwork.wavelength_capacity
+	#basic CPRI line used
+	realNetwork.RRHband = auxiliaryNetwork.RRHband
+	#capacity of each VDU on the cloud
+	realNetwork.cloud_du_capacity = auxiliaryNetwork.cloud_du_capacity
+	#capacity of each VDU in a fog node
+	realNetwork.fog_du_capacity = auxiliaryNetwork.fog_du_capacity
+	#state of each wavelength/VPON
+	realNetwork.lambda_state = auxiliaryNetwork.lambda_state
+	#state of the backplane switch in each processing node
+	realNetwork.switch_state = auxiliaryNetwork.switch_state
+	#other variables
+	realNetwork.nodes_lambda = auxiliaryNetwork.nodes_lambda
+	realNetwork.nodes_vpons_capacity = auxiliaryNetwork.nodes_vpons_capacity
+
 #this class represents a "virtual" network state, used to keep a solution returned from the relaxation algorithms
 #this class will be used to be put on a list with n results drawn from n executions of the relaxations, when the instance with the best result will be used to
 #update the "real" network state
@@ -1091,6 +1132,8 @@ class NetworkState(object):
 		self.lambda_state = lambda_state
 		#state of the backplane switch in each processing node
 		self.switch_state = switch_state
+		#number of nodes
+		self.nodes = nodes_amount
 		#lambdas in each node
 		if nodes_lambda == None:
 			self.nodes_lambda = {}
@@ -1120,9 +1163,7 @@ class NetworkState(object):
 
 	#set the value of any metric
 	def setMetric(self, metric, aValue):
-		aMetric = getattr(self, metric)
-		self.aMetric = aValue
-		#self.metric = aValue
+		setattr(self, metric, aValue)
 
 	#set the solution variables returned from the ILP
 	def setSolutionValues(self, solution, solutionValue):
@@ -1295,6 +1336,7 @@ class NetworkStateCollection(object):
 	def getBestNetworkState(self, metric, method):
 		function = getattr(builtins, method)
 		sol = function(self.network_states, key = operator.attrgetter(metric))
+		#print("Best solution is {}".format(sol.aId))
 		return sol
 
 	#get the best solution for a given metric

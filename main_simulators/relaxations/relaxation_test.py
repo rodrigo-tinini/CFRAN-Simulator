@@ -11,6 +11,8 @@ import relaxedMainModule as rl
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
+#just an id for identification purposes
+aId = "Main network state"
 
 
 #some static methods
@@ -1447,7 +1449,7 @@ class Util(object):
 util = Util()
 
 #to keep the amount of RRHs being processed on each node
-rrhs_on_nodes = [0,0,0]
+#rrhs_on_nodes = [0,0,0]
 
 #to keep the amount of RRHs being processed on each node
 rrhs_on_nodes = [0,0,0]
