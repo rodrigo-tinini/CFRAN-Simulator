@@ -13,7 +13,7 @@ import relaxedMainModule as rm
 import copy
 import sys
 import pdb#debugging module
-
+import importlib#to reload modules
 
 
 #to count the availability of the service
@@ -977,7 +977,7 @@ class Control_Plane(object):
 			#	if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False:
 					#call the batch
 			#print("########")
-			#print("Load balancing")
+			print("Load balancing")
 			#print(len(actives))
 			#print(plp.lambda_node)
 			#self.getProcUsage(plp)
@@ -1228,14 +1228,25 @@ class Control_Plane(object):
 					return solution
 		#Verify if it is the batch algorithm to be executed
 		elif self.type == "batch":
-			actives.append(r)
+			#print("INITIATE BATCH", ilp_module.rrhs_on_nodes)
+			self.network_states = []
+			if r != None:
+				actives.append(r)
+			importlib.reload(ilp_module)
 			#create auxiliary network states with values reset
 			for i in range(self.number_of_runs):
-				self.network_states.append(rm.NetworkState(i, ilp_module.nodes))
+				nt = rm.NetworkState(i, ilp_module.nodes)
+				self.network_states.append(nt)
+				#print("ILP", ilp_module.rrhs_on_nodes)
+				#print(nt.rrhs_on_nodes)
+				#self.network_states.append(rm.NetworkState(i, ilp_module.nodes))
+				#print("NEW IS",self.network_states[i].rrhs_on_nodes)
 				#print(self.network_states)
+			self.relaxSolutions = []
 			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
 			for i in self.relaxSolutions.network_states:
-				print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
+				#print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
+				#print("Size of n state is ",len(self.relaxSolutions.network_states))
 				#take a snapshot of the node states to account the migrations
 				copy_state = copy.copy(ilp_module.nodeState)
 				#put the snapshot of the node states into the auxiliary network state
@@ -1266,8 +1277,12 @@ class Control_Plane(object):
 					#rlx.postProcessingHeuristic(solution_values, i)
 					#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
 					#gets the metho
+					#print("AFTER1", ilp_module.rrhs_on_nodes)
 					relaxMethod = getattr(rm, self.relaxHeuristic)
+					#The method on the line below will return a list of blocked RRHs from the relaxation method
+					#check if there is any blocked RRHs and, by their id, remove them from the "active" list and account the number of blockeds in a new list
 					relaxMethod(actives, solution_values, i)
+					#print("AFTER2", ilp_module.rrhs_on_nodes)
 					#rm.relaxHeuristic(antenas, solution_values, i)
 					i.old_network_state = network_copy
 					#now, set some result metrics on the auxiliary network state
@@ -1276,12 +1291,12 @@ class Control_Plane(object):
 					#execution time
 					i.setMetric("execution_time", solution.solve_details.time)
 					#power consumption
-					i.setMetric("power", self.util.getPowerConsumption(ilp_module))
-					#print("POWER is ",i.power)
+					i.setMetric("power", self.util.getPowerConsumption(i))
+					print("POWER is ",i.power)
 				end = time.time()
 				solution_time += end - start
 			if foundSolution == True:
-				print("Iterations are finished for {} actives RRH".format(len(actives)))
+				#print("Iterations are finished for {} actives RRH".format(len(actives)))
 				sucs_reqs += 1
 				#gets the best solution
 				#for i in self.relaxSolutions.network_states:
@@ -1290,15 +1305,18 @@ class Control_Plane(object):
 				#print("Best solution is {}".format(bestSolution.solution_values.var_x))
 				#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
 				rm.updateRealNetworkState(bestSolution, ilp_module)
+				#print("RRHS ON NODES", ilp_module.rrhs_on_nodes)
 				#relaxMethod(actives, bestSolution.solution_values, ilp_module)#I commented this line because we only habe to copy each attribute value from bestSolution to ilp_module
 				#rm.relaxHeuristic(antenas, bestSolution.solution_values, ilp_module)#think it is not antenas on the parameters, but "actives"
 				#updates the execution time of this solution, which is the relaxed ILP solving time + the relaxation scheduling updating procedure
 				batch_time.append(solution_time)
 				time_b.append(solution_time)
-				r.updateWaitTime(self.env.now+solution.solve_details.time)
+				if r != None:
+					r.updateWaitTime(self.env.now+solution.solve_details.time)
 				#print("Gen is {} ".format(r.generationTime))
 				#print("NOW {} ".format(r.waitingTime))
-				self.env.process(r.run())
+				if r!= None:
+					self.env.process(r.run())
 				batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
 				batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 				#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
@@ -1336,14 +1354,15 @@ class Control_Plane(object):
 					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 				if count_dus > 0:
 					proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
-				print("Found the best solution for {} actives RRHs".format(len(actives)))
+				#print("Found the best solution for {} actives RRHs".format(len(actives)))
 				return solution
 			else:
 				print("No Solution")
 				#print(plp.du_processing)
-				rrhs.append(r)
-				actives.remove(r)
-				np.shuffle(rrhs)
+				if r != None:
+					rrhs.append(r)
+					actives.remove(r)
+					np.shuffle(rrhs)
 				#print("Batch Blocking")
 				#print("Cant Schedule {} RRHs".format(len(actives)))
 				#print("Nodes state {}".format(copy_state))
@@ -1543,6 +1562,10 @@ class Control_Plane(object):
 			proc_loads = [0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
+			print("Departing for ",r.id)
+			print(r.var_x)
+			print(r.node)
+			print(r.wavelength)
 			#print(r.var_x)
 			#print("Departing {}".format(r.id))
 			self.ilp.deallocateRRH(r)
@@ -1649,12 +1672,13 @@ class Control_Plane(object):
 			inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 			#new line - verify if some node is light loaded
 			for i in range(len(plp.du_processing)):
+				print(proc_loads)
 				proc_loads[i] = (sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i])
 			for i in range(len(proc_loads)):
 				if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False: #adicionei and self.type != "batch", pois o batch ja faz o 
 				#load balancing sempre que alguém sai da rede (se der algum problema, tirar essa linha que disse que adicionei (and self.type != "batch"))
 					self.check_load.put(r)
-					print("NODE {} STARTING LOAD BALANCING".format(i))
+					#print("NODE {} STARTING LOAD BALANCING".format(i))
 					batch_done = True
 				else:
 					pass
@@ -2049,7 +2073,7 @@ class Util(object):
 number_of_rrhs = 2
 util = Util()
 env = simpy.Environment()
-cp = Control_Plane(env, plp, util, "batch", 3, "firstFitRelaxMinVPON", "mostProbability", "power", "min")
+cp = Control_Plane(env, plp, util, "batch", 1, "firstFitRelaxMinVPON", "mostProbability", "power", "min")
 rrhs = util.createRRHs(number_of_rrhs, env, service_time, cp)
 #sim.rrhs = u.newCreateRRHs(number_of_rrhs, env, sim.service_time, cp)
 np.shuffle(rrhs)
