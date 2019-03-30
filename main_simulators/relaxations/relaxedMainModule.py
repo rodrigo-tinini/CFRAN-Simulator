@@ -190,7 +190,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 	#iterate over each RRH on the solution
 	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
 	for i in solution.var_x:
-		#print("Solution for {} in N State {}".format(i[0], n_state.wavelength_capacity))
+		print("Solution for {} in N State {}".format(i[0], n_state.wavelength_capacity))
 		#pdb.set_trace()#debugging breakpoint
 		#print(n_state.nodes_lambda)
 		#the node has capacity on its VDUs?
@@ -229,8 +229,10 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				if vpon != -1:#allocate the RRH on this VPON
 					updateVponState(rrh[i[0]], vpon, n_state)
 				else:
+					print("------NODE IS {} LAMBDA IS {} FOR RRH {}------".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
 					clearRRH(rrh[i[0]])
 					blocked_rrhs.append(rrh[i[0]])
+					print("******NODE IS {} LAMBDA IS {} FOR RRH {}******".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
 					#pass
 					#return -1
 					#print("eh -1")
@@ -243,6 +245,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				#print("*********")
 				#allocate the VPON to the RRH and its node and update its state
 				updateVponState(rrh[i[0]], i[2], n_state)
+				print("NODE IS {} LAMBDA IS {} FOR RRH {}".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
 				#print(n_state.nodes_lambda)
 			#if neither an already allocated VPON or the returned one has capacity, take another one that is free
 			elif getFreeVPON(rrh[i[0]], n_state):
@@ -269,6 +272,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		vdu = var_u[2]
 		if rrh[i[0]].blocked != True:
 			#check if the VDU returned has capacity and if the switch will be used
+			#print("NODE IS {} LAMBDA IS {} FOR RRH {}".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 1:
 				#print("SEM SWITCH")
 				#allocates this VDU on the RRH and did not use the switch
@@ -1115,8 +1119,12 @@ def updateRealNetworkState(auxiliaryNetwork, realNetwork):
 	#state of the backplane switch in each processing node
 	realNetwork.switch_state = auxiliaryNetwork.switch_state
 	#other variables
+	#lambdas\VPONs in each processing node
 	realNetwork.nodes_lambda = auxiliaryNetwork.nodes_lambda
+	#current capacity of each VPON of each processing node
 	realNetwork.nodes_vpons_capacity = auxiliaryNetwork.nodes_vpons_capacity
+	#blocked RRHs
+	realNetwork.relax_blocked = auxiliaryNetwork.relax_blocked
 
 #this class represents a "virtual" network state, used to keep a solution returned from the relaxation algorithms
 #this class will be used to be put on a list with n results drawn from n executions of the relaxations, when the instance with the best result will be used to
@@ -1238,6 +1246,8 @@ class NetworkState(object):
 		self.execution_time = None
 		self.migration_probability = None
 		self.total_migrations = None
+		#to keep blocked RRHs
+		self.relax_blocked = None
 		#to keep record of an old network state to calculate vBBUs migrations
 		self.old_network_state = None
 		#metrics of the solution provided by the ILP

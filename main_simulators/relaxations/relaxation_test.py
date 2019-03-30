@@ -13,7 +13,8 @@ import relaxedMainModule as rl
 
 #just an id for identification purposes
 aId = "Main network state"
-
+#to keep record of blocked RRHs in the relaxation methods
+relax_blocked = 0
 
 #some static methods
 #check if a DU in some node has free capacity

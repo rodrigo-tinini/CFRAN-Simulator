@@ -1280,8 +1280,15 @@ class Control_Plane(object):
 					#print("AFTER1", ilp_module.rrhs_on_nodes)
 					relaxMethod = getattr(rm, self.relaxHeuristic)
 					#The method on the line below will return a list of blocked RRHs from the relaxation method
-					#check if there is any blocked RRHs and, by their id, remove them from the "active" list and account the number of blockeds in a new list
-					relaxMethod(actives, solution_values, i)
+					#if any RRH happens to be blocked (very low probability for this to happen with the batch algorithm) remove them from the "active" list and account the number of blockeds in a new list
+					blocked_rrhs = None
+					blocked_rrhs = relaxMethod(actives, solution_values, i)
+					if blocked_rrhs:
+						for r in blocked_rrhs:
+							actives.remove(r)
+							rrhs.append(r)
+							np.shuffle(rrhs)
+						i.relax_blocked = len(blocked_rrhs)
 					#print("AFTER2", ilp_module.rrhs_on_nodes)
 					#rm.relaxHeuristic(antenas, solution_values, i)
 					i.old_network_state = network_copy
