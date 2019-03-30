@@ -1299,7 +1299,7 @@ class Control_Plane(object):
 					i.setMetric("execution_time", solution.solve_details.time)
 					#power consumption
 					i.setMetric("power", self.util.getPowerConsumption(i))
-					print("POWER is ",i.power)
+					#print("POWER is ",i.power)
 				end = time.time()
 				solution_time += end - start
 			if foundSolution == True:
@@ -1569,10 +1569,10 @@ class Control_Plane(object):
 			proc_loads = [0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
-			print("Departing for ",r.id)
-			print(r.var_x)
-			print(r.node)
-			print(r.wavelength)
+			#print("Departing for ",r.id)
+			#print(r.var_x)
+			#print(r.node)
+			#print(r.wavelength)
 			#print(r.var_x)
 			#print("Departing {}".format(r.id))
 			self.ilp.deallocateRRH(r)
@@ -1679,7 +1679,7 @@ class Control_Plane(object):
 			inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
 			#new line - verify if some node is light loaded
 			for i in range(len(plp.du_processing)):
-				print(proc_loads)
+				#print(proc_loads)
 				proc_loads[i] = (sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i])
 			for i in range(len(proc_loads)):
 				if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False: #adicionei and self.type != "batch", pois o batch ja faz o 

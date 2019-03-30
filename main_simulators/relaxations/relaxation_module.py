@@ -189,7 +189,7 @@ def sophMostProbability(solution, ilp):
 def sohpIncMostProbability(solution, ilp_module):
 	sol = cleanSolution(solution, ilp_module)
 
-
+'''
 #TESTS
 u = rlx.Util()
 antenas = u.newCreateRRHs(20, None, None, None)
@@ -250,7 +250,7 @@ print(rlx.switch_cost)
 print(rlx.switchBandwidth)
 print(rlx.switch_state)
 print(u.getPowerConsumption())
-
+'''
 
 #----------------------------END OF TESTS---------------------------------------------
 #print(rlx.rrhs_on_nodes)
