@@ -117,6 +117,7 @@ class ILP(object):
 		self.nodes = nodes
 		self.lambdas = lambdas
 		self.relaxed = relaxed
+		#print("THE FOG MATIX IS {}".format(self.fog))
 		#self.switchBandwidth = switchBandwidth
 		#self.RRHband = RRHband
 		#self.wavelength_capacity = wavelength_capacity

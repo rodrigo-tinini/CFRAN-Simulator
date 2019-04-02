@@ -1245,7 +1245,7 @@ class Control_Plane(object):
 			self.relaxSolutions = []
 			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
 			for i in self.relaxSolutions.network_states:
-				#print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
+				print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
 				#print("Size of n state is ",len(self.relaxSolutions.network_states))
 				#take a snapshot of the node states to account the migrations
 				copy_state = copy.copy(ilp_module.nodeState)
@@ -1263,6 +1263,7 @@ class Control_Plane(object):
 				#print(r.id)
 				#create the ILP object
 				self.ilp = ilp_module.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas, True)
+				#print("THE MATRIX IS {}".format(r.rrhs_matrix))
 				#gets the solution
 				solution = self.ilp.run()
 				#verifies if a solution was found and, if so, updates this auxiliary network state
@@ -1273,7 +1274,7 @@ class Control_Plane(object):
 					#perform the post processing procedure
 					#gets the post processing method
 					postMethod = getattr(rlx, self.postProcessingHeuristic)
-					postMethod(solution_values, ilp_module)
+					postMethod(solution_values, self.ilp, i)
 					#rlx.postProcessingHeuristic(solution_values, i)
 					#update the network state with the relaxation heuristic passed as parameter relaxHeuristic
 					#gets the metho
@@ -1284,8 +1285,11 @@ class Control_Plane(object):
 					blocked_rrhs = None
 					blocked_rrhs = relaxMethod(actives, solution_values, i)
 					if blocked_rrhs:
+						print("HHAAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHAIAHIAHIAHIAAH\nAHUHAUAHUAHUAHUAHUAHUAHUHAUHAUHAUHAUHA\nAHUAHUAHUAHUAHUAHUA")
 						for r in blocked_rrhs:
+							print("R IS {}".format(r.id))
 							actives.remove(r)
+							print("REMOVED {}".format(r.id))
 							rrhs.append(r)
 							np.shuffle(rrhs)
 						i.relax_blocked = len(blocked_rrhs)
@@ -1361,7 +1365,7 @@ class Control_Plane(object):
 					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 				if count_dus > 0:
 					proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
-				#print("Found the best solution for {} actives RRHs".format(len(actives)))
+				print("Found the best solution for {} actives RRHs".format(len(actives)))
 				return solution
 			else:
 				print("No Solution")
@@ -1569,12 +1573,13 @@ class Control_Plane(object):
 			proc_loads = [0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
-			#print("Departing for ",r.id)
-			#print(r.var_x)
-			#print(r.node)
-			#print(r.wavelength)
-			#print(r.var_x)
-			#print("Departing {}".format(r.id))
+			print("Departing for ",r.id)
+			print(r.var_x)
+			print(r.node)
+			print(r.wavelength)
+			print(r.var_x)
+			print(r.blocked)
+			print("Departing {}".format(r.id))
 			self.ilp.deallocateRRH(r)
 			#self.ilp.resetValues()
 			r.wavelength = None
@@ -1597,9 +1602,9 @@ class Control_Plane(object):
 				count_dus = 0
 				count_switches = 0
 				block = 0
-				print("Size", len(actives))
-				for i in actives:
-					print(i.id)
+				#print("Size", len(actives))
+				#for i in actives:
+				#	print(i.id)
 				self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
 				'''
 				#print("Calling Batch")
@@ -2077,7 +2082,7 @@ class Util(object):
 
 
 #Relaxation testing
-number_of_rrhs = 2
+number_of_rrhs = 15
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, plp, util, "batch", 1, "firstFitRelaxMinVPON", "mostProbability", "power", "min")

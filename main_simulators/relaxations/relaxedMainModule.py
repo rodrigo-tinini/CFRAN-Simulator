@@ -89,7 +89,8 @@ def updateVponState(rrh, vpon, n_state):
 	#n_state.wavelength = vpon
 	rrh.wavelength = vpon
 	n_state.wavelength_capacity[rrh.wavelength] -= n_state.RRHband
-	n_state.nodes_lambda[rrh.node].append(rrh.wavelength)
+	if not vpon in n_state.nodes_lambda[rrh.node]:
+		n_state.nodes_lambda[rrh.node].append(rrh.wavelength)
 	if n_state.lambda_state[rrh.wavelength] == 0:
 		n_state.lambda_state[rrh.wavelength] = 1
 		n_state.lc_cost[rrh.wavelength] = 0
@@ -117,16 +118,35 @@ def getFreeVPON(rrh, n_state):
 			updateVponState(rrh, j, n_state)
 			blockLambda(rrh.wavelength, rrh.node, n_state)
 			return True
+
+#new method to get the first free VPON in a node
+#this method check if there is an already allocated VPON in a node and returns it 
+def getRelaxNodeFirstFitVPON(node, i, n_state):
+	#get the first VPON created on node that has capacity
+	#get the vpons of node
+	n_vpons = n_state.nodes_lambda[node]
+	#now, gets the first that has enough capacity
+	for j in n_vpons:
+		print(n_vpons)
+		#print("CHECKED IS {} AND RELAX IS {}".format(j, i[2]))
+		if n_state.checkLambdaCapacity(j):
+			return j
+		#print("BAD CHECKED IS {} AND RELAX IS {}".format(j, i[2]))
+	return -1
 	
 #new method to get the first free VPON in a node
+#this method check if there is an already allocated VPON in a node and returns it ONLY IF IT IS DIFFERENT from the one returned on the relaxation
 def getNodeFirstFitVPON(node, i, n_state):
 	#get the first VPON created on node that has capacity
 	#get the vpons of node
 	n_vpons = n_state.nodes_lambda[node]
 	#now, gets the first that has enough capacity
 	for j in n_vpons:
+		print(n_vpons)
+		#print("CHECKED IS {} AND RELAX IS {}".format(j, i[2]))
 		if n_state.checkLambdaCapacity(j) and j != i[2] :
 			return j
+		#print("BAD CHECKED IS {} AND RELAX IS {}".format(j, i[2]))
 	return -1
 
 #get the first available VPON in a node
@@ -147,19 +167,20 @@ def getFirstFreeVPON(rrh, i, n_state):
 	return -1
 
 #free node resources
-def freeNodeResources(rrh, node, n_state):
+def freeNodeResources(rrh, node, n_state, node_allocated):
 	rrh.node = None
 	#print(node)
 	#print(rrh.node)
-	n_state.rrhs_on_nodes[node] -= 1
-	#turn the node on if it is not
-	if n_state.rrhs_on_nodes[node] == 0:
-		#not activated, updates costs
-		if node == 0:
-			n_state.nodeCost[node] = 0.0
-		else:
-			n_state.nodeCost[node] = 300.0
-		n_state.nodeState[node] = 0
+	if node_allocated:
+		n_state.rrhs_on_nodes[node] -= 1
+		#turn the node on if it is not
+		if n_state.rrhs_on_nodes[node] == 0:
+			#not activated, updates costs
+			if node == 0:
+				n_state.nodeCost[node] = 0.0
+			else:
+				n_state.nodeCost[node] = 300.0
+			n_state.nodeState[node] = 0
 
 #update the node state after an allocation
 def updateNode(rrh, n_state):
@@ -206,7 +227,186 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 	#iterate over each RRH on the solution
 	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
 	for i in solution.var_x:
-		print("Solution for {} in N State {}".format(i[0], n_state.aId))
+		alloc_vpon = False
+		print("Solution for RRH {} - {} in N State {}".format(rrh[i[0]].id, i[0], n_state.aId))
+		print("Current DUs are {}".format(n_state.du_processing))
+		#print("ELEMENT {}".format(n_state.nodes_lambda))
+		#pdb.set_trace()#debugging breakpoint
+		#print(n_state.nodes_lambda)
+		#the node has capacity on its VDUs?
+		if i[1] == 0 and n_state.checkNodeCapacity(i[1]):
+			#it has, allocate the node to the RRH
+			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
+			rrh[i[0]].node = i[1]
+		else:
+			if n_state.checkNodeCapacity(rrh[i[0]].fog):
+					rrh[i[0]].node = rrh[i[0]].fog
+		#update the node cost, number of allocated RRHs and capacity
+		if rrh[i[0]].node != None:
+			updateNode(rrh[i[0]], n_state)
+			#print("found node")
+		#if no node was allocated, blocks the requisition
+		else:
+			rrh[i[0]].blocked = True
+			#put the blocked RRH into a list
+			#clearRRH(rrh[i[0]])
+			#blocked_rrhs.append(rrh[i[0]])
+			#return -1
+		#now, if a node was found for the RRH, tries to allocate the VPON
+		if rrh[i[0]].blocked == False:
+			#print("não ta bloqueado")
+			#verifies if the node has an activate VPON
+			if checkNodeVPON(rrh[i[0]].node, n_state):#has active VPONs
+				#print("NODE VERIFIED IS {}".format(rrh[i[0]].node))
+				#print(n_state.lambda_node)
+				print("AQUI")
+				#print(n_state.nodes_lambda)
+				#print(i[2])
+				#print("*********")
+				#if it has, gets the first free VPON
+				vpon = getRelaxNodeFirstFitVPON(rrh[i[0]].node, i, n_state)
+				#vpon = getFirstFreeVPON(rrh[i[0]], i, n_state)#ELE NAO ESTÁ PEGANDO O VPON CORRETO, QUANDO JÁ TEM ALGUM VPON, ELE RETORNA -1, ARRUMAR ISSO
+				#print("hi",vpon)
+				#check if there is capacity on this VPON
+				if vpon != -1:#allocate the RRH on this VPON
+					#print("FOI!!!!", vpon)
+					updateVponState(rrh[i[0]], vpon, n_state)
+					#print("Aq1 ELEMENT {}".format(n_state.nodes_lambda))
+					alloc_vpon = True
+			#if not, take the VPON returned on the solution
+			#check if the VPON returned on the solution has capacity to support the RRH
+			elif n_state.checkLambdaNode(rrh[i[0]].node,i[2]) and n_state.checkLambdaCapacity(i[2]):
+				print("AQUI2")
+				#print(n_state.nodes_lambda)
+				#print(i[2])
+				#print("*********")
+				#allocate the VPON to the RRH and its node and update its state
+				updateVponState(rrh[i[0]], i[2], n_state)
+				alloc_vpon = True
+				#print("Aq2 ELEMENT {}".format(n_state.nodes_lambda))
+				#print("NODE IS {} LAMBDA IS {} FOR RRH {}".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
+			elif not alloc_vpon:
+				#if neither an already allocated VPON or the returned one has capacity, take another one that is free
+				if getFreeVPON(rrh[i[0]], n_state):
+					print("AQUI3")
+					alloc_vpon = True
+					#print("Aq3 ELEMENT {}".format(n_state.nodes_lambda))
+					#print(n_state.nodes_lambda)
+					#print(i[2])
+					#print("*********")
+					pass
+			if not alloc_vpon:
+				print("Foi bloqueado22...")
+				print(n_state.wavelength_capacity)
+				rrh[i[0]].blocked = True
+				freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
+				clearRRH(rrh[i[0]])
+				blocked_rrhs.append(rrh[i[0]])
+				#print(n_state.nodes_lambda)
+			#if neither an already allocated VPON or the returned one has capacity, take another one that is free
+			#elif getFreeVPON(rrh[i[0]], n_state):
+			#	print("AQUI3")
+				#print(n_state.nodes_lambda)
+				#print(i[2])
+				#print("*********")
+			#	pass
+			#no free non-allocated was found, then blocks the requisition and reverts the allocation done in the processing node
+		else:
+			print("RRH {} of Node {} is Blocked? {}".format(rrh[i[0]].id, rrh[i[0]].rrhs_matrix, rrh[i[0]].blocked))
+			freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, False)
+			clearRRH(rrh[i[0]])
+			blocked_rrhs.append(rrh[i[0]])
+		#if until this moment RRH was not blocked, tries to allocate the VDU
+		#get var_u - which contains the VDU
+		#print("IS BLOCKED?? ",rrh[i[0]].wavelength)
+		var_u = getVarU(i, solution)
+		#gets the VDU returned on the solution
+		vdu = var_u[2]
+		if rrh[i[0]].blocked != True:
+			#check if the VDU returned has capacity and if the switch will be used
+			#print("NODE IS {} LAMBDA IS {} FOR RRH {}".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
+			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 1:
+				#print("SEM SWITCH")
+				#allocates this VDU on the RRH and did not use the switch
+				rrh[i[0]].du = vdu
+				updateVDU(vdu, rrh[i[0]].node, n_state)
+				print("SEM SWITCH DU {} e VPON {} in Node {}".format(vdu, rrh[i[0]].wavelength, rrh[i[0]].node))
+			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 0:
+				print("COM SWITCH DU {} e VPON {} in Node {}".format(vdu, rrh[i[0]].wavelength, rrh[i[0]].node))
+				#allocates the VDU and activates the ethernet switch
+				rrh[i[0]].du = vdu
+				updateVDU(vdu, rrh[i[0]].node, n_state)
+				updateSwitch(rrh[i[0]].node, n_state)
+				print(n_state.du_processing)
+			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == -1:
+				print("DU RELAX IS {} AND ALL IS {}".format(vdu, n_state.du_processing))
+				print("problem here")
+				#the VDU or the switch has no free capacity, so, get the first fit VDU different from the returned on the solution
+				for d in range(len(n_state.du_processing[rrh[i[0]].node])):
+					if not checkSwitch(d, rrh[i[0]].wavelength):
+						print("nao precisa")
+						if n_state.checkCapacityDU(rrh[i[0]].node, d):
+							rrh[i[0]].du = d
+							updateVDU(d, rrh[i[0]].node, n_state)
+							print("Put DU {} to RRH {}".format(d, rrh[i[0]].id))
+							#updateSwitch(rrh[i[0]].node, n_state)
+							break
+						else:
+							print(n_state.du_processing)
+							print("DU is {} and RELAXED is {}".format(d, vdu))
+							print("Hello darkness my old friend... RRH {}".format(rrh[i[0]].id))
+							#pdb.set_trace()#debugging breakpoint
+					elif n_state.checkCapacityDU(rrh[i[0]].node, d):
+						if checkSwitch(d, rrh[i[0]].wavelength) and checkSwitchCapacity(rrh[i[0]].node, n_state):
+							print("precisa")
+							rrh[i[0]].du = d
+							updateVDU(d, rrh[i[0]].node, n_state)
+							updateSwitch(rrh[i[0]].node, n_state)
+							print(n_state.du_processing)
+							print("Put DU {} to RRH {}".format(d, rrh[i[0]].id))
+							#pdb.set_trace()#debugging breakpoint
+							break
+						else:
+							#blocks
+							print("NO SWITCH CAPACITY {} for RRH {}".format(n_state.du_processing, rrh[i[0]].id))
+					else:
+						#blocks
+						print("NO CAPACITY ON DUS {} for RRH {}".format(n_state.du_processing, rrh[i[0]].id))
+				if rrh[i[0]].du == None:
+					print("BLOKEADO {}".format(rrh[i[0]].id))
+					#print(n_state.wavelength_capacity)
+					rrh[i[0]].blocked = True
+					freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
+					clearRRH(rrh[i[0]])
+					blocked_rrhs.append(rrh[i[0]])
+	return blocked_rrhs
+			#return -1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def OldfirstFitRelaxMinVPON(rrh, solution, n_state):
+	#keep a list of blocked RRHs
+	blocked_rrhs = []
+	#iterate over each RRH on the solution
+	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
+	for i in solution.var_x:
+		alloc_vpon = False
+		print("Solution for RRH {} - {} in N State {}".format(rrh[i[0]].id, i[0], n_state.aId))
+		print("ELEMENT {}".format(n_state.nodes_lambda))
 		#pdb.set_trace()#debugging breakpoint
 		#print(n_state.nodes_lambda)
 		#the node has capacity on its VDUs?
@@ -233,6 +433,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 			#print("não ta bloqueado")
 			#verifies if the node has an activate VPON
 			if checkNodeVPON(rrh[i[0]].node, n_state):#has active VPONs
+				print("NODE VERIFIED IS {}".format(rrh[i[0]].node))
 				#print(n_state.lambda_node)
 				print("AQUI")
 				#print(n_state.nodes_lambda)
@@ -244,9 +445,11 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				#print("hi",vpon)
 				#check if there is capacity on this VPON
 				if vpon != -1:#allocate the RRH on this VPON
-					print(vpon)
+					print("FOI!!!!", vpon)
 					updateVponState(rrh[i[0]], vpon, n_state)
+					alloc_vpon = True
 				else:
+					print(vpon)
 					print("------NODE IS {} LAMBDA IS {} FOR RRH {}------".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].id))
 					clearRRH(rrh[i[0]])
 					blocked_rrhs.append(rrh[i[0]])
@@ -1169,7 +1372,7 @@ class NetworkState(object):
 			self.lambda_node = lambda_node
 		#capacity of each VDU
 		if du_processing == None:
-			self.du_processing = [[8.0, 8.0, 8.0, 8.0],[4.0, 4.0, 4.0, 4.0 ],[4.0, 4.0, 4.0, 4.0 ],]
+			self.du_processing = [[1.0, 1.0, 1.0, 1.0],[1.0, 1.0, 1.0, 1.0 ],[1.0, 1.0, 1.0, 1.0 ],]
 		else:
 			self.du_processing = du_processing
 		#used to calculate the processing usage of the node
