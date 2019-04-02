@@ -258,7 +258,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		else:
 			#rrh[i[0]].blocked = True
 			rrh[i[0]].virtualBlocking = True
-			#print("TA BLOKEANDO MESMO")
+			print("TA BLOKEANDO MESMO")
 			#put the blocked RRH into a list
 			#clearRRH(rrh[i[0]])
 			#blocked_rrhs.append(rrh[i[0]])
@@ -266,13 +266,13 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		#now, if a node was found for the RRH, tries to allocate the VPON
 		if rrh[i[0]].virtualBlocking == False:
 		#if rrh[i[0]].blocked == False:
-			#print("AQUI NAO BLOQUEOU AINDA")
+			print("AQUI NAO BLOQUEOU AINDA")
 			#print("não ta bloqueado")
 			#verifies if the node has an activate VPON
 			if checkNodeVPON(rrh[i[0]].node, n_state):#has active VPONs
 				#print("NODE VERIFIED IS {}".format(rrh[i[0]].node))
 				#print(n_state.lambda_node)
-				#print("AQUI")
+				print("AQUI")
 				#print(n_state.nodes_lambda)
 				#print(i[2])
 				#print("*********")
@@ -293,7 +293,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 			#if not, take the VPON returned on the solution
 			#check if the VPON returned on the solution has capacity to support the RRH
 			elif n_state.checkLambdaNode(rrh[i[0]].node,i[2]) and n_state.checkLambdaCapacity(i[2]):
-				#print("AQUI2")
+				print("AQUI2")
 				#print(n_state.nodes_lambda)
 				#print(i[2])
 				#print("*********")
