@@ -15,7 +15,12 @@ import sys
 import pdb#debugging module
 import importlib#to reload modules
 
+arrived = 0
+tried= 0
 
+departed = 0
+was_depart = 0
+bloqueado = 0
 #to count the availability of the service
 total_service_availability = []
 avg_service_availability = []
@@ -275,6 +280,7 @@ class Traffic_Generator(object):
 	def run(self):
 		global total_period_requests
 		global rrhs
+		global arrived 
 		#global actives
 		while True:
 			#if rrhs:
@@ -286,6 +292,8 @@ class Traffic_Generator(object):
 			if rrhs:
 				#print(len(rrhs))
 				r = rrhs.pop()
+				print("Arriving")
+				arrived +=1
 				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
 				self.cp.requests.put(r)
 				r.updateGenTime(self.env.now)
@@ -316,6 +324,9 @@ class Traffic_Generator(object):
 			global batch_blocking
 			global served_requests
 			global sucs_reqs
+			global was_depart
+			global departed
+			global bloqueado, arrived, tried
 			#self.action = self.action = self.env.process(self.run())
 			yield self.env.timeout(change_time)
 			actual_stamp = self.env.now
@@ -337,13 +348,39 @@ class Traffic_Generator(object):
 			#count averages for the batch case
 			elif self.cp.type == "batch":
 				self.countBatchAverages()
+				print("Counting at {}".format(self.env.now/3600))
 			elif self.cp.type == "inc_batch":
 				self.countIncBatchAverages()
 			elif self.cp.type == "load_inc_batch":
 				self.countIncBatchAverages()
 				print("Blocked were {}".format(total_inc_batch_blocking))
+			'''
+			print("********************************************************")
+			print("--------------------------------------------------------")
+			for i in actives:
+				print("RRH {} NODE {} ".format(i.id, i.node))
+				print("RRH {} Lambda {} ".format(i.id, i.wavelength))
+				print("RRH {} DU {} ".format(i.id, i.du))
+				print("RRH {} is Blocked? {} ".format(i.id, i.blocked))
+				print("RRH {} is Virtually Blocked? {} ".format(i.id, i.virtualBlocking))
+			print("--------------------------------------------------------")
+			print("********************************************************")
+			print("TURNED OFF IS {}".format(len(rrhs)))
+			'''
 			self.action = self.env.process(self.run())
-			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			print("Arrived {}".format(arrived))
+			print("Tried {}".format(tried))
+			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			arrived = 0
+			tried = 0
+			#print("IT WAS NOT DEPARTED {}".format(was_depart))
+			#print("ACTIVES IS",len(actives))
+			#print("Total Bloqueado {}".format(bloqueado))
+			#print("It was to depart {}".format(was_depart))
+			#print("Departed real {}".format(departed))
+			was_depart = 0
+			departed = 0
+			bloqueado = 0
 			#print(plp.rrhs_on_nodes)
 			total_requested.append(total_period_requests)
 			#print(avg_act_cloud)
@@ -691,6 +728,8 @@ class Traffic_Generator(object):
 		#count the averages (sometimes sums) of metrics
 		if act_cloud:
 			avg_act_cloud.append(sum(act_cloud)/served_requests)
+			#print("DANDO OKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
+			#print(served_requests)
 			act_cloud = []
 		else:
 			avg_act_cloud.append(0)
@@ -1115,6 +1154,7 @@ class Control_Plane(object):
 		count_dus = 0
 		count_switches = 0
 		block = 0
+		global bloqueado
 		#print(ilp_module == plp)
 		#to compute the solution time
 		solution_time = 0
@@ -1231,7 +1271,10 @@ class Control_Plane(object):
 			#print("INITIATE BATCH", ilp_module.rrhs_on_nodes)
 			self.network_states = []
 			if r != None:
+				#print("placing RRH {} in actives".format(r.id))
 				actives.append(r)
+				if len(actives) != len(set(actives)):
+					print("DUPLICATE!")
 			importlib.reload(ilp_module)
 			#create auxiliary network states with values reset
 			for i in range(self.number_of_runs):
@@ -1244,8 +1287,9 @@ class Control_Plane(object):
 				#print(self.network_states)
 			self.relaxSolutions = []
 			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
+			#print("Starting batch executions rows for {} auxiliary networks states and {} actives RRH".format(len(self.relaxSolutions.network_states), len(actives)))
 			for i in self.relaxSolutions.network_states:
-				print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
+				#print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
 				#print("Size of n state is ",len(self.relaxSolutions.network_states))
 				#take a snapshot of the node states to account the migrations
 				copy_state = copy.copy(ilp_module.nodeState)
@@ -1284,15 +1328,20 @@ class Control_Plane(object):
 					#if any RRH happens to be blocked (very low probability for this to happen with the batch algorithm) remove them from the "active" list and account the number of blockeds in a new list
 					blocked_rrhs = None
 					blocked_rrhs = relaxMethod(actives, solution_values, i)
+					i.relax_blocked = blocked_rrhs
 					if blocked_rrhs:
-						print("HHAAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHAIAHIAHIAHIAAH\nAHUHAUAHUAHUAHUAHUAHUAHUHAUHAUHAUHAUHA\nAHUAHUAHUAHUAHUAHUA")
+						#print("HHAAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHAIAHIAHIAHIAAH\nAHUHAUAHUAHUAHUAHUAHUAHUHAUHAUHAUHAUHA\nAHUAHUAHUAHUAHUAHUA")
+						#print("TOTAL BLOCKED IS {}".format(len(blocked_rrhs)))
 						for r in blocked_rrhs:
-							print("R IS {}".format(r.id))
+							#print("R IS {}".format(r.id))
 							actives.remove(r)
-							print("REMOVED {}".format(r.id))
+							#print("REMOVED {}".format(r.id))
 							rrhs.append(r)
 							np.shuffle(rrhs)
 						i.relax_blocked = len(blocked_rrhs)
+						bloqueado += len(blocked_rrhs)
+					else:
+						i.relax_blocked = 0
 					#print("AFTER2", ilp_module.rrhs_on_nodes)
 					#rm.relaxHeuristic(antenas, solution_values, i)
 					i.old_network_state = network_copy
@@ -1313,6 +1362,9 @@ class Control_Plane(object):
 				#for i in self.relaxSolutions.network_states:
 				#	print(i.power)
 				bestSolution = self.relaxSolutions.getBestNetworkState(self.metric, self.method)
+				#print("Total blocking in best solution {} is {} blocked".format(bestSolution.aId, bestSolution.relax_blocked))
+				#print("Total power in best solution {} is {} W".format(bestSolution.aId, bestSolution.power))
+				#print("Total execution time in best solution {} is {} seconds".format(bestSolution.aId, bestSolution.execution_time))
 				#print("Best solution is {}".format(bestSolution.solution_values.var_x))
 				#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
 				rm.updateRealNetworkState(bestSolution, ilp_module)
@@ -1365,7 +1417,7 @@ class Control_Plane(object):
 					lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 				if count_dus > 0:
 					proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
-				print("Found the best solution for {} actives RRHs".format(len(actives)))
+				#print("Found the best solution for {} actives RRHs".format(len(actives)))
 				return solution
 			else:
 				print("No Solution")
@@ -1568,133 +1620,149 @@ class Control_Plane(object):
 	def depart_request(self, ilp_module):
 		global rrhs
 		global served_requests
+		global was_depart
+		global departed
+		global tried
 		#global actives
 		while True:
 			proc_loads = [0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
-			print("Departing for ",r.id)
-			print(r.var_x)
-			print(r.node)
-			print(r.wavelength)
-			print(r.var_x)
-			print(r.blocked)
-			print("Departing {}".format(r.id))
-			self.ilp.deallocateRRH(r)
-			#self.ilp.resetValues()
-			r.wavelength = None
-			r.du = None
-			r.node = None
-			r.var_x = None
-			r.var_u = None
-			r.enabled = False
-			rrhs.append(r)
-			np.shuffle(rrhs)
-			actives.remove(r)
-			served_requests += 1
-			#pdb.set_trace()#debugging breakpoint
-			#account resourcesand consumption
-			if self.type == "inc":
-				self.count_inc_resources(ilp_module, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
-			elif self.type == "batch":
-				count_nodes = 0
-				count_lambdas = 0
-				count_dus = 0
-				count_switches = 0
-				block = 0
-				#print("Size", len(actives))
+			print("Trying to depart")
+			if r.blocked == False:
 				#for i in actives:
-				#	print(i.id)
-				self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
-				'''
-				#print("Calling Batch")
-				batch_list = copy.copy(actives)
-				#batch_list.append(r)
-				#actives.append(r)
-				self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas, True)
-				#copy the actual state of nodes to account the possible migrations
-				copy_state = copy.copy(plp.nodeState)
-				self.ilp.resetValues()
-				solution = self.ilp.run()
-				if solution == None:
-				#	rrhs.append(r)
-				#	actives.remove(r)
-				#	np.shuffle(rrhs)
-					print("Batch Blocking")
-					print("Cant Schedule {} RRHs".format(len(actives)))
-					batch_power_consumption.append(self.util.getPowerConsumption(plp))
-					batch_blocking.append(1)
-				else:
-					#print(solution.solve_details.time)
-					solution_values = self.ilp.return_solution_values()
-					self.ilp.updateValues(solution_values)
-					batch_time.append(solution.solve_details.time)
-					time_b.append(solution.solve_details.time)
-				#	r.updateWaitTime(self.env.now+solution.solve_details.time)
-					#print("Gen is {} ".format(r.generationTime))
-					#print("NOW {} ".format(r.waitingTime))
-				#	self.env.process(r.run())
-					#print("After Load balancing")
-					#print(plp.nodeState)
-					#print(len(actives))
-					#print("Nodes actives are: {}".format(plp.nodeState))
-					#print("Lambdas actives are: {}".format(plp.lambda_node))
-					#print("DUs load are: {}".format(plp.du_processing))
-					#print("Load is {} in {}".format(proc_loads[i], i))
-					#print("########")
-					#counts the external migrations
-					self.extMigrations(plp, copy_state)
-					batch_power_consumption.append(self.util.getPowerConsumption(plp))
-					batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
-					if solution_values.var_k:
-						b_redirected_rrhs.append(len(solution_values.var_k))
+				#	print("D RRH {} Blocked is {}".format(i.id, i.blocked))
+				print("Departing for ",r.id)
+				if len(actives) != len(set(actives)):
+					print("DUPLICATE!")
+				#print("Actives at departing moment are {}".format(len(actives)))
+				#print(r.var_x)
+				#print(r.node)
+				#print(r.wavelength)
+				#print(r.var_x)
+				#print(r.blocked)
+				#print("Departing {}".format(r.id))
+				self.ilp.deallocateRRH(r)
+				#self.ilp.resetValues()
+				r.wavelength = None
+				r.du = None
+				r.node = None
+				r.var_x = None
+				r.var_u = None
+				r.enabled = False
+				rrhs.append(r)
+				np.shuffle(rrhs)
+				actives.remove(r)
+				#print("Removed RRH {}".format(r.id))
+				served_requests += 1
+				departed +=1
+				#pdb.set_trace()#debugging breakpoint
+				#account resourcesand consumption
+				if self.type == "inc":
+					self.count_inc_resources(ilp_module, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
+				elif self.type == "batch":
+					count_nodes = 0
+					count_lambdas = 0
+					count_dus = 0
+					count_switches = 0
+					block = 0
+					#print("Size", len(actives))
+					#for i in actives:
+					#	print(i.id)
+					self.runRelaxation(self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
+					'''
+					#print("Calling Batch")
+					batch_list = copy.copy(actives)
+					#batch_list.append(r)
+					#actives.append(r)
+					self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas, True)
+					#copy the actual state of nodes to account the possible migrations
+					copy_state = copy.copy(plp.nodeState)
+					self.ilp.resetValues()
+					solution = self.ilp.run()
+					if solution == None:
+					#	rrhs.append(r)
+					#	actives.remove(r)
+					#	np.shuffle(rrhs)
+						print("Batch Blocking")
+						print("Cant Schedule {} RRHs".format(len(actives)))
+						batch_power_consumption.append(self.util.getPowerConsumption(plp))
+						batch_blocking.append(1)
 					else:
-						b_redirected_rrhs.append(0)
-					#counts the current activated nodes, lambdas, DUs and switches
-					for i in plp.nodeState:
-						if i == 1:
-							count_nodes += 1
-					b_activated_nodes.append(count_nodes)
-					for i in plp.lambda_state:
-						if i == 1:
-							count_lambdas += 1
-					b_activated_lambdas.append(count_lambdas)
-					for i in plp.du_state:
-						for j in i:
-							if j == 1:
-								count_dus += 1
-					b_activated_dus.append(count_dus)
-					for i in plp.switch_state:
-						if i == 1:
-							count_switches += 1
-					b_activated_switchs.append(count_switches)
-					#batch_done = True
-					#count DUs and lambdas usage
-					if count_lambdas > 0:
-						lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
-					if count_dus > 0:
-						proc_usage.append(len(actives)/self.getProcUsage(plp))
-				#self.count_batch_resources(plp,batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
-				'''
-			elif self.type == "inc_batch":
-				self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
-		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
-			elif self.type == "load_inc_batch":
-				self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
+						#print(solution.solve_details.time)
+						solution_values = self.ilp.return_solution_values()
+						self.ilp.updateValues(solution_values)
+						batch_time.append(solution.solve_details.time)
+						time_b.append(solution.solve_details.time)
+					#	r.updateWaitTime(self.env.now+solution.solve_details.time)
+						#print("Gen is {} ".format(r.generationTime))
+						#print("NOW {} ".format(r.waitingTime))
+					#	self.env.process(r.run())
+						#print("After Load balancing")
+						#print(plp.nodeState)
+						#print(len(actives))
+						#print("Nodes actives are: {}".format(plp.nodeState))
+						#print("Lambdas actives are: {}".format(plp.lambda_node))
+						#print("DUs load are: {}".format(plp.du_processing))
+						#print("Load is {} in {}".format(proc_loads[i], i))
+						#print("########")
+						#counts the external migrations
+						self.extMigrations(plp, copy_state)
+						batch_power_consumption.append(self.util.getPowerConsumption(plp))
+						batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
+						if solution_values.var_k:
+							b_redirected_rrhs.append(len(solution_values.var_k))
+						else:
+							b_redirected_rrhs.append(0)
+						#counts the current activated nodes, lambdas, DUs and switches
+						for i in plp.nodeState:
+							if i == 1:
+								count_nodes += 1
+						b_activated_nodes.append(count_nodes)
+						for i in plp.lambda_state:
+							if i == 1:
+								count_lambdas += 1
+						b_activated_lambdas.append(count_lambdas)
+						for i in plp.du_state:
+							for j in i:
+								if j == 1:
+									count_dus += 1
+						b_activated_dus.append(count_dus)
+						for i in plp.switch_state:
+							if i == 1:
+								count_switches += 1
+						b_activated_switchs.append(count_switches)
+						#batch_done = True
+						#count DUs and lambdas usage
+						if count_lambdas > 0:
+							lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+						if count_dus > 0:
+							proc_usage.append(len(actives)/self.getProcUsage(plp))
+					#self.count_batch_resources(plp,batch_power_consumption, b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs)
+					'''
+				elif self.type == "inc_batch":
+					self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
 			inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
-			#new line - verify if some node is light loaded
-			for i in range(len(plp.du_processing)):
-				#print(proc_loads)
-				proc_loads[i] = (sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i])
-			for i in range(len(proc_loads)):
-				if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False: #adicionei and self.type != "batch", pois o batch ja faz o 
-				#load balancing sempre que alguém sai da rede (se der algum problema, tirar essa linha que disse que adicionei (and self.type != "batch"))
-					self.check_load.put(r)
-					#print("NODE {} STARTING LOAD BALANCING".format(i))
-					batch_done = True
-				else:
-					pass
-					#print("Normal Operation")
+				elif self.type == "load_inc_batch":
+					self.count_inc_batch_resources(plp, inc_batch_power_consumption,inc_batch_activated_nodes, 
+				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs)
+				#new line - verify if some node is light loaded
+				for i in range(len(plp.du_processing)):
+					#print(proc_loads)
+					proc_loads[i] = (sum(plp.du_processing[i]))/ sum(plp.dus_total_capacity[i])
+				for i in range(len(proc_loads)):
+					if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False: #adicionei and self.type != "batch", pois o batch ja faz o 
+					#load balancing sempre que alguém sai da rede (se der algum problema, tirar essa linha que disse que adicionei (and self.type != "batch"))
+						self.check_load.put(r)
+						#print("NODE {} STARTING LOAD BALANCING".format(i))
+						batch_done = True
+					else:
+						pass
+						#print("Normal Operation")
+			else:
+				print("TryingNO")
+				#print("RRH {} WAS NOT DEPARTED".format(r.id))
+				was_depart += 1
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
@@ -1741,6 +1809,7 @@ class RRH(object):
 		self.wavelength = None
 		self.du = None
 		self.blocked = False
+		self.virtualBlocking = False
 
 	#updates the generation time
 	def updateGenTime(self, gen_time):
@@ -2082,10 +2151,10 @@ class Util(object):
 
 
 #Relaxation testing
-number_of_rrhs = 15
+number_of_rrhs = 46
 util = Util()
 env = simpy.Environment()
-cp = Control_Plane(env, plp, util, "batch", 1, "firstFitRelaxMinVPON", "mostProbability", "power", "min")
+cp = Control_Plane(env, plp, util, "batch", 2, "firstFitRelaxMinVPON", "mostProbability", "power", "min")
 rrhs = util.createRRHs(number_of_rrhs, env, service_time, cp)
 #sim.rrhs = u.newCreateRRHs(number_of_rrhs, env, sim.service_time, cp)
 np.shuffle(rrhs)
