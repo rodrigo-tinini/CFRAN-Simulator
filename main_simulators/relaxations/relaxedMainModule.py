@@ -217,6 +217,22 @@ def clearRRH(r):
 	r.var_u = None
 	r.enabled = False
 
+#this method helps to find RRHs that wa allocated to node, lambda and DU but had their "blocked" attributed wrongly updated to True (meaning that it is blocked, although it is not)
+def checkRealBlocked(rrh):
+	if rrh.node != None and rrh.wavelength != None and rrh.du != None and rrh.blocked == True:
+		print("RRH {} wrongly blocked".format(rrh.id))
+
+#SOBRE O ÚLTIMO PROBLEMA, PELO QUE PUDE OBSERVAR ESSA HEURISTICA DEVOLVE CORRETAMENTE OS BLOQUEADOS, ENTRETANTO, ELA ESTÁ DEVOLVENDO RRHS QUE NÃO FORAM BLOQUEADOS E OS COLOCANDO NA LISTA DE ATIVOS
+#COM SEU ATRIBUTO BLOCKED COMO TRUE, O QUE FAZ COM QUE, QUANDO O SEU SERVICE TIME É EXPIRADO, ELES NÃO SÃO RETIRADOS DA REDE, E ISSO CHEGA EM UM PONTO ONDE, COM GRANDES QUANTIDADES DE RRHS
+#EM QUE TODOS PASSAM POR ISSO, O QUE LEVA A QUE TODOS CHEGAM, SÃO ALOCADOS, MAS NENHUM É RETIRADO, JUSTAMENTE POR SEU ATRIBUTO BLOCKED ESTAR COMO TRUE, MESMO TENDO A HEURÍSTICA ALOCADO NÓS, LAMBDAS E DUS
+#PARA ELES. PRECISO INVESTIGAR ISSO E, A MELHOR FORMA É REESCREVER ESSA HEURÍSTICA. PROVAVELMENTE O CONTROLE SOBRE O ATRIBUTO BLOCKED ESTÁ ERRONEO, AINDA MAIS QUE AGORA EU CRIEI O ATRIBUTO VIRTUAL BLOCKED
+#PARA AUXILIAR.
+#PRECISO DEBUGAR O CÓDIGO PARA DESCOBRIR EM QUE PONTO A ALOCAÇÃO FUNCIONA MAS O ATRIBUTO BLOCKED É MANTIDO COMO TRUE.
+
+#COPIAR A LISTA DE ATIVOS PARA RODAR NA HEURISTICA? PQ SE EU ALTERAR ALGUEM NESSA LISTA, ALTERO PARA TODO MUNDO, INCLUSIVE PARA O PROCEDIMENTO PRINCIPAL DA SIMULAÇÃO E
+#PODE SER ISSO QUE ESTÁ DANDO O PROBLEMA E IMPEDINDO QUE RRHS QUE TÊM QUE SAIR NÃO SAIAM, PQ ESTAVAM ATIVOS, MAS FORAM BLOQUEADOS EM ALGUM MOENTO PELA HEURÍSTICA, MESMO QUE FORAM
+#ALTERADOS EM UMA SOLUÇÃO QUE NÃO FOI UTILIZADA NA REDE PRINCIPAL, NESSE CASO O QUE VAI CONTAR VAI SER A ÚLTIMA MODIFICAÇÃO FEITA PELA HEURÍSTICA!!!!!!!!!!
+
 #This method tries to use the first fit VPON in a node, and then, the one with most probability use returned on the solution and then, the first fit that was not allocated to any node
 #regarding the node, it tries the one with the most probability, then, the other available node (it will be always cloud or fog)
 #regarding the VDU, it consider the one with the most probability returned on the solution, then take the first fit available VDU in the node (it does not aim to reduce swtich delay)
@@ -224,11 +240,16 @@ def clearRRH(r):
 def firstFitRelaxMinVPON(rrh, solution, n_state):
 	#keep a list of blocked RRHs
 	blocked_rrhs = []
+	not_blocked = []#append each RRH to this list after it was allocated
 	#iterate over each RRH on the solution
 	#general rule for RRHs (var x and u): index [0] is the RRH, index [1] is the node, [2] is the wavelength/DU
 	for i in solution.var_x:
 		alloc_vpon = False
 		#print("Solution for RRH {} - {} in N State {}".format(rrh[i[0]].id, i[0], n_state.aId))
+		if rrh[i[0]].blocked:
+			print("RRH {} begins blocked".format(rrh[i[0]].id))
+			print("NODE {} LAMBDA {} VDU {}".format(rrh[i[0]].node, rrh[i[0]].wavelength, rrh[i[0]].du))
+			pdb.set_trace()#debugging breakpoint
 		#print("Current DUs are {}".format(n_state.du_processing))
 		#print("RRH IS AT BLOCKED {}".format(rrh[i[0]].blocked))
 		#all RRHs must enter this solution as no blocked
@@ -258,7 +279,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		else:
 			#rrh[i[0]].blocked = True
 			rrh[i[0]].virtualBlocking = True
-			print("TA BLOKEANDO MESMO")
+			#print("TA BLOKEANDO MESMO")
 			#put the blocked RRH into a list
 			#clearRRH(rrh[i[0]])
 			#blocked_rrhs.append(rrh[i[0]])
@@ -266,13 +287,13 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		#now, if a node was found for the RRH, tries to allocate the VPON
 		if rrh[i[0]].virtualBlocking == False:
 		#if rrh[i[0]].blocked == False:
-			print("AQUI NAO BLOQUEOU AINDA")
+			#print("AQUI NAO BLOQUEOU AINDA")
 			#print("não ta bloqueado")
 			#verifies if the node has an activate VPON
 			if checkNodeVPON(rrh[i[0]].node, n_state):#has active VPONs
 				#print("NODE VERIFIED IS {}".format(rrh[i[0]].node))
 				#print(n_state.lambda_node)
-				print("AQUI")
+				#print("AQUI")
 				#print(n_state.nodes_lambda)
 				#print(i[2])
 				#print("*********")
@@ -293,7 +314,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 			#if not, take the VPON returned on the solution
 			#check if the VPON returned on the solution has capacity to support the RRH
 			elif n_state.checkLambdaNode(rrh[i[0]].node,i[2]) and n_state.checkLambdaCapacity(i[2]):
-				print("AQUI2")
+				#print("AQUI2")
 				#print(n_state.nodes_lambda)
 				#print(i[2])
 				#print("*********")
@@ -307,6 +328,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				#if neither an already allocated VPON or the returned one has capacity, take another one that is free
 				if getFreeVPON(rrh[i[0]], n_state):
 					#print("AQUI3")
+					#print("RRH {} não foi bloqueado".format(rrh[i[0]].id))
 					alloc_vpon = True
 					#print("Aq3 ELEMENT {}".format(n_state.nodes_lambda))
 					#print(n_state.nodes_lambda)
@@ -314,7 +336,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 					#print("*********")
 					pass
 			if not alloc_vpon:
-				#print("Foi bloqueado22...")
+				print(" RRH {} Foi bloqueado...".format(rrh[i[0]].id))
 				#print(n_state.wavelength_capacity)
 				rrh[i[0]].blocked = True
 				freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
@@ -385,7 +407,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 							updateVDU(d, rrh[i[0]].node, n_state)
 							updateSwitch(rrh[i[0]].node, n_state)
 							#print(n_state.du_processing)
-							#print("Put DU {} to RRH {}".format(d, rrh[i[0]].id))
+							print("Put DU {} to RRH {}".format(d, rrh[i[0]].id))
 							#pdb.set_trace()#debugging breakpoint
 							break
 						else:
@@ -397,12 +419,20 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 						#blocks
 						#print("NO CAPACITY ON DUS {} for RRH {}".format(n_state.du_processing, rrh[i[0]].id))
 				if rrh[i[0]].du == None:
-					#print("BLOKEADO {}".format(rrh[i[0]].id))
+					print("BLOKEADO {}".format(rrh[i[0]].id))
 					#print(n_state.wavelength_capacity)
 					rrh[i[0]].blocked = True
 					freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
 					clearRRH(rrh[i[0]])
 					blocked_rrhs.append(rrh[i[0]])
+	#for i in blocked_rrhs:
+	#	print("=======================")
+	#	print("RRH {} is blocked? {}".format(i.id, i.blocked))
+	#	print("NODE {} LAMBDA VDU {}".format(i.node, i.wavelength, i.du))
+	#	print("=======================")
+	#for i in rrh:
+	#	checkRealBlocked(i)
+	#print(len(rrh))
 	return blocked_rrhs
 			#return -1
 

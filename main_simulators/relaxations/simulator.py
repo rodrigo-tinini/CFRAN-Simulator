@@ -292,7 +292,7 @@ class Traffic_Generator(object):
 			if rrhs:
 				#print(len(rrhs))
 				r = rrhs.pop()
-				print("Arriving")
+				#print("Arriving")
 				arrived +=1
 				#print("Took {} RRHS list is {}".format(r.id, len(rrhs)))
 				self.cp.requests.put(r)
@@ -348,7 +348,7 @@ class Traffic_Generator(object):
 			#count averages for the batch case
 			elif self.cp.type == "batch":
 				self.countBatchAverages()
-				print("Counting at {}".format(self.env.now/3600))
+				#print("Counting at {}".format(self.env.now/3600))
 			elif self.cp.type == "inc_batch":
 				self.countIncBatchAverages()
 			elif self.cp.type == "load_inc_batch":
@@ -368,8 +368,8 @@ class Traffic_Generator(object):
 			print("TURNED OFF IS {}".format(len(rrhs)))
 			'''
 			self.action = self.env.process(self.run())
-			print("Arrived {}".format(arrived))
-			print("Tried {}".format(tried))
+			#print("Arrived {}".format(arrived))
+			#print("Tried {}".format(tried))
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			arrived = 0
 			tried = 0
@@ -1332,11 +1332,11 @@ class Control_Plane(object):
 					if blocked_rrhs:
 						#print("HHAAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHAIAHIAHIAHIAAH\nAHUHAUAHUAHUAHUAHUAHUAHUHAUHAUHAUHAUHA\nAHUAHUAHUAHUAHUAHUA")
 						#print("TOTAL BLOCKED IS {}".format(len(blocked_rrhs)))
-						for r in blocked_rrhs:
+						for j in blocked_rrhs:
 							#print("R IS {}".format(r.id))
-							actives.remove(r)
+							actives.remove(j)
 							#print("REMOVED {}".format(r.id))
-							rrhs.append(r)
+							rrhs.append(j)
 							np.shuffle(rrhs)
 						i.relax_blocked = len(blocked_rrhs)
 						bloqueado += len(blocked_rrhs)
@@ -1628,11 +1628,11 @@ class Control_Plane(object):
 			proc_loads = [0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
-			print("Trying to depart")
+			#print("Trying to depart")
 			if r.blocked == False:
 				#for i in actives:
 				#	print("D RRH {} Blocked is {}".format(i.id, i.blocked))
-				print("Departing for ",r.id)
+				#print("Departing for ",r.id)
 				if len(actives) != len(set(actives)):
 					print("DUPLICATE!")
 				#print("Actives at departing moment are {}".format(len(actives)))
@@ -1650,6 +1650,7 @@ class Control_Plane(object):
 				r.var_x = None
 				r.var_u = None
 				r.enabled = False
+				r.blocked = False
 				rrhs.append(r)
 				np.shuffle(rrhs)
 				actives.remove(r)
@@ -1760,7 +1761,7 @@ class Control_Plane(object):
 						pass
 						#print("Normal Operation")
 			else:
-				print("TryingNO")
+				#print("TryingNO")
 				#print("RRH {} WAS NOT DEPARTED".format(r.id))
 				was_depart += 1
 
