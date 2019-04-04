@@ -354,6 +354,13 @@ class Traffic_Generator(object):
 			elif self.cp.type == "load_inc_batch":
 				self.countIncBatchAverages()
 				print("Blocked were {}".format(total_inc_batch_blocking))
+			if actives:
+				print("********************************************************")
+				print("--------------------------------------------------------")
+				for i in actives:
+					print("RRH {} Get in {} and Get out {} and tried to get out {} ".format(i.id, i.getin, i.getout, i.tried))
+				print("--------------------------------------------------------")
+				print("********************************************************")
 			'''
 			print("********************************************************")
 			print("--------------------------------------------------------")
@@ -370,6 +377,7 @@ class Traffic_Generator(object):
 			self.action = self.env.process(self.run())
 			#print("Arrived {}".format(arrived))
 			#print("Tried {}".format(tried))
+			print("Actives are {}".format(len(actives)))
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			arrived = 0
 			tried = 0
@@ -1273,6 +1281,7 @@ class Control_Plane(object):
 			if r != None:
 				#print("placing RRH {} in actives".format(r.id))
 				actives.append(r)
+				r.getin+=1
 				if len(actives) != len(set(actives)):
 					print("DUPLICATE!")
 			importlib.reload(ilp_module)
@@ -1289,6 +1298,9 @@ class Control_Plane(object):
 			self.relaxSolutions = rm.NetworkStateCollection(self.network_states)
 			#print("Starting batch executions rows for {} auxiliary networks states and {} actives RRH".format(len(self.relaxSolutions.network_states), len(actives)))
 			for i in self.relaxSolutions.network_states:
+				#make a copy of the actives list so the iterative relaxed heuristics do not change the attributes of previously allocated RRHs and resources
+				actives_copy = []
+				actives_copy = copy.copy(actives)
 				#print("Batch running for auxiliary network state {} with {} actives RRHs".format(i.aId, len(actives)))
 				#print("Size of n state is ",len(self.relaxSolutions.network_states))
 				#take a snapshot of the node states to account the migrations
@@ -1306,7 +1318,9 @@ class Control_Plane(object):
 				#actives.append(r)#moved out from the loop if network states because the active list were appending the same RRH i neach iteration
 				#print(r.id)
 				#create the ILP object
-				self.ilp = ilp_module.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas, True)
+				#calling the ILP for the copy of actives, not the original actives list
+				#self.ilp = ilp_module.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas, True)
+				self.ilp = ilp_module.ILP(actives_copy, range(len(actives_copy)), ilp_module.nodes, ilp_module.lambdas, True)
 				#print("THE MATRIX IS {}".format(r.rrhs_matrix))
 				#gets the solution
 				solution = self.ilp.run()
@@ -1327,7 +1341,7 @@ class Control_Plane(object):
 					#The method on the line below will return a list of blocked RRHs from the relaxation method
 					#if any RRH happens to be blocked (very low probability for this to happen with the batch algorithm) remove them from the "active" list and account the number of blockeds in a new list
 					blocked_rrhs = None
-					blocked_rrhs = relaxMethod(actives, solution_values, i)
+					blocked_rrhs = relaxMethod(actives_copy, solution_values, i)
 					i.relax_blocked = blocked_rrhs
 					if blocked_rrhs:
 						#print("HHAAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHIAHAIAHIAHIAHIAAH\nAHUHAUAHUAHUAHUAHUAHUAHUHAUHAUHAUHAUHA\nAHUAHUAHUAHUAHUAHUA")
@@ -1335,6 +1349,7 @@ class Control_Plane(object):
 						for j in blocked_rrhs:
 							#print("R IS {}".format(r.id))
 							actives.remove(j)
+							j.enabled = False
 							#print("REMOVED {}".format(r.id))
 							rrhs.append(j)
 							np.shuffle(rrhs)
@@ -1356,6 +1371,9 @@ class Control_Plane(object):
 				end = time.time()
 				solution_time += end - start
 			if foundSolution == True:
+				#put every RRH in active list as a active RRH
+				for j in actives:
+					j.enabled = True
 				#print("Iterations are finished for {} actives RRH".format(len(actives)))
 				sucs_reqs += 1
 				#gets the best solution
@@ -1629,7 +1647,7 @@ class Control_Plane(object):
 			batch_done = False
 			r = yield self.departs.get()
 			#print("Trying to depart")
-			if r.blocked == False:
+			if r.enabled == True:
 				#for i in actives:
 				#	print("D RRH {} Blocked is {}".format(i.id, i.blocked))
 				#print("Departing for ",r.id)
@@ -1657,6 +1675,7 @@ class Control_Plane(object):
 				#print("Removed RRH {}".format(r.id))
 				served_requests += 1
 				departed +=1
+				r.getout +=1
 				#pdb.set_trace()#debugging breakpoint
 				#account resourcesand consumption
 				if self.type == "inc":
@@ -1760,10 +1779,13 @@ class Control_Plane(object):
 					else:
 						pass
 						#print("Normal Operation")
-			else:
+			#else:
 				#print("TryingNO")
 				#print("RRH {} WAS NOT DEPARTED".format(r.id))
-				was_depart += 1
+				#print("NEEEEEEEEEEEEEEEEEEEEEEEEVER")
+				#print("Is RRH {} in actives list?? {}". format(r.id, r in actives))
+				#r.tried += 1
+				#was_depart += 1
 
 	#to capture the state of the network at a given rate - will be used to take the metrics at a given (constant) moment
 	def checkNetwork(self):
@@ -1811,6 +1833,9 @@ class RRH(object):
 		self.du = None
 		self.blocked = False
 		self.virtualBlocking = False
+		self.getin = 0
+		self.getout = 0
+		self.tried = 0
 
 	#updates the generation time
 	def updateGenTime(self, gen_time):
@@ -2152,7 +2177,7 @@ class Util(object):
 
 
 #Relaxation testing
-number_of_rrhs = 46
+number_of_rrhs = 1000
 util = Util()
 env = simpy.Environment()
 cp = Control_Plane(env, plp, util, "batch", 2, "firstFitRelaxMinVPON", "mostProbability", "power", "min")
