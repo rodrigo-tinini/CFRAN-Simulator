@@ -221,8 +221,9 @@ def clearRRH(r):
 #this method helps to find RRHs that wa allocated to node, lambda and DU but had their "blocked" attributed wrongly updated to True (meaning that it is blocked, although it is not)
 def checkRealBlocked(rrh, place):
 	if rrh.node != None and rrh.wavelength != None and rrh.du != None and rrh.blocked == True:
-		print("RRH {} wrongly blocked in {}".format(rrh.id, place))
-		print("NODE {} |LAMBDA {} DU {}".format(rrh.node, rrh.wavelength, rrh.du))
+		#print("RRH {} wrongly blocked in {}".format(rrh.id, place))
+		#print("NODE {} |LAMBDA {} DU {}".format(rrh.node, rrh.wavelength, rrh.du))
+		pass
 
 #SOBRE O ÚLTIMO PROBLEMA, PELO QUE PUDE OBSERVAR ESSA HEURISTICA DEVOLVE CORRETAMENTE OS BLOQUEADOS, ENTRETANTO, ELA ESTÁ DEVOLVENDO RRHS QUE NÃO FORAM BLOQUEADOS E OS COLOCANDO NA LISTA DE ATIVOS
 #COM SEU ATRIBUTO BLOCKED COMO TRUE, O QUE FAZ COM QUE, QUANDO O SEU SERVICE TIME É EXPIRADO, ELES NÃO SÃO RETIRADOS DA REDE, E ISSO CHEGA EM UM PONTO ONDE, COM GRANDES QUANTIDADES DE RRHS
