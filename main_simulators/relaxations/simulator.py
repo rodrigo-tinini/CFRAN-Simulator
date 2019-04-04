@@ -378,8 +378,9 @@ class Traffic_Generator(object):
 			#print("Arrived {}".format(arrived))
 			#print("Tried {}".format(tried))
 			#print("Actives are {}".format(len(actives)))
-			print("Power consumption is {}".format(batch_average_consumption))
-			print("Blocking is {}".format(total_batch_blocking))
+			#print("Power consumption is {}".format(batch_average_consumption))
+			#print("Blocking is {}".format(total_batch_blocking))
+			print("Execution time is {}".format(avg_time_b))
 			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			arrived = 0
 			tried = 0
@@ -1395,6 +1396,7 @@ class Control_Plane(object):
 				batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
 				batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 				batch_blocking.append(bestSolution.relax_blocked)
+				time_b.append(bestSolution.execution_time)
 				#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
 				#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
 				#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
