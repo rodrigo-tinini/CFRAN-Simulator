@@ -13,6 +13,39 @@ import pureBatchILP as plp
 import copy
 import incrementalWithBatchILP as sim
 
+
+
+#lists for live migration averages
+total_down_time = []
+total_down_time2 = []
+total_down_time3 = []
+total_down_time4 = []
+
+total_processing_time = []
+total_processing_time2 = []
+total_processing_time3 = []
+total_processing_time4 = []
+
+total_processed_rrhs = []
+total_processed_rrhs2 = []
+total_processed_rrhs3 = []
+total_processed_rrhs4 = []
+
+total_down_time_probability = []
+total_down_time_probability2 = []
+total_down_time_probability3 = []
+total_down_time_probability4 = []
+
+total_migration_time = []
+total_migration_time2 = []
+total_migration_time3 = []
+total_migration_time4 = []
+
+total_traffic_migrated = []
+total_traffic_migrated2 = []
+total_traffic_migrated3 = []
+total_traffic_migrated4 = []
+
 #lists of power consumptions means
 total_inc_power = []
 total_batch_power = []
@@ -149,7 +182,7 @@ inc_batch_served3 = []
 inc_batch_served4 = []
 
 #lists
-exec_number = 40
+exec_number = 30
 util = sim.Util()
 #sim.load_threshold = 10
 #incremental simulation
@@ -197,6 +230,7 @@ for i in range(exec_number):
 	#print(total_batch_migrations)
 	util.resetParams()
 '''
+'''
 for i in range(exec_number):
 	print("STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---STARTING INCREMENTAL SIMULATION---")
 	print("Execution # {}".format(i))
@@ -230,7 +264,9 @@ for i in range(exec_number):
 	avg_inc_availability.append(sim.avg_service_availability)
 	inc_served.append(sim.avg_total_allocated)
 	inc_req.append(sim.total_requested)
+	print(sim.total_inc_blocking)
 	util.resetParams()
+'''
 
 #batch simulation
 
@@ -270,6 +306,10 @@ for i in range(exec_number):
 	avg_inc_batch_availability.append(sim.avg_service_availability)
 	inc_batch_served.append(sim.avg_total_allocated)
 	inc_batch_req.append(sim.total_requested)
+	total_down_time.append(numpy.divide(sim.average_down_time, sim.average_processed_rrhs))
+	total_down_time_probability.append(numpy.divide(sim.average_down_time, sim.average_rrhs_processing_time))
+	total_traffic_migrated.append([i * 614.4 for i in sim.count_ext_migrations])
+	total_migration_time.append(sim.avg_vm_migrations_time)
 	util.resetParams()
 
 	#batch simulation
@@ -314,6 +354,10 @@ for i in range(exec_number):
 	avg_inc_batch_availability2.append(sim.avg_service_availability)
 	inc_batch_served2.append(sim.avg_total_allocated)
 	inc_batch_req2.append(sim.total_requested)
+	total_down_time2.append(numpy.divide(sim.average_down_time, sim.average_processed_rrhs))
+	total_down_time_probability2.append(numpy.divide(sim.average_down_time, sim.average_rrhs_processing_time))
+	total_traffic_migrated2.append([i * 614.4 for i in sim.count_ext_migrations])
+	total_migration_time2.append(sim.avg_vm_migrations_time)
 	util.resetParams()
 
 sim.network_threshold = 0.4
@@ -357,6 +401,10 @@ for i in range(exec_number):
 	avg_inc_batch_availability3.append(sim.avg_service_availability)
 	inc_batch_served3.append(sim.avg_total_allocated)
 	inc_batch_req3.append(sim.total_requested)
+	total_down_time3.append(numpy.divide(sim.average_down_time, sim.average_processed_rrhs))
+	total_down_time_probability3.append(numpy.divide(sim.average_down_time, sim.average_rrhs_processing_time))
+	total_traffic_migrated3.append([i * 614.4 for i in sim.count_ext_migrations])
+	total_migration_time3.append(sim.avg_vm_migrations_time)
 	util.resetParams()
 
 sim.network_threshold = 0.2
@@ -400,6 +448,10 @@ for i in range(exec_number):
 	avg_inc_batch_availability4.append(sim.avg_service_availability)
 	inc_batch_served4.append(sim.avg_total_allocated)
 	inc_batch_req4.append(sim.total_requested)
+	total_down_time4.append(numpy.divide(sim.average_down_time, sim.average_processed_rrhs))
+	total_down_time_probability4.append(numpy.divide(sim.average_down_time, sim.average_rrhs_processing_time))
+	total_traffic_migrated4.append([i * 614.4 for i in sim.count_ext_migrations])
+	total_migration_time4.append(sim.avg_vm_migrations_time)
 	util.resetParams()
 
 
@@ -426,9 +478,21 @@ def mean_confidence_interval(data, confidence=0.95):
 #print("STD Batch---------------")
 #print(batch_standard_deviations)
 
-
-
 #means
+#live migration parameters
+#lists for live migration averages
+avg_down_time = [float(sum(col))/len(col) for col in zip(*total_down_time)]
+avg_down_time2 = [float(sum(col))/len(col) for col in zip(*total_down_time2)]
+avg_down_time3 = [float(sum(col))/len(col) for col in zip(*total_down_time3)]
+avg_down_time4 = [float(sum(col))/len(col) for col in zip(*total_down_time4)]
+avg_down_time_probability = [float(sum(col))/len(col) for col in zip(*total_down_time_probability)]
+avg_down_time_probability2 = [float(sum(col))/len(col) for col in zip(*total_down_time_probability2)]
+avg_down_time_probability3 = [float(sum(col))/len(col) for col in zip(*total_down_time_probability3)]
+avg_down_time_probability4 = [float(sum(col))/len(col) for col in zip(*total_down_time_probability4)]
+avg_migration_time = [float(sum(col))/len(col) for col in zip(*total_migration_time)]
+avg_migration_time2 = [float(sum(col))/len(col) for col in zip(*total_migration_time2)]
+avg_migration_time3 = [float(sum(col))/len(col) for col in zip(*total_migration_time3)]
+avg_migration_time4 = [float(sum(col))/len(col) for col in zip(*total_migration_time4)]
 #total requested
 total_batch_reqs = [float(sum(col))/len(col) for col in zip(*batch_req)]
 total_inc_reqs = [float(sum(col))/len(col) for col in zip(*inc_req)]
@@ -548,7 +612,7 @@ total_inc_batch_count_migrations3 = [float(sum(col))/len(col) for col in zip(*in
 total_inc_batch_count_migrations4 = [float(sum(col))/len(col) for col in zip(*inc_batch4_ext)] 
 
 
-
+'''
 #confidence intervals
 inc_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_inc_power)]
 batch_ci = [mean_confidence_interval(col, confidence = 0.95) for col in zip(*total_batch_power)]
@@ -585,7 +649,7 @@ plt.ylabel('Probability of Service Availability')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 8})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/service_availability{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/service_availability{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -600,7 +664,7 @@ plt.ylabel('Bandwidth Usage')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 8})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/lambda_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/lambda_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -615,7 +679,7 @@ plt.ylabel('Virtualized DUs Usage')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 8})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/procs_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/procs_usage{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -630,7 +694,7 @@ plt.ylabel('Inter Node Service Interruption Probability')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/migrations{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/migrations{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -650,7 +714,7 @@ plt.ylabel('Power Consumption')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/power{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -667,7 +731,7 @@ plt.ylabel('Activated Nodes')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/nodes{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -684,7 +748,7 @@ plt.ylabel('Activated DUs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/dus{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -701,7 +765,7 @@ plt.ylabel('Activated lambdas')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/lambdas{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -718,7 +782,7 @@ plt.ylabel('Redirected RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/redirected{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -735,7 +799,7 @@ plt.ylabel('Activated Switches')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/switches{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -752,7 +816,7 @@ plt.ylabel('Blocked RRHs')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/blocked{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
@@ -769,16 +833,59 @@ plt.ylabel('Solution Time')
 plt.xlabel("Time of the day")
 plt.legend(loc="upper left",prop={'size': 6})
 plt.grid()
-plt.savefig('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
+plt.savefig('/home/tinini/Área de Trabalho/gc19/min_VPON/solution_time{}.png'.format(number_of_rrhs), bbox_inches='tight')
 #plt.show()
 plt.clf()
 
 #print("Redirected")
 #print(batch_redir_mean)
+'''
 
 #Logging
+#live migration down time
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/down_time_live_migration{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
+    filehandle.writelines("%s\n" % p for p in avg_down_time)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th2))
+    filehandle.writelines("%s\n" % p for p in avg_down_time2)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th3))
+    filehandle.writelines("%s\n" % p for p in avg_down_time3)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
+    filehandle.writelines("%s\n" % p for p in avg_down_time4)
+    filehandle.write("\n")
+#live migration down time probability
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/down_time_probability_live_migration{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
+    filehandle.writelines("%s\n" % p for p in avg_down_time_probability)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th2))
+    filehandle.writelines("%s\n" % p for p in avg_down_time_probability2)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th3))
+    filehandle.writelines("%s\n" % p for p in avg_down_time_probability3)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
+    filehandle.writelines("%s\n" % p for p in avg_down_time_probability4)
+    filehandle.write("\n")
+#live migration time to migrate
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/migration_time_live_migration{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th))
+    filehandle.writelines("%s\n" % p for p in avg_migration_time)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th2))
+    filehandle.writelines("%s\n" % p for p in avg_migration_time2)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(old_th3))
+    filehandle.writelines("%s\n" % p for p in avg_migration_time3)
+    filehandle.write("\n")
+    filehandle.write("LoadInc Threshold {}\n\n".format(sim.network_threshold))
+    filehandle.writelines("%s\n" % p for p in avg_migration_time4)
+    filehandle.write("\n")
 #power consumption
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/power_consumption{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_average_batch_power)
     filehandle.write("\n")
@@ -798,7 +905,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/power_consumption
     filehandle.writelines("%s\n" % p for p in total_average_inc_batch_power4)
     filehandle.write("\n")
 #lambda usage
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/lambda_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/lambda_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_lambda_usage)
     filehandle.write("\n")
@@ -819,7 +926,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/lambda_usage{}.tx
     filehandle.write("\n")
 
 #proc usage
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/dus_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/dus_usage{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_proc_usage)
     filehandle.write("\n")
@@ -840,7 +947,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/dus_usage{}.txt'.
     filehandle.write("\n")
 
 #external migrations
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_migrations)
     filehandle.write("\n")
@@ -861,7 +968,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/external_migratio
     #filehandle.write("\n")
 
 #active nodes
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_nodes{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_activated_nodes{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_nodes_mean)
     filehandle.write("\n")
@@ -882,7 +989,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_nod
     filehandle.write("\n")
 
 #active lambdas
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_lambdas{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_activated_lambdas{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_lambdas_mean)
     filehandle.write("\n")
@@ -903,7 +1010,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_lam
     filehandle.write("\n")
 
 #Inter vBBUs redirection of traffic
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_redirected{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_redirected{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_redir_mean)
     filehandle.write("\n")
@@ -924,7 +1031,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_redirected{}.
     filehandle.write("\n")
 
 #active switches
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_switches{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_activated_switches{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_switches_mean)
     filehandle.write("\n")
@@ -945,7 +1052,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_activated_swi
     filehandle.write("\n")
 
 #blocked RRHs
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_blocked{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_blocked{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_blocked_mean)
     filehandle.write("\n")
@@ -966,7 +1073,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_blocked{}.txt
     filehandle.write("\n")
 
 #average solution time
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_solution_time{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_solution_time{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in batch_time_mean)
     filehandle.write("\n")
@@ -987,7 +1094,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_solution_time
     filehandle.write("\n")
 
 #average cloud utilization
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_cloud_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_cloud_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_cloud)
     filehandle.write("\n")
@@ -1008,7 +1115,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_cloud_use{}.t
     filehandle.write("\n")
 
 #average fog utilization
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_fog_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/avg_fog_use{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in avg_total_batch_fog)
     filehandle.write("\n")
@@ -1029,7 +1136,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/avg_fog_use{}.txt
     filehandle.write("\n")
 
 #number of migrations
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/amount_external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/amount_external_migrations{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_count_migrations)
     filehandle.write("\n")
@@ -1047,7 +1154,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/amount_external_m
     filehandle.write("\n")
 
 #amount of served RRHs
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/amount_served_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/amount_served_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_served)
     filehandle.write("\n")
@@ -1065,7 +1172,7 @@ with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/amount_served_rrh
     filehandle.write("\n")
 
 #amount of requested RRHs
-with open('/home/tinini/Área de Trabalho/nfv_cp/min_VPON/logs/requested_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
+with open('/home/tinini/Área de Trabalho/gc19/min_VPON/logs/requested_rrhs{}.txt'.format(number_of_rrhs),'w') as filehandle:  
     filehandle.write("Batch\n\n")
     filehandle.writelines("%s\n" % p for p in total_batch_reqs)
     filehandle.write("\n")

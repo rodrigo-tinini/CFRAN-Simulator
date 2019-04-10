@@ -10,9 +10,31 @@ import batch_teste as lp
 import pureBatchILP as plp
 import copy
 import sys
-#to count the availability of the service
+
+#downtime of live migration in seconds - worst case taken from literature
+lm_downtime = 1.5
+
+#to count the time to migrate vms
+total_vm_migrations_time = []
+avg_vm_migrations_time = [] 
+
+#to count the service downtime of live migration
+total_down_time = []
+average_down_time = []
+#to count the total processing time of rrhs
+total_rrhs_processing_time = []
+average_rrhs_processing_time = []
+#total processed rrhs
+total_processed_rrhs = 0
+average_processed_rrhs = []
+#count the amount of nodes migrating traffic
+nodes_migrating = 0
+avg_nodes_migrating = []
+
+#to count the availability of the service in each hour
 total_service_availability = []
 avg_service_availability = []
+
 
 #count the total of requested RRHs
 total_requested = []
@@ -335,9 +357,9 @@ class Traffic_Generator(object):
 				self.countIncBatchAverages()
 			elif self.cp.type == "load_inc_batch":
 				self.countIncBatchAverages()
-				print("Blocked were {}".format(total_inc_batch_blocking))
+				#print("Blocked were {}".format(total_inc_batch_blocking))
 			self.action = self.env.process(self.run())
-			print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
+			#print("Arrival rate now is {} at {} and was generated {}".format(arrival_rate, self.env.now/3600, total_period_requests))
 			total_requested.append(total_period_requests)
 			#print(avg_act_cloud)
 			#print(avg_act_fog)
@@ -380,13 +402,46 @@ class Traffic_Generator(object):
 		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
 		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
-		global served_requests, avg_total_allocated
+		global served_requests, avg_total_allocated, nodes_migrating, total_down_time, total_rrhs_processing_time, total_processed_rrhs
+		global total_vm_migrations_time, avg_vm_migrations_time
+
 
 		#if external_migrations > 0:
 		#	avg_external_migrations.append(external_migrations)
 		#	external_migrations = 0
 		#else:
 		#	avg_external_migrations.append(0)
+		#counting down time
+		#count the amount of nodes in a migration
+		if total_vm_migrations_time:
+			avg_vm_migrations_time.append(numpy.mean(total_vm_migrations_time))
+			total_vm_migrations_time = []
+		else:
+			avg_vm_migrations_time.append(0)
+		
+		if nodes_migrating > 0:
+			avg_nodes_migrating.append(nodes_migrating)
+			nodes_migrating = 0
+		else:
+			avg_nodes_migrating.append(0)
+		if total_down_time:
+			average_down_time.append(sum(total_down_time))
+			total_down_time = []
+		else:
+			average_down_time.append(0)
+		#counting the total processing time of all rrhs
+		if total_rrhs_processing_time:
+			average_rrhs_processing_time.append(sum(total_rrhs_processing_time))
+			total_rrhs_processing_time = []
+		else:
+			average_rrhs_processing_time.append(0)
+		#count the total processed rrhs
+		if total_processed_rrhs:
+			average_processed_rrhs.append(total_processed_rrhs)
+			total_processed_rrhs = 0
+		else:
+			average_processed_rrhs.append(0)
+
 
 		if external_migrations:
 			count_ext_migrations.append(external_migrations)
@@ -528,6 +583,26 @@ class Traffic_Generator(object):
 		#	external_migrations = 0
 		#else:
 		#	avg_external_migrations.append(0)
+		#counting down time - only for batchm but I will leave it here
+		'''
+		if total_down_time:
+			average_down_time.append(sum(total_down_time))
+			total_down_time = []
+		else:
+			average_down_time.append(0)
+		#counting the total processing time of all rrhs
+		if total_rrhs_processing_time:
+			average_rrhs_processing_time.append(sum(total_rrhs_processing_time))
+			total_rrhs_processing_time = []
+		else:
+			average_rrhs_processing_time.append(0)
+		#count the total processed rrhs
+		if total_processed_rrhs:
+			average_processed_rrhs.append(total_processed_rrhs)
+			total_processed_rrhs = []
+		else:
+			average_processed_rrhs.append(0)
+		'''
 
 		if external_migrations:
 			count_ext_migrations.append(external_migrations)
@@ -659,13 +734,45 @@ class Traffic_Generator(object):
 		global internal_migrations
 		global avg_lambda_usage, avg_proc_usage, lambda_usage, proc_usage
 		global act_cloud, act_fog, avg_act_fog, avg_act_cloud
-		global served_requests, avg_total_allocated
+		global served_requests, avg_total_allocated, nodes_migrating, total_down_time, total_rrhs_processing_time, total_processed_rrhs
+		global total_vm_migrations_time, avg_vm_migrations_time
+
 
 		#if external_migrations > 0:
 		#	avg_external_migrations.append(external_migrations)
 		#	external_migrations = 0
 		#else:
 		#	avg_external_migrations.append(0)
+		#counting down time
+		#count the amount of nodes in a migration
+		if total_vm_migrations_time:
+			avg_vm_migrations_time.append(numpy.mean(total_vm_migrations_time))
+			total_vm_migrations_time = []
+		else:
+			avg_vm_migrations_time.append(0)
+
+		if nodes_migrating:
+			avg_nodes_migrating.append(nodes_migrating)
+			nodes_migrating = 0
+		else:
+			avg_nodes_migrating.append(0)
+		if total_down_time:
+			average_down_time.append(sum(total_down_time))
+			total_down_time = []
+		else:
+			average_down_time.append(0)
+		#counting the total processing time of all rrhs
+		if total_rrhs_processing_time:
+			average_rrhs_processing_time.append(sum(total_rrhs_processing_time))
+			total_rrhs_processing_time = []
+		else:
+			average_rrhs_processing_time.append(0)
+		#count the total processed rrhs
+		if total_processed_rrhs:
+			average_processed_rrhs.append(total_processed_rrhs)
+			total_processed_rrhs = []
+		else:
+			average_processed_rrhs.append(0)
 
 		if external_migrations:
 			count_ext_migrations.append(external_migrations)
@@ -817,7 +924,24 @@ class Control_Plane(object):
 				else:
 					act_fog.append(1)
 
-	#count external migrations
+	#count external migration for only batch case - this method considers each vBBU migrated to account
+	def extSingleMigrations(self, ilp_module, copy_state):
+		global external_migrations, nodes_migrating
+		global daily_migrations
+		for i in ilp_module.nodes:
+			if copy_state[i] > ilp_module.rrhs_on_nodes[i] and copy_state[0] < ilp_module.rrhs_on_nodes[0]:
+				diff = copy_state[i] - ilp_module.rrhs_on_nodes[i]
+				#print("MIgrated from {}: {}".format(i,diff))
+				#print(copy_state[i])
+				#print(ilp_module.rrhs_on_nodes[i])
+				#print("----------------------")
+				total_down_time.append(diff*lm_downtime)
+				nodes_migrating += 10000
+				external_migrations += diff
+				daily_migrations += diff
+				total_vm_migrations_time.append((diff*614.4)/nodes_migrating)
+
+	#count external migrations - I am using to count the amount of nodes that had to migrate traffic
 	def extMigrations(self, ilp_module, copy_nodeState):
 		global external_migrations
 		global daily_migrations
@@ -947,6 +1071,8 @@ class Control_Plane(object):
 			#actives.append(r)
 			self.ilp = plp.ILP(actives, range(len(actives)), plp.nodes, plp.lambdas)
 			copy_state = copy.copy(plp.nodeState)
+			#take a snapshot of the network DUs state
+			network_copy = copy.copy(plp.rrhs_on_nodes)
 			self.ilp.resetValues()
 			solution = self.ilp.run()
 			if solution == None:
@@ -976,8 +1102,10 @@ class Control_Plane(object):
 				#print("DUs load are: {}".format(plp.du_processing))
 				#print("Load is {} in {}".format(proc_loads[i], i))
 				#print("########")
-				#counts the external migrations
-				self.extMigrations(plp, copy_state)
+				#counting each single vBBU migration - new method - Updated 2/12/2018
+				self.extSingleMigrations(plp, network_copy)
+				#count migration only when all load from fog ndoe is migrated - old method
+				#self.extMigrations(ilp_module, copy_state)
 				batch_power_consumption.append(self.util.getPowerConsumption(plp))
 				batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 				if solution_values.var_k:
@@ -1058,7 +1186,7 @@ class Control_Plane(object):
 		self.ilp = plp.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas)
 		solution = self.ilp.run()
 		if solution == None:
-			print("Incremental Blocking")
+			#print("Incremental Blocking")
 			#print("Nodes actives are: {}".format(plp.nodeState))
 			#print("Lambdas actives are: {}".format(plp.lambda_node))
 			#print("DUs load are: {}".format(plp.du_processing))
@@ -1085,6 +1213,7 @@ class Control_Plane(object):
 			self.ilp.updateValues(solution_values)
 			time_inc.append(solution.solve_details.time)
 			r.updateWaitTime(self.env.now)
+			r.start_process_time = self.env.now
 			for i in antenas:
 				self.env.process(i.run())
 				actives.append(i)
@@ -1142,6 +1271,8 @@ class Control_Plane(object):
 		self.ilp = plp.ILP(actives, range(len(actives)), ilp_module.nodes, ilp_module.lambdas)
 		#take a snapshot of the node states to account the migrations
 		copy_state = copy.copy(ilp_module.nodeState)
+		#take a snapshot of the network DUs state
+		network_copy = copy.copy(ilp_module.rrhs_on_nodes)
 		cp_l =  copy.copy(ilp_module.lambda_node)
 		cp_d = copy.copy(ilp_module.du_processing)
 		self.ilp.resetValues()
@@ -1165,6 +1296,7 @@ class Control_Plane(object):
 			batch_time.append(solution.solve_details.time)
 			time_b.append(solution.solve_details.time)
 			r.updateWaitTime(self.env.now+solution.solve_details.time)
+			r.start_process_time = self.env.now
 			#print("Gen is {} ".format(r.generationTime))
 			#print("NOW {} ".format(r.waitingTime))
 			self.env.process(r.run())
@@ -1176,7 +1308,10 @@ class Control_Plane(object):
 				b_redirected_rrhs.append(0)
 			#counts the current activated nodes, lambdas, DUs and switches
 			self.countNodes(ilp_module)
-			self.extMigrations(ilp_module, copy_state)
+			#counting each single vBBU migration - new method - Updated 2/12/2018
+			self.extSingleMigrations(ilp_module, network_copy)
+			#count migration only when all load from fog ndoe is migrated - old method
+			#self.extMigrations(ilp_module, copy_state)
 			for i in ilp_module.nodeState:
 				if i == 1:
 					count_nodes += 1
@@ -1354,8 +1489,7 @@ class Control_Plane(object):
 
 	#starts the deallocation of a request
 	def depart_request(self):
-		global rrhs
-		global served_requests
+		global rrhs, served_requests, total_rrhs_processing_time, total_processed_rrhs
 		#global actives
 		while True:
 			proc_loads = [0,0,0,0,0]
@@ -1365,6 +1499,11 @@ class Control_Plane(object):
 			#print("Departing {}".format(r.id))
 			self.ilp.deallocateRRH(r)
 			#self.ilp.resetValues()
+			#updates the total processed time
+			r.total_process_time = self.env.now - r.start_process_time
+			total_rrhs_processing_time.append(r.total_process_time)
+			r.start_process_time = 0.0
+			r.total_process_time = 0.0
 			r.var_x = None
 			r.var_u = None
 			r.enabled = False
@@ -1372,6 +1511,7 @@ class Control_Plane(object):
 			np.shuffle(rrhs)
 			actives.remove(r)
 			served_requests += 1
+			total_processed_rrhs += 1
 			#account resourcesand consumption
 			if self.type == "inc":
 				self.count_inc_resources(plp, incremental_power_consumption, activated_nodes, activated_lambdas, activated_dus, activated_switchs)
@@ -1506,6 +1646,8 @@ class RRH(object):
 		self.cp = cp
 		self.generationTime = 0.0
 		self.waitingTime = 0.0
+		self.start_process_time = 0.0
+		self.total_process_time = 0.0
 
 	#updates the generation time
 	def updateGenTime(self, gen_time):
@@ -1602,6 +1744,28 @@ class Util(object):
 		global lambda_usage, avg_lambda_usage,proc_usage, avg_proc_usage
 		global act_cloud, act_fog, avg_act_cloud, avg_act_fog, daily_migrations
 		global count_ext_migrations, total_service_availability, avg_service_availability, avg_total_allocated, total_requested
+		global 	total_down_time, average_down_time,	total_rrhs_processing_time,	average_rrhs_processing_time, total_processed_rrhs,	average_processed_rrhs,	nodes_migrating, avg_nodes_migrating
+		global total_vm_migrations_time, avg_vm_migrations_time
+
+		#to count the time to migrate vms
+		total_vm_migrations_time = []
+		avg_vm_migrations_time = [] 
+		#to count the service downtime of live migration
+		total_down_time = []
+		average_down_time = []
+		#to count the total processing time of rrhs
+		total_rrhs_processing_time = []
+		average_rrhs_processing_time = []
+		#total processed rrhs
+		total_processed_rrhs = 0
+		average_processed_rrhs = []
+		#count the amount of nodes migrating traffic
+		nodes_migrating = 0
+		avg_nodes_migrating = []
+
+		#to count the availability of the service in each hour
+		total_service_availability = []
+		avg_service_availability = []
 
 		total_requested = []
 
