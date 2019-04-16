@@ -19,7 +19,7 @@ import operator
 import simulator as sim
 
 def checkNodeCapacity(node, n_state):
-	print("Checking node {}".format(node))
+	#print("Checking node {}".format(node))
 	if sum(n_state.du_processing[node]) > 0:
 		return True
 	else:
@@ -50,6 +50,92 @@ def checkLambdaNode(node, wavelength, n_state):
 	else:
 		return False
 
+#this heuristic must decrease both the VPONs used and the switch intercommunications delay, so, it must minimize the number of active VPONs and VDUs in a processing node
+#it has to place as many as possible RRHs into the same VPON and same VDU
+def minAll(rrh, solution, n_state):
+	pass
+
+#this heuristic tries to reduce the switch intercommunication delay, the idea is that it behaves just like the minRedir case
+def reduceDelay(rrh, solution, n_state):
+	blocked_rrhs = []
+	for i in solution.var_x:
+		#print(n_state.wavelength_capacity)
+		#get the RRH and the node, lambda and vdu returned on the relaxation
+		r = rrh[i[0]]
+		r_node = i[1]
+		r_lambda = i[2]
+		du = getVarU(i, solution)
+		r_du = du[2]
+		#print("Solution VPON of RRH {} is {}".format(r.id, r_lambda))
+		#allocate the node
+		if checkNodeCapacity(r_node, n_state):
+			r.node = r_node
+		elif checkNodeCapacity(r.fog, n_state):
+			r.node = r.fog
+		#print("RRH {} has node {}".format(r.id, r.node))
+		if r.node == None:
+			#print("RRH {} no node".format(r.id))
+			r.blocked = True
+		#if RRH was not blocked, allocates the VPON
+		#now, tries to allocate the VDU in the solution
+		if r.blocked == False:
+			#first, tries to allocate the VDU on the solution
+			if checkVduCapacity(r_du, r.node, n_state):
+				#if the vdu has capacity, check if the switch needs to be used
+				if checkSwitch(r_du, r.wavelength):
+					#updates the switch capacity and cost
+					r.du = r_du
+					updateSwitch(r.node, n_state)
+				else:
+					r.du = r_du
+			else:
+				#take a random DU and verify if it the switch is needed
+				random_du = getRandomVDU(r.node, n_state, r)
+				if type(random_du) is tuple:
+					#use the switch
+					r.du = random_du[0]
+					updateSwitch(r.node, n_state)
+				else:
+					r.du = random_du
+			if r.du == None:
+				r.blocked = True
+		#now, tries to allocate the lambda that equals the VDU allocated to the RRH
+		if r.blocked == False:
+			if checkVPON(r.du, r.node, n_state):
+				if checkLambdaCapacity(r.du, n_state):	
+					r.wavelength = r.du
+			else:
+				#tries to allocate this VPON on the node
+				if checkLambdaNode(r.node, r.du, n_state):
+					r.wavelength = r.du
+				else:
+					#the VPON equal to the VDU is not available, tries to allocate any available VPON in the node (if the ndoe has VPONs)
+					if not checkNodesLambda(r.node, n_state):
+						vpon = getFreeVPON(n_state)
+						if vpon != None:
+							r.wavelength = vpon
+							updateSwitch(r.node, n_state)
+					else:
+						vpon = getFirstFitVPON(r.node, n_state)
+						if vpon != None:
+							r.wavelength = vpon
+							updateSwitch(r.node, n_state)
+			if r.wavelength == None:
+				r.blocked = True
+		if r.blocked:
+			blocked_rrhs.append(r)
+		else:
+			updateVDU(r.du, r.node, n_state)
+			updateVponState(r.node, r.wavelength, n_state)
+			updateNode(r.node, n_state)
+	return blocked_rrhs
+
+#check if the VPON is allocated on a node
+def checkVPON(vpon, node, n_state):
+	if vpon in n_state.nodes_lambda[node]:
+		return True
+	else:
+		return False
 
 def firstFitVPON(rrh, solution, n_state):
 	blocked_rrhs = []
@@ -218,20 +304,21 @@ def getVarU(aIndex, solution):
 			return i
 
 #general tests
-number_of_rrhs = 64
+number_of_rrhs = 33
 util = sim.Util()
 rrhs = util.createRRHs(number_of_rrhs, None, None, None)
-for i in rrhs:
-	print(i.rrhs_matrix)
+#for i in rrhs:
+#	print(i.rrhs_matrix)
 ilp = plp.ILP(rrhs, range(len(rrhs)), plp.nodes, plp.lambdas, True)
 s = ilp.run()
 #get the values high probabilities
 solution_values = ilp.return_decision_variables()
 rlx.mostProbability(solution_values, ilp, plp)
 blocked = []
-blocked = firstFitVPON(rrhs, solution_values, plp)
+blocked = reduceDelay(rrhs, solution_values, plp)
 print(len(blocked))
 #for i in blocked:
 #	print("RRH {} is blocked? {}".format(i.id, i.blocked))
 print(plp.du_processing)
 print(plp.wavelength_capacity)
+print(plp.nodes_lambda)
