@@ -351,6 +351,13 @@ def getVarU(aIndex, solution):
 		if i[0] == aIndex[0]:
 			return i
 
+#this method runs a batch incrementally - it differs from inc_batch, as, we have a batch to process, but runs the relaxation to it element of the batch
+def incrementalRelaxedBatch(rrhs_batch, ilp_module, relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method):
+	for r in range(len(rrhs_batch)):
+		runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, rrhs_batch[r])
+		del rrhs_batch[r]
+
+
 #this is the method invoked by the simulator to call the relaxed version of the incremental ILP algorithm
 def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r):
 	solution_list = []
@@ -430,7 +437,7 @@ def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, met
 			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
 		if count_dus > 0:
 			proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
-		return solution
+		return True
 	else:
 		print("Incremental Blocking")
 		#verifies if it is the nfv control plane
@@ -443,7 +450,7 @@ def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, met
 			#print("Incremental Blocking")
 			inc_blocking.append(1)
 			incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
-			return solution
+			return False
 
 #this is the method invoked by the simulator to call the relaxed ILP for the batch algorithm - It is expected to block no RRH at all
 #it works only with copies of the data structures
