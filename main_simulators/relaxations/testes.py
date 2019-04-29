@@ -53,7 +53,55 @@ def checkLambdaNode(node, wavelength, n_state):
 #this heuristic must decrease both the VPONs used and the switch intercommunications delay, so, it must minimize the number of active VPONs and VDUs in a processing node
 #it has to place as many as possible RRHs into the same VPON and same VDU
 def minAll(rrh, solution, n_state):
-	pass
+	blocked_rrhs = []
+	for i in solution.var_x:
+		#print(n_state.wavelength_capacity)
+		#get the RRH and the node, lambda and vdu returned on the relaxation
+		r = rrh[i[0]]
+		r_node = i[1]
+		r_lambda = i[2]
+		du = getVarU(i, solution)
+		r_du = du[2]
+		#print("Solution VPON of RRH {} is {}".format(r.id, r_lambda))
+		#allocate the node
+		if checkNodeCapacity(r_node, n_state):
+			r.node = r_node
+		elif checkNodeCapacity(r.fog, n_state):
+			r.node = r.fog
+		#print("RRH {} has node {}".format(r.id, r.node))
+		if r.node == None:
+			#print("RRH {} no node".format(r.id))
+			r.blocked = True
+		#if RRH was not blocked, allocates the VPON
+		#now, allocate the VPON minimizing the lambdas used
+		if r.blocked == False:
+			if not checkNodesLambda(r.node, n_state):
+				#take the one in the solution
+				if checkLambdaNode(r.node, r_lambda, n_state):
+					#use this one
+					r.wavelength = r_lambda
+				else:
+					#take a free vpon
+					#if no VPON was found 'til here, get one that is non-allocated
+					vpon = getFreeVPON(n_state)
+					if vpon != None:
+						r.wavelength = vpon
+			#if it has, get the first one that can handle the RRH
+			else:
+				vpon = getFirstFitVPON(r.node, n_state)
+				#if a lambda was found, allocate to the RRH
+				if vpon != None:
+					r.wavelength = vpon
+				else:
+					#if no VPON was found 'til here, get one that is non-allocated
+					vpon = getFreeVPON(n_state)
+					if vpon != None:
+						r.wavelength = vpon
+			if r.wavelength == None:
+				r.blocked = True
+		#now, allocate the VDU minimizing the VDUs in the node
+		if r.blocked == False:
+			
 
 #this heuristic tries to reduce the switch intercommunication delay, the idea is that it behaves just like the minRedir case
 def reduceDelay(rrh, solution, n_state):
@@ -302,6 +350,206 @@ def getVarU(aIndex, solution):
 	for i in solution.var_u:
 		if i[0] == aIndex[0]:
 			return i
+
+#this is the method invoked by the simulator to call the relaxed version of the incremental ILP algorithm
+def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r):
+	solution_list = []
+	semi_solutions = []
+	#create the network states
+	for e in range(self.number_of_runs):
+		relaxSol = rm.NetworkState(ilp_module)
+		solutions_list.append(relaxSol)
+	for e in solution_list:
+		r_copy = None
+		r_copy = copy.deepcopy(r)
+		antenas = []
+		antenas.append(r_copy)
+		start = time.time()
+		self.ilp = ilp_module.ILP(antenas, range(len(antenas)), ilp_module.nodes, ilp_module.lambdas, True)
+		solution = self.ilp.run()
+		if solution != None:
+			solution_values = self.ilp.return_decision_variables()
+			postMethod = getattr(rlx, self.postProcessingHeuristic)
+			postMethod(solution_values, self.ilp, e)
+			relaxMethod = getattr(rm, self.relaxHeuristic)
+			blocked_rrh = []
+			blocked_rrh = relaxMethod(antenas, solution_values, e)
+			if blocked_rrh:
+				foundSolution = False
+				print("Blocked!",r.id)
+			else:
+				foundSolution = True
+				semi_solutions.append(e)
+				e.setMetric("solution_values", solution_values)
+				e.setMetric("execution_time", solution.solve_details.time)
+				e.setMetric("power", self.util.getPowerConsumption(e))
+				end = time.time()
+				solution_time += end - start
+				e.relaxTime = solution_time
+	if foundSolution == True:
+		sucs_reqs += 1
+		bestSolution = self.relaxSolutions.getBestNetworkState(self.metric, self.method)
+		#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
+		rm.updateRealNetworkState(bestSolution, ilp_module)
+		#updates the execution time of this solution, which is the relaxed ILP solving time + the relaxation scheduling updating procedure
+		#solution_time += bestSolution.execution_time
+		time_inc.append(solution_time)
+		r.updateWaitTime(self.env.now)
+		for i in antenas:
+			self.env.process(i.run())
+			actives.append(i)
+			antenas.remove(i)
+		incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+		self.countNodes(ilp_module)
+		#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
+		#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
+		#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
+		if solution_values.var_k:
+			redirected_rrhs.append(len(solution_values.var_k))
+		else:
+			redirected_rrhs.append(0)
+		for i in bestSolution.nodeState:
+			if i == 1:
+				count_nodes += 1
+		activated_nodes.append(count_nodes)
+		for i in bestSolution.lambda_state:
+			if i == 1:
+				count_lambdas += 1
+		activated_lambdas.append(count_lambdas)
+		for i in bestSolution.du_state:
+			for j in i:
+				if j == 1:
+					count_dus += 1
+		activated_dus.append(count_dus)
+		for i in bestSolution.switch_state:
+			if i == 1:
+				count_switches += 1
+		activated_switchs.append(count_switches)
+		#count DUs and lambdas usage
+		if count_lambdas > 0:
+			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+		if count_dus > 0:
+			proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
+		return solution
+	else:
+		print("Incremental Blocking")
+		#verifies if it is the nfv control plane
+		if self.type == "load_inc_batch":
+			inc_blocking.append(1)
+		else:
+			rrhs.append(r)
+			np.shuffle(rrhs)
+			antenas = []
+			#print("Incremental Blocking")
+			inc_blocking.append(1)
+			incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+			return solution
+
+#this is the method invoked by the simulator to call the relaxed ILP for the batch algorithm - It is expected to block no RRH at all
+#it works only with copies of the data structures
+def runBatchRelaxed(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r = None):
+	solutions_list = []
+	#run each execution and copy the result to a list containing network states
+	for e in range(self.number_of_runs):
+		#make deep copies of lists and objects that will be modified
+		r_copy = None
+		actives_copy = []
+		actives_copy = copy.deepcopy(actives)
+		if r != None:
+			r_copy = copy.deepcopy(r)
+			actives_copy.append(r_copy)
+		#take a snapshot of the network and its elements state
+		network_copy = copy.copy(ilp_module.rrhs_on_nodes)
+		cp_l =  copy.copy(ilp_module.lambda_node)
+		cp_d = copy.copy(ilp_module.du_processing)
+		importlib.reload(ilp_module)
+		start = time.time()
+		self.ilp = ilp_module.ILP(actives_copy, range(len(actives_copy)), ilp_module.nodes, ilp_module.lambdas, True)
+		solution = self.ilp.run()
+		#verifies if a solution was found and, if so, updates this auxiliary network state
+		if solution != None:
+			foundSolution = True
+			solution_values = self.ilp.return_decision_variables()
+			postMethod = getattr(rlx, self.postProcessingHeuristic)
+			postMethod(solution_values, self.ilp, ilp_module)
+			relaxMethod = getattr(rm, self.relaxHeuristic)
+			blocked_rrhs = None
+			blocked_rrhs = relaxMethod(actives_copy, solution_values, ilp_module)
+			blk = copy.deepcopy(blocked_rrhs)
+			#PUT TREATMENT WHEN BLOCK OCCURS IN BATCH? IT SHOULD NEVER OCCURS IN BATCH
+			end = time.time()
+			solution_time += end - start
+			relaxSol = rm.NetworkState(ilp_module)
+			relaxSol.relaxTime = solution_time
+			relaxSol .setMetric("solution_values", solution_values)
+			relaxSol .setMetric("execution_time", solution.solve_details.time)
+			relaxSol .setMetric("power", self.util.getPowerConsumption(ilp_module))
+			solutions_list.append(relaxSol)
+	if foundSolution == True:
+		sucs_reqs += 1
+		all_solutions = rm.NetworkStateCollection(solutions_list)
+		bestSolution = self.allSolutions.getBestNetworkState(self.metric, self.method)
+		#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
+		rm.updateRealNetworkState(bestSolution, ilp_module)
+		#solution_time += bestSolution.execution_time
+		if r != None:
+			r.updateWaitTime(self.env.now+solution.solve_details.time)
+		#print("Gen is {} ".format(r.generationTime))
+		#print("NOW {} ".format(r.waitingTime))
+		if r!= None:
+			actives.append(r)
+			self.env.process(r.run())
+		batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
+		batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
+		batch_blocking.append(len(bestSolution.relax_blocked))
+		#time_b.append(bestSolution.execution_time)
+		time_b.append(bestSolution.execution_time)
+		#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
+		#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
+		#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
+		if solution_values.var_k:
+			b_redirected_rrhs.append(len(solution_values.var_k))
+		else:
+			b_redirected_rrhs.append(0)
+		#counts the current activated nodes, lambdas, DUs and switches
+		self.countNodes(ilp_module)
+		#counting each single vBBU migration - new method - Updated 2/12/2018
+		self.extSingleMigrations(bestSolution, bestSolution.old_network_state)
+		#count migration only when all load from fog ndoe is migrated - old method
+		#self.extMigrations(ilp_module, copy_state)
+		for i in bestSolution.nodeState:
+			if i == 1:
+				count_nodes += 1
+		b_activated_nodes.append(count_nodes)
+		for i in bestSolution.lambda_state:
+			if i == 1:
+				count_lambdas += 1
+		b_activated_lambdas.append(count_lambdas)
+		for i in bestSolution.du_state:
+			for j in i:
+				if j == 1:
+					count_dus += 1
+		b_activated_dus.append(count_dus)
+		for i in ilp_module.switch_state:
+			if i == 1:
+				count_switches += 1
+		b_activated_switchs.append(count_switches)
+		#count DUs and lambdas usage
+		if count_lambdas > 0:
+			lambda_usage.append((len(actives)*614.4)/(count_lambdas*10000.0))
+		if count_dus > 0:
+			proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
+		#print("Found the best solution for {} actives RRHs".format(len(actives)))
+		return solution
+	else:
+		print("No Solution")
+		#print(plp.du_processing)
+		if r != None:
+			rrhs.append(r)
+			np.shuffle(rrhs)
+		batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+		batch_blocking.append(1)
+
 
 #general tests
 number_of_rrhs = 33

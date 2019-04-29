@@ -241,6 +241,7 @@ def checkRealBlocked(rrh, place):
 #regarding the VDU, it consider the one with the most probability returned on the solution, then take the first fit available VDU in the node (it does not aim to reduce swtich delay)
 #Everytime that any resource can not be allocated, -1 is returned and the RRH
 def firstFitRelaxMinVPON(rrh, solution, n_state):
+	#print("N STATE {} LAMBDAS {}".format(n_state.aId, n_state.wavelength_capacity))
 	#keep a list of blocked RRHs
 	blocked_rrhs = []
 	not_blocked = []#append each RRH to this list after it was allocated
@@ -256,17 +257,21 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 			#it has, allocate the node to the RRH
 			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
 			rrh[i[0]].node = i[1]
+			#print("cloud")
 		else:
 			if n_state.checkNodeCapacity(rrh[i[0]].fog):
 					rrh[i[0]].node = rrh[i[0]].fog
+					#print("fog")
 		#update the node cost, number of allocated RRHs and capacity
 		if rrh[i[0]].node != None:
 			updateNode(rrh[i[0]], n_state)
 			checkRealBlocked(rrh[i[0]], "node")
 		#if no node was allocated, blocks the requisition
 		else:
+			#print("sem no")
 			#rrh[i[0]].blocked = True
 			rrh[i[0]].virtualBlocking = True
+			rrh[i[0]].getin += 1
 		#now, if a node was found for the RRH, tries to allocate the VPON
 		if rrh[i[0]].virtualBlocking == False:
 		#if rrh[i[0]].blocked == False:
@@ -297,12 +302,14 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 				freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
 				clearRRH(rrh[i[0]])
 				blocked_rrhs.append(rrh[i[0]])
+				rrh[i[0]].getin += 1
 		#no free non-allocated was found, then blocks the requisition and reverts the allocation done in the processing node
 		else:
 			rrh[i[0]].blocked = True
 			freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, False)
 			clearRRH(rrh[i[0]])
 			blocked_rrhs.append(rrh[i[0]])
+			rrh[i[0]].getin += 1
 		#if until this moment RRH was not blocked, tries to allocate the VDU
 		#get var_u - which contains the VDU
 		var_u = getVarU(i, solution)
@@ -311,17 +318,20 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		if rrh[i[0]].virtualBlocking != True:
 		#if rrh[i[0]].blocked != True:
 			#check if the VDU returned has capacity and if the switch will be used
+			#print("RRH {} NODE {} VPON {} VDU {}".format(rrh[i[0]].id,rrh[i[0]].node,rrh[i[0]].wavelength,rrh[i[0]].du))
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 1:
 				#allocates this VDU on the RRH and did not use the switch
 				rrh[i[0]].du = vdu
 				updateVDU(vdu, rrh[i[0]].node, n_state)
 				checkRealBlocked(rrh[i[0]], "DU SOLUCAO")
+				rrh[i[0]].getout += 1
 			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 0:
 				#allocates the VDU and activates the ethernet switch
 				rrh[i[0]].du = vdu
 				updateVDU(vdu, rrh[i[0]].node, n_state)
 				updateSwitch(rrh[i[0]].node, n_state)
 				checkRealBlocked(rrh[i[0]],"DU SOLUCAO com SWITCH")
+				rrh[i[0]].getout += 1
 				#print(n_state.du_processing)
 			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == -1:
 				#the VDU or the switch has no free capacity, so, get the first fit VDU different from the returned on the solution
@@ -332,6 +342,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 							rrh[i[0]].du = d
 							updateVDU(d, rrh[i[0]].node, n_state)
 							checkRealBlocked(rrh[i[0]], "NOVO DU SEM SWITCH")
+							rrh[i[0]].getout += 1
 							break
 						else:
 							pass
@@ -341,6 +352,7 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 							updateVDU(d, rrh[i[0]].node, n_state)
 							updateSwitch(rrh[i[0]].node, n_state)
 							checkRealBlocked(rrh[i[0]], "NOVO DU COM SWITCH")
+							rrh[i[0]].getout += 1
 							break
 				if rrh[i[0]].du == None:
 					rrh[i[0]].blocked = True
@@ -348,6 +360,8 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 					clearRRH(rrh[i[0]])
 					checkRealBlocked(rrh[i[0]], "SEM DU ALOCADO")
 					blocked_rrhs.append(rrh[i[0]])
+					rrh[i[0]].getin += 1
+					#print("no du")
 	return blocked_rrhs
 
 
@@ -1444,6 +1458,7 @@ class NetworkState(object):
 		#metrics of the solution provided by the ILP
 		self.solution = None
 		self.solution_values = None
+		self.actives = None
 
 	#set the value of any metric
 	def setMetric(self, metric, aValue):
