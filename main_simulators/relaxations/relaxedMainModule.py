@@ -8,6 +8,7 @@ import operator
 import numpy as np
 from enum import Enum
 from scipy.stats import norm
+import relaxation_test as plp
 import matplotlib.pyplot as plt
 import relaxation_test as rlx
 import builtins#all n=built-in python methods
@@ -241,7 +242,6 @@ def checkRealBlocked(rrh, place):
 #regarding the VDU, it consider the one with the most probability returned on the solution, then take the first fit available VDU in the node (it does not aim to reduce swtich delay)
 #Everytime that any resource can not be allocated, -1 is returned and the RRH
 def firstFitRelaxMinVPON(rrh, solution, n_state):
-	#print("N STATE {} LAMBDAS {}".format(n_state.aId, n_state.wavelength_capacity))
 	#keep a list of blocked RRHs
 	blocked_rrhs = []
 	not_blocked = []#append each RRH to this list after it was allocated
@@ -257,21 +257,18 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 			#it has, allocate the node to the RRH
 			rrh[i[0]].var_x = i#talvez eu tire essa linha depois
 			rrh[i[0]].node = i[1]
-			#print("cloud")
 		else:
 			if n_state.checkNodeCapacity(rrh[i[0]].fog):
 					rrh[i[0]].node = rrh[i[0]].fog
-					#print("fog")
 		#update the node cost, number of allocated RRHs and capacity
 		if rrh[i[0]].node != None:
 			updateNode(rrh[i[0]], n_state)
 			checkRealBlocked(rrh[i[0]], "node")
 		#if no node was allocated, blocks the requisition
 		else:
-			#print("sem no")
+			print("Blocked {} in node".format(rrh[i[0]].id))
 			#rrh[i[0]].blocked = True
 			rrh[i[0]].virtualBlocking = True
-			rrh[i[0]].getin += 1
 		#now, if a node was found for the RRH, tries to allocate the VPON
 		if rrh[i[0]].virtualBlocking == False:
 		#if rrh[i[0]].blocked == False:
@@ -297,19 +294,22 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 					alloc_vpon = True
 					pass
 			if not alloc_vpon:
+				print("Blocked {} in lambda".format(rrh[i[0]].id))
+				print(plp.wavelength_capacity)
+				print("RRH node is {}".format(rrh[i[0]].node))
+				print("Lambdas in nodes is {}".format(plp.nodes_lambda))
 				rrh[i[0]].blocked = True
 				checkRealBlocked(rrh[i[0]], "SÒ BLOQUEADO")
 				freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
 				clearRRH(rrh[i[0]])
 				blocked_rrhs.append(rrh[i[0]])
-				rrh[i[0]].getin += 1
 		#no free non-allocated was found, then blocks the requisition and reverts the allocation done in the processing node
 		else:
+			print("Blocked {} in node*".format(rrh[i[0]].id))
 			rrh[i[0]].blocked = True
 			freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, False)
 			clearRRH(rrh[i[0]])
 			blocked_rrhs.append(rrh[i[0]])
-			rrh[i[0]].getin += 1
 		#if until this moment RRH was not blocked, tries to allocate the VDU
 		#get var_u - which contains the VDU
 		var_u = getVarU(i, solution)
@@ -318,20 +318,18 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 		if rrh[i[0]].virtualBlocking != True:
 		#if rrh[i[0]].blocked != True:
 			#check if the VDU returned has capacity and if the switch will be used
-			#print("RRH {} NODE {} VPON {} VDU {}".format(rrh[i[0]].id,rrh[i[0]].node,rrh[i[0]].wavelength,rrh[i[0]].du))
+			print("Checking RRH {} Node {} VPON {} VDU {} Blocked {}".format(rrh[i[0]].id, rrh[i[0]].node,rrh[i[0]].wavelength,rrh[i[0]].du,rrh[i[0]].blocked))
 			if checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 1:
 				#allocates this VDU on the RRH and did not use the switch
 				rrh[i[0]].du = vdu
 				updateVDU(vdu, rrh[i[0]].node, n_state)
 				checkRealBlocked(rrh[i[0]], "DU SOLUCAO")
-				rrh[i[0]].getout += 1
 			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == 0:
 				#allocates the VDU and activates the ethernet switch
 				rrh[i[0]].du = vdu
 				updateVDU(vdu, rrh[i[0]].node, n_state)
 				updateSwitch(rrh[i[0]].node, n_state)
 				checkRealBlocked(rrh[i[0]],"DU SOLUCAO com SWITCH")
-				rrh[i[0]].getout += 1
 				#print(n_state.du_processing)
 			elif checkAvailabilityVDU(vdu, rrh[i[0]].node, rrh[i[0]].wavelength, n_state) == -1:
 				#the VDU or the switch has no free capacity, so, get the first fit VDU different from the returned on the solution
@@ -342,7 +340,6 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 							rrh[i[0]].du = d
 							updateVDU(d, rrh[i[0]].node, n_state)
 							checkRealBlocked(rrh[i[0]], "NOVO DU SEM SWITCH")
-							rrh[i[0]].getout += 1
 							break
 						else:
 							pass
@@ -352,17 +349,19 @@ def firstFitRelaxMinVPON(rrh, solution, n_state):
 							updateVDU(d, rrh[i[0]].node, n_state)
 							updateSwitch(rrh[i[0]].node, n_state)
 							checkRealBlocked(rrh[i[0]], "NOVO DU COM SWITCH")
-							rrh[i[0]].getout += 1
 							break
 				if rrh[i[0]].du == None:
+					print("Blocked {} in VDU".format(rrh[i[0]].id))
+					print(plp.du_processing)
 					rrh[i[0]].blocked = True
 					freeNodeResources(rrh[i[0]], rrh[i[0]].node, n_state, True)
 					clearRRH(rrh[i[0]])
 					checkRealBlocked(rrh[i[0]], "SEM DU ALOCADO")
 					blocked_rrhs.append(rrh[i[0]])
-					rrh[i[0]].getin += 1
-					#print("no du")
-	return blocked_rrhs
+	for i in blocked_rrhs:
+		print("Returning blocked {}".format(i.id))
+	n_state.relax_blocked = copy.copy(blocked_rrhs)
+	#return blocked_rrhs
 
 
 
@@ -1333,6 +1332,7 @@ def updateRealNetworkState(auxiliaryNetwork, realNetwork):
 #this class represents a "virtual" network state, used to keep a solution returned from the relaxation algorithms
 #this class will be used to be put on a list with n results drawn from n executions of the relaxations, when the instance with the best result will be used to
 #update the "real" network state
+'''
 class NetworkState(object):
 	#constructor 1
 	def __init__(self, aId, nodes_amount, rrhs_on_nodes = None,lambda_node = None,du_processing = None,
@@ -1458,7 +1458,74 @@ class NetworkState(object):
 		#metrics of the solution provided by the ILP
 		self.solution = None
 		self.solution_values = None
+'''
+
+class NetworkState(object):
+	#constructor 1
+	def __init__(self, ilp_module, aId):
+		#Id of this network state
+		self.aId = aId
+		#RRH that is being processed
+		self.r_copy = None
+		#to keep the amount of RRHs being processed on each node
+		self.rrhs_on_nodes = copy.deepcopy(ilp_module.rrhs_on_nodes)
+		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
+		self.lambda_node = copy.deepcopy(ilp_module.lambda_node)
+		#capacity of each VDU
+		self.du_processing = copy.deepcopy(ilp_module.du_processing)
+		#used to calculate the processing usage of the node
+		self.dus_total_capacity = copy.deepcopy(ilp_module.dus_total_capacity)
+		#state of each VDU
+		self.du_state = copy.deepcopy(ilp_module.du_state)
+		#state of each node
+		self.nodeState = copy.deepcopy(ilp_module.nodeState)
+		#power cost of each processing node
+		self.nodeCost = copy.deepcopy(ilp_module.nodeCost)
+		#power cost of each VDu
+		self.du_cost = copy.deepcopy(ilp_module.du_cost)
+		#power cost of each Line Card
+		self.lc_cost = copy.deepcopy(ilp_module.lc_cost)
+		#power cost of the backplane switch
+		self.switch_cost = copy.deepcopy(ilp_module.switch_cost)
+		#bandwidth capacity of the backplane switch
+		self.switchBandwidth = copy.deepcopy(ilp_module.switchBandwidth)
+		#bandwidth capacity of each wavelength
+		self.wavelength_capacity = copy.deepcopy(ilp_module.wavelength_capacity)
+		#basic CPRI line used
+		self.RRHband = copy.deepcopy(ilp_module.RRHband)
+		#capacity of each VDU on the cloud
+		self.cloud_du_capacity = copy.deepcopy(ilp_module.cloud_du_capacity)
+		#capacity of each VDU in a fog node
+		self.fog_du_capacity = copy.deepcopy(ilp_module.fog_du_capacity)
+		#state of each wavelength/VPON
+		self.lambda_state = copy.deepcopy(ilp_module.lambda_state)
+		#state of the backplane switch in each processing node
+		self.switch_state = copy.deepcopy(ilp_module.switch_state)
+		#number of nodes
+		#self.nodes = copy.deepcopy(ilp_module.nodes_amount)
+		self.nodes = copy.deepcopy(ilp_module.nodes)
+		#lambdas in each node
+		self.nodes_lambda = copy.deepcopy(ilp_module.nodes_lambda)
+		#capacity of each VPON in each node
+		self.nodes_vpons_capacity = copy.deepcopy(ilp_module.nodes_vpons_capacity)
+		#metrics obtained on the solution
+		self.delay = None
+		self.power = None
+		self.relaxTime = None
+		self.lambda_wastage = None
+		self.execution_time = None
+		self.migration_probability = None
+		self.total_migrations = None
+		#to keep blocked RRHs
+		self.relax_blocked = None
+		#to keep record of an old network state to calculate vBBUs migrations
+		self.old_network_state = None
+		#metrics of the solution provided by the ILP
+		self.solution = None
+		self.solution_values = None
+		#to keep the copy of the actives list
 		self.actives = None
+		self.rrh = None
 
 	#set the value of any metric
 	def setMetric(self, metric, aValue):
@@ -1615,9 +1682,28 @@ class NetworkState(object):
 #this class encapsulates several network state to get the one with the best metric
 class NetworkStateCollection(object):
 	#amount is the number of times that the relaxation will be executed, thus, generates an "amount" number of solutions
-	def __init__(self, network_states):
+	def __init__(self, network_states = None):
 		#list of network state objects
-		self.network_states = network_states
+		if network_states == None:
+			self.network_states = []
+		else:
+			self.network_states = network_states
+
+	#verify how many states has blocked rrhs
+	def verifyBlocking(self):
+		count = 0
+		for i in self.network_states:
+			print(i.aId)
+		return count
+
+	#remove solutions that has blocked RRHs by returning a new list with only solutions without blocked RRHs
+	def removeBlocked(self):
+		new_list = []
+		for i in self.network_states:
+			if not i.relax_blocked:
+				new_list.append(i)
+		return new_list
+
 
 	#create the network state objects
 	#def initStates(self, amount, rrhs_on_nodes, lambda_node, du_processing, dus_total_capacity, du_state, nodeState,

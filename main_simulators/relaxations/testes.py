@@ -101,7 +101,7 @@ def minAll(rrh, solution, n_state):
 				r.blocked = True
 		#now, allocate the VDU minimizing the VDUs in the node
 		if r.blocked == False:
-			
+			pass
 
 #this heuristic tries to reduce the switch intercommunication delay, the idea is that it behaves just like the minRedir case
 def reduceDelay(rrh, solution, n_state):
@@ -352,14 +352,14 @@ def getVarU(aIndex, solution):
 			return i
 
 #this method runs a batch incrementally - it differs from inc_batch, as, we have a batch to process, but runs the relaxation to it element of the batch
-def incrementalRelaxedBatch(rrhs_batch, ilp_module, relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method):
+def incrementalRelaxedBatch(self, rrhs_batch, relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method):
 	for r in range(len(rrhs_batch)):
 		runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, rrhs_batch[r])
 		del rrhs_batch[r]
 
 
 #this is the method invoked by the simulator to call the relaxed version of the incremental ILP algorithm
-def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r):
+def runIncSched(self, relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r):
 	solution_list = []
 	semi_solutions = []
 	#create the network states
@@ -454,7 +454,7 @@ def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, met
 
 #this is the method invoked by the simulator to call the relaxed ILP for the batch algorithm - It is expected to block no RRH at all
 #it works only with copies of the data structures
-def runBatchRelaxed(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r = None):
+def runBatchRelaxed(self, relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r = None):
 	solutions_list = []
 	#run each execution and copy the result to a list containing network states
 	for e in range(self.number_of_runs):
@@ -491,6 +491,7 @@ def runBatchRelaxed(relaxHeuristic, postProcessingHeuristic, ilp_module, metric,
 			relaxSol .setMetric("solution_values", solution_values)
 			relaxSol .setMetric("execution_time", solution.solve_details.time)
 			relaxSol .setMetric("power", self.util.getPowerConsumption(ilp_module))
+			relaxSol.actives = actives_copy
 			solutions_list.append(relaxSol)
 	if foundSolution == True:
 		sucs_reqs += 1
@@ -506,6 +507,8 @@ def runBatchRelaxed(relaxHeuristic, postProcessingHeuristic, ilp_module, metric,
 		if r!= None:
 			actives.append(r)
 			self.env.process(r.run())
+		#copy the state of the RRHs of the copied list to the original actives list
+		actives = copy.deepcopy(bestSolution.actives)
 		batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
 		batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 		batch_blocking.append(len(bestSolution.relax_blocked))
@@ -559,7 +562,7 @@ def runBatchRelaxed(relaxHeuristic, postProcessingHeuristic, ilp_module, metric,
 
 
 #general tests
-number_of_rrhs = 33
+number_of_rrhs = 64
 util = sim.Util()
 rrhs = util.createRRHs(number_of_rrhs, None, None, None)
 #for i in rrhs:
@@ -570,10 +573,12 @@ s = ilp.run()
 solution_values = ilp.return_decision_variables()
 rlx.mostProbability(solution_values, ilp, plp)
 blocked = []
-blocked = reduceDelay(rrhs, solution_values, plp)
+#blocked = reduceDelay(rrhs, solution_values, plp)
+blocked = firstFitVPON(rrhs, solution_values, plp)
 print(len(blocked))
 #for i in blocked:
 #	print("RRH {} is blocked? {}".format(i.id, i.blocked))
 print(plp.du_processing)
 print(plp.wavelength_capacity)
 print(plp.nodes_lambda)
+print(s.solve_details.time)
