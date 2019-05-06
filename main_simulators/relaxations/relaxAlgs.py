@@ -273,32 +273,40 @@ def firstFitVPON(rrh, solution, n_state):
 					#use the switch
 					r.du = random_du[0]
 					updateSwitch(r.node, n_state)
-				else:
+					if random_du[0] == None:
+						print("Tuple none")
+				elif random_du != None:
+				#else:
 					r.du = random_du
+					if random_du == None:
+						print("Random none")
 			if r.du == None:
 				r.blocked = True
 		if r.blocked:
 			blocked_rrhs.append(r)
 		else:
+			if r.du == None:
+				print("Alocando errado o rrh {} com du {}".format(r.id, r.du))
 			updateVDU(r.du, r.node, n_state)
 			updateVponState(r.node, r.wavelength, n_state)
 			updateNode(r.node, n_state)
 	if blocked_rrhs:
-		print("Active is ",len(sim.actives))
-		print("Off is ", len(sim.rrhs))
-		print("Node is",n_state.du_processing)
-		print("Wavelength in node", n_state.nodes_lambda)
-		print("Wavelength capacity", n_state.wavelength_capacity)
-		print("Blocked is RRH {} LAMBDA {} NODE {} DU {} MAT {}".format(r.id,r.wavelength,r.node,r.du, r.rrhs_matrix))
-		verifyDup(r, rrh)
+		pass
+		#print("Active is ",len(sim.actives))
+		#print("Off is ", len(sim.rrhs))
+		#print("Node is",n_state.du_processing)
+		#print("Wavelength in node", n_state.nodes_lambda)
+		#print("Wavelength capacity", n_state.wavelength_capacity)
+		#print("Blocked is RRH {} LAMBDA {} NODE {} DU {} MAT {}".format(r.id,r.wavelength,r.node,r.du, r.rrhs_matrix))
+		#verifyDup(r, rrh)
 		#for i in rrh:
 		#	print("RRH {} NODE {} MAT {}".format(i.id, i.node, i.rrhs_matrix))
-		print("Actives:")
-		for i in rrh:
-			print("RRH {} NODE {} MAT {}".format(i.id, i.node, i.rrhs_matrix))
-		print("Turned off:")
-		for i in sim.rrhs:
-			print("RRH {} NODE {} MAT {}".format(i.id, i.node, i.rrhs_matrix))
+		#print("Actives:")
+		#for i in rrh:
+		#	print("RRH {} NODE {} MAT {}".format(i.id, i.node, i.rrhs_matrix))
+		#print("Turned off:")
+		#for i in sim.rrhs:
+		#	print("RRH {} NODE {} MAT {}".format(i.id, i.node, i.rrhs_matrix))
 	return blocked_rrhs
 
 def updateVDU(vdu, node, n_state):
@@ -404,6 +412,7 @@ def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, met
 		relaxSol = rm.NetworkState(ilp_module, e)
 		solutions_list.append(relaxSol)
 	for e in solutions_list:
+		print()
 		r_copy = None
 		r_copy = copy.deepcopy(r)
 		antenas = []
@@ -420,7 +429,7 @@ def runIncSched(relaxHeuristic, postProcessingHeuristic, ilp_module, metric, met
 			blocked_rrh = relaxMethod(antenas, solution_values, e)
 			if blocked_rrh:
 				foundSolution = False
-				print("Blocked!",r.id)
+				#print("Blocked!",r.id)
 			else:
 				foundSolution = True
 				semi_solutions.append(e)

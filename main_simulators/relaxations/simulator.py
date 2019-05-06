@@ -1036,7 +1036,7 @@ class Control_Plane(object):
 			#	if proc_loads[i] >= network_threshold and proc_loads[i] < 1.0 and batch_done == False:
 					#call the batch
 			#print("########")
-			print("Load balancing")
+			#print("Load balancing")
 			#print(len(actives))
 			#print(plp.lambda_node)
 			#self.getProcUsage(plp)
@@ -1053,7 +1053,7 @@ class Control_Plane(object):
 			count_switches = 0
 			block = 0
 			self.runBatchRelaxed(batch_power_consumption,b_redirected_rrhs,b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs, batch_blocking,
-				 self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method, r)
+				 self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
 			'''
 			#print("Calling Batch")
 			batch_list = copy.copy(actives)
@@ -1210,12 +1210,17 @@ class Control_Plane(object):
 	#this is the method invoked by the simulator to call the relaxed version of the incremental ILP algorithm
 	def runIncSched(self, incremental_power_consumption, redirected_rrhs, activated_nodes, activated_lambdas, activated_dus, activated_switchs, inc_blocking, 
 		relaxHeuristic, postProcessingHeuristic, ilp_module, metric, method, r):
+		count_nodes = 0
+		count_lambdas = 0
+		count_dus = 0
+		count_switches = 0
+		block = 0
 		solution_time = 0
 		solutions_list = []
 		semi_solutions = []
 		#create the network states
 		for e in range(self.number_of_runs):
-			relaxSol = rm.NetworkState(ilp_module)
+			relaxSol = rm.NetworkState(ilp_module, e)
 			solutions_list.append(relaxSol)
 		for e in solutions_list:
 			r_copy = None
@@ -1233,8 +1238,10 @@ class Control_Plane(object):
 				blocked_rrh = []
 				blocked_rrh = relaxMethod(antenas, solution_values, e)
 				if blocked_rrh:
+					for i in blocked_rrh:
+						print("Blocked",i.id)
 					foundSolution = False
-					print("Blocked!",r.id)
+					#print("Blocked!",r_copy.id)
 				else:
 					foundSolution = True
 					semi_solutions.append(e)
@@ -1244,8 +1251,9 @@ class Control_Plane(object):
 					end = time.time()
 					solution_time += end - start
 					e.relaxTime = solution_time
+		#print("Finished for RRH {}".format(r.id))
 		if semi_solutions:
-			sucs_reqs += 1
+			#sucs_reqs += 1
 			all_solutions = rm.NetworkStateCollection(semi_solutions)
 			bestSolution = all_solutions.getBestNetworkState(self.metric, self.method)
 			#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
@@ -1257,7 +1265,8 @@ class Control_Plane(object):
 			for i in antenas:
 				self.env.process(i.run())
 				actives.append(i)
-				antenas.remove(i)
+				#antenas.remove(i)
+				antenas = []
 			incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			self.countNodes(ilp_module)
 			#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
@@ -1291,17 +1300,20 @@ class Control_Plane(object):
 				proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
 			return True
 		else:
-			print("Incremental Blocking")
+			pass
+			#print("Incremental Blocking")
 			#verifies if it is the nfv control plane
 			if self.type == "load_inc_batch":
 				inc_blocking.append(1)
 			else:
 				rrhs.append(r)
+				#print("Size is ",len(rrhs))
 				np.shuffle(rrhs)
 				antenas = []
 				#print("Incremental Blocking")
 				inc_blocking.append(1)
 				incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+				#print("Finished blocked")
 				return False
 
 
@@ -1317,6 +1329,8 @@ class Control_Plane(object):
 		block = 0
 		solution_time = 0
 		solutions_list = []
+		#security copy of actives
+		sec_copy = copy.copy(actives)#not using this
 		#run each execution and copy the result to a list containing network states
 		for e in range(self.number_of_runs):
 			#print("Starting running")
@@ -1348,20 +1362,22 @@ class Control_Plane(object):
 				blocked_rrhs = relaxMethod(actives_copy, solution_values, ilp_module)
 				#print("Actives is",len(actives))
 				#print("Off is",len(rrhs))
-				blk = copy.deepcopy(blocked_rrhs)#SEMPRE tiver blocking, eu não coloco essa solução na lista das best solutions - colocar um IF aqui pra tratar quando tiver blocking ou nao
+				blk = None
+				blk = copy.copy(blocked_rrhs)#SEMPRE tiver blocking, eu não coloco essa solução na lista das best solutions - colocar um IF aqui pra tratar quando tiver blocking ou nao
 				#PUT TREATMENT WHEN BLOCK OCCURS IN BATCH? IT SHOULD NEVER OCCURS IN BATCH
-				end = time.time()
-				solution_time += end - start
-				relaxSol = rm.NetworkState(ilp_module, e)
-				relaxSol.relaxTime = solution_time
-				relaxSol .setMetric("solution_values", solution_values)
-				relaxSol .setMetric("execution_time", solution.solve_details.time)
-				relaxSol .setMetric("power", self.util.getPowerConsumption(ilp_module))
-				#print("Putting active",len(actives_copy))
-				relaxSol.actives = copy.copy(actives_copy)
-				relaxSol.rrh = copy.copy(r_copy)
-				solutions_list.append(relaxSol)
-		if foundSolution == True:
+				if not blk:
+					end = time.time()
+					solution_time += end - start
+					relaxSol = rm.NetworkState(ilp_module, e)
+					relaxSol.relaxTime = solution_time
+					relaxSol.setMetric("solution_values", solution_values)
+					relaxSol.setMetric("execution_time", solution.solve_details.time)
+					relaxSol.setMetric("power", self.util.getPowerConsumption(ilp_module))
+					#print("Putting active",len(actives_copy))
+					relaxSol.actives = copy.copy(actives_copy)
+					relaxSol.rrh = copy.copy(r_copy)
+					solutions_list.append(relaxSol)
+		if solutions_list:
 			#print("RRH {} LAMBDA {} NODE {} DU {}".format(r_copy.id,r_copy.wavelength, r_copy.node, r_copy.du))
 			#sucs_reqs += 1
 			all_solutions = rm.NetworkStateCollection(solutions_list)
@@ -1432,6 +1448,21 @@ class Control_Plane(object):
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 
+	#verify if a active rrh has a None attribute
+	def verifyNone(self, aList):
+		for i in aList:
+			if i.node == None:
+				print("****************")
+				print("RRH {} Node none".format(i.id))
+				print("****************")
+			if i.wavelength == None:
+				print("****************")
+				print("RRH {} wavelength none".format(i.id))
+				print("****************")
+			if i.du == None:
+				print("****************")
+				print("RRH {} VDU none".format(i.id))
+				print("****************")
 		
 	#to get the average blocking out of many relaxation executions
 	def averageRelaxationBlocking(self, amount_executions, total_blocked):
@@ -1502,8 +1533,10 @@ class Control_Plane(object):
 	#the incremental scheduling is only performed again when the load is under certain threshold
 	def loadIncBatchSched(self, r, antenas, ilp_module):
 		#verifies if is it time to call the batch scheduling
-		s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
-				inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
+		#s = self.incSched(r, antenas, ilp_module,inc_batch_power_consumption,inc_batch_redirected_rrhs,inc_batch_activated_nodes, 
+		#		inc_batch_activated_lambdas,inc_batch_activated_dus,inc_batch_activated_switchs, inc_batch_blocking)
+		s =self.runIncSched(incremental_power_consumption, redirected_rrhs, activated_nodes, activated_lambdas, activated_dus, activated_switchs, inc_blocking,
+				 self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method, r)
 		#if s == None:
 		#	print("Trying Batch")
 		#	print("Trying again {}".format(r.id))
@@ -1642,7 +1675,8 @@ class Control_Plane(object):
 			#if r.enabled == True:
 			#for i in actives:
 			#	print("D RRH {} Blocked is {}".format(i.id, i.blocked))
-			#print("Departing for RRH {} NODE {} LAMBDA {} VDU {} Blocked {} Alloc {} Fail {}".format(r.id, r.node, r.wavelength, r.du, r.blocked, r.getout, r.getin))
+			print("Departing for RRH {} NODE {} LAMBDA {} VDU {} Blocked {} Alloc {} Fail {}".format(r.id, r.node, r.wavelength, r.du, r.blocked, r.getout, r.getin))
+			self.verifyNone(actives)
 			self.ilp.deallocateRRH(r)
 			#self.ilp.resetValues()
 			r.wavelength = None
