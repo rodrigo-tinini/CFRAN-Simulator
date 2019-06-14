@@ -51,10 +51,11 @@ dus_total_capacity = [
 		[1.0, 1.0, 1.0, 1.0, 1.0],
 		]
 
-dus_capacity = [8,4,4]
+#dus_capacity = [8,4,4]
+dus_capacity = [3,1,1,1,1]
 
 network_threshold = 0.8
-traffic_quocient = 500
+traffic_quocient = 70
 rrhs_quantity = 35
 served_requests = 0
 inc_block = 0
@@ -358,7 +359,9 @@ class Traffic_Generator(object):
 				self.countIncBatchAverages()
 			elif self.cp.type == "load_inc_batch":
 				self.countIncBatchAverages()
-				print("Blocked were {}".format(total_inc_batch_blocking))
+				#print("Migrated", count_ext_migrations)
+				#print("Power", inc_batch_average_consumption)
+				#print("Blocked were {}".format(total_inc_batch_blocking))
 			'''
 			if actives:
 				print("********************************************************")
@@ -912,10 +915,17 @@ class Control_Plane(object):
 				else:
 					act_fog.append(1)
 
+	#calculates the redirection of traffic of the relaxed solutions
+	def getRedirections(self, actives):
+		#check for each active RRH if its allocated VDU differs from its VPON - If so, accounts a redirection for that RRH and the activation of the switch
+		pass
+
 	#count external migration for only batch case - this method considers each vBBU migrated to account
 	def extSingleMigrations(self, ilp_module, copy_state):
 		global external_migrations
 		global daily_migrations
+		if copy_state == None:
+				print("NINI")
 		for i in ilp_module.nodes:
 			if copy_state[i] > ilp_module.rrhs_on_nodes[i] and copy_state[0] < ilp_module.rrhs_on_nodes[0]:
 				diff = copy_state[i] - ilp_module.rrhs_on_nodes[i]
@@ -1020,10 +1030,11 @@ class Control_Plane(object):
 
 	#monitors the network and triggers the load balancing
 	def monitorLoad(self, ilp_module):
-		proc_loads = [0,0,0]
+		proc_loads = [0,0,0,0,0]
 		while True:
 			batch_done = False
 			#print("AQUIII")
+			#print("Before",ilp_module.rrhs_on_nodes)
 			yield self.check_load.get()
 			#print("Saiu alguém")
 			#print("---Normal Operation---")
@@ -1047,6 +1058,7 @@ class Control_Plane(object):
 			#print("DUs load are: {}".format(plp.du_processing))
 			#print("Load is {} in {}".format(proc_loads[i], i))
 			#print("########")
+			network_copy = copy.copy(ilp_module.rrhs_on_nodes)
 			count_nodes = 0
 			count_lambdas = 0
 			count_dus = 0
@@ -1054,6 +1066,8 @@ class Control_Plane(object):
 			block = 0
 			self.runBatchRelaxed(batch_power_consumption,b_redirected_rrhs,b_activated_nodes, b_activated_lambdas, b_activated_dus, b_activated_switchs, batch_blocking,
 				 self.relaxHeuristic, self.postProcessingHeuristic, ilp_module, self.metric, self.method)
+			#print("After",ilp_module.rrhs_on_nodes)
+			self.extSingleMigrations(plp, network_copy)
 			'''
 			#print("Calling Batch")
 			batch_list = copy.copy(actives)
@@ -1238,8 +1252,9 @@ class Control_Plane(object):
 				blocked_rrh = []
 				blocked_rrh = relaxMethod(antenas, solution_values, e)
 				if blocked_rrh:
-					for i in blocked_rrh:
-						print("Blocked",i.id)
+					#inc_batch_blocking.append(1)
+					#for i in blocked_rrh:
+						#print("Blocked",i.id)
 					foundSolution = False
 					#print("Blocked!",r_copy.id)
 				else:
@@ -1248,34 +1263,46 @@ class Control_Plane(object):
 					e.setMetric("solution_values", solution_values)
 					e.setMetric("execution_time", solution.solve_details.time)
 					e.setMetric("power", self.util.getPowerConsumption(e))
-					end = time.time()
-					solution_time += end - start
-					e.relaxTime = solution_time
+					#end = time.time()
+					#solution_time += end - start
+					#e.relaxTime = solution_time
 		#print("Finished for RRH {}".format(r.id))
 		if semi_solutions:
 			#sucs_reqs += 1
 			all_solutions = rm.NetworkStateCollection(semi_solutions)
 			bestSolution = all_solutions.getBestNetworkState(self.metric, self.method)
+			end = time.time()
+			solution_time += end - start
 			#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
 			rm.updateRealNetworkState(bestSolution, ilp_module)
 			#updates the execution time of this solution, which is the relaxed ILP solving time + the relaxation scheduling updating procedure
 			#solution_time += bestSolution.execution_time
-			time_inc.append(solution_time)
+			if self.type == "load_inc_batch":
+				time_inc_batch.append(solution_time)
+			else:	
+				time_inc.append(solution_time)
 			r.updateWaitTime(self.env.now)
 			for i in antenas:
+				#count the redirection, if it exists of the allocated RRH
+				if i.wavelength != i.du:
+					redirected_rrhs.append(1)
+				else:
+					redirected_rrhs.append(0)
 				self.env.process(i.run())
 				actives.append(i)
 				#antenas.remove(i)
 				antenas = []
-			incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+			inc_batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))	
+			#incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			self.countNodes(ilp_module)
 			#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
 			#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
 			#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
-			if solution_values.var_k:
-				redirected_rrhs.append(len(solution_values.var_k))
-			else:
-				redirected_rrhs.append(0)
+			#count the redirections
+			#if solution_values.var_k:
+			#	redirected_rrhs.append(len(solution_values.var_k))
+			#else:
+			#	redirected_rrhs.append(0)
 			for i in bestSolution.nodeState:
 				if i == 1:
 					count_nodes += 1
@@ -1300,11 +1327,14 @@ class Control_Plane(object):
 				proc_usage.append(len(actives)/self.getProcUsage(bestSolution))
 			return True
 		else:
-			pass
+			#pass
 			#print("Incremental Blocking")
 			#verifies if it is the nfv control plane
 			if self.type == "load_inc_batch":
-				inc_blocking.append(1)
+				#inc_blocking.append(1)
+				inc_batch_blocking.append(1)
+				#incremental_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+				inc_batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			else:
 				rrhs.append(r)
 				#print("Size is ",len(rrhs))
@@ -1366,8 +1396,9 @@ class Control_Plane(object):
 				blk = copy.copy(blocked_rrhs)#SEMPRE tiver blocking, eu não coloco essa solução na lista das best solutions - colocar um IF aqui pra tratar quando tiver blocking ou nao
 				#PUT TREATMENT WHEN BLOCK OCCURS IN BATCH? IT SHOULD NEVER OCCURS IN BATCH
 				if not blk:
-					end = time.time()
-					solution_time += end - start
+					#end = time.time()
+					#solution_time += end - start
+					#print("Solution time", solution.solve_details.time)
 					relaxSol = rm.NetworkState(ilp_module, e)
 					relaxSol.relaxTime = solution_time
 					relaxSol.setMetric("solution_values", solution_values)
@@ -1382,6 +1413,12 @@ class Control_Plane(object):
 			#sucs_reqs += 1
 			all_solutions = rm.NetworkStateCollection(solutions_list)
 			bestSolution = all_solutions.getBestNetworkState(self.metric, self.method)
+			#moved the time accounting here
+			end = time.time()
+			solution_time += end - start
+			#print(network_copy)
+			#copies the old network state to the new in order to account the migrations
+			bestSolution.old_network_state = network_copy
 			r = bestSolution.rrh
 			#now, updates the main network state (so far I am using the on plp file, which is the ILP module file)
 			rm.updateRealNetworkState(bestSolution, ilp_module)
@@ -1397,22 +1434,30 @@ class Control_Plane(object):
 			#print("Size active before",len(actives))
 			actives = copy.copy(bestSolution.actives) #ACHO QUE NAO PRECISA DESSA LINHA
 			#print("Size active after",len(actives))
-			batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
+			#inc_batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
+			#batch_power_consumption.append(self.util.getPowerConsumption(bestSolution))
 			batch_rrhs_wait_time.append(self.averageWaitingTime(actives))
 			#batch_blocking.append(len(bestSolution.relax_blocked))
 			#time_b.append(bestSolution.execution_time)
-			time_b.append(bestSolution.execution_time)
+			if self.type == "load_inc_batch":
+				time_inc_batch.append(solution_time)
+			else:	
+				time_b.append(bestSolution.execution_time)
+			#count the redirections of traffic
+			redirected_rrhs.append(self.util.countRelaxRedirections(actives))
 			#URGENTE - MEU ALGORITMO DE PÓS PROCESSAMENTO NÃO FAZ NADA COM ESSA VARIÁVEL, LOGO, ELA SEMPRE ESTARÁ VAZIA
 			#ASSIM, PRECISO CRIAR UM MÉTODO PARA VERIFICAR REDIRECIONAMENTO DE DUS E CASO OUTRA VARIÁVEL FIQUE VAZIA PELO
 			#ALGORITMO DE PÓS PROCESSAMENTO, CRIAR MÉTODOS PARA CONTABILIZÁ-LA TB
-			if solution_values.var_k:
-				b_redirected_rrhs.append(len(solution_values.var_k))
-			else:
-				b_redirected_rrhs.append(0)
+			#if solution_values.var_k:
+			#	b_redirected_rrhs.append(len(solution_values.var_k))
+			#else:
+			#	b_redirected_rrhs.append(0)
 			#counts the current activated nodes, lambdas, DUs and switches
 			self.countNodes(ilp_module)
+			#print("Before",network_copy)
+			#print("After", bestSolution.rrhs_on_nodes)
 			#counting each single vBBU migration - new method - Updated 2/12/2018
-			#self.extSingleMigrations(bestSolution, bestSolution.old_network_state)
+			self.extSingleMigrations(bestSolution, bestSolution.old_network_state)#a variavel bestSolution.old_network_state é None, verificar por que
 			#count migration only when all load from fog ndoe is migrated - old method
 			#self.extMigrations(ilp_module, copy_state)
 			for i in bestSolution.nodeState:
@@ -1445,6 +1490,7 @@ class Control_Plane(object):
 			if r != None:
 				rrhs.append(r)
 				np.shuffle(rrhs)
+			inc_batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))	
 			batch_power_consumption.append(self.util.getPowerConsumption(ilp_module))
 			batch_blocking.append(1)
 
@@ -1668,14 +1714,14 @@ class Control_Plane(object):
 		global tried
 		#global actives
 		while True:
-			proc_loads = [0,0,0,0]
+			proc_loads = [0,0,0,0,0]
 			batch_done = False
 			r = yield self.departs.get()
 			#print("Trying to depart")
 			#if r.enabled == True:
 			#for i in actives:
 			#	print("D RRH {} Blocked is {}".format(i.id, i.blocked))
-			print("Departing for RRH {} NODE {} LAMBDA {} VDU {} Blocked {} Alloc {} Fail {}".format(r.id, r.node, r.wavelength, r.du, r.blocked, r.getout, r.getin))
+			#print("Departing for RRH {} NODE {} LAMBDA {} VDU {} Blocked {} Alloc {} Fail {}".format(r.id, r.node, r.wavelength, r.du, r.blocked, r.getout, r.getin))
 			self.verifyNone(actives)
 			self.ilp.deallocateRRH(r)
 			#self.ilp.resetValues()
@@ -1809,6 +1855,14 @@ class RRH(object):
 #Utility class
 class Util(object):
 
+	#to count the redirection of traffic
+	def countRelaxRedirections(self, aRRHs):
+		redirs = 0
+		for i in aRRHs:
+			if i.wavelength != i.du:
+				redirs += 1
+		return redirs
+
 	#to count the usage of wavelengthson each solution
 	def wavelengthUsage(self, ilp_module):
 		pass
@@ -1830,7 +1884,7 @@ class Util(object):
 
 		rrhs = []
 		for i in range(amount):
-			r = RRH(i, [1,0,0], env, service_time, cp)
+			r = RRH(i, [1,0,0,0,0], env, service_time, cp)
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		self.fogNodeRRH(rrhs)

@@ -30,6 +30,8 @@ time_inc = []
 
 def checkNodeCapacity(node, n_state):
 	#print("Checking node {}".format(node))
+	#print(node)
+	#print(n_state.du_processing[node])
 	if sum(n_state.du_processing[node]) > 0:
 		return True
 	else:
@@ -147,16 +149,23 @@ def reduceDelay(rrh, solution, n_state):
 				else:
 					r.du = r_du
 			else:
+				r_du = None
 				#take a random DU and verify if it the switch is needed
 				random_du = getRandomVDU(r.node, n_state, r)
 				if type(random_du) is tuple:
 					#use the switch
 					r.du = random_du[0]
 					updateSwitch(r.node, n_state)
-				else:
+				#else:
+				elif random_du != None:
 					r.du = random_du
+				else:
+					print("pau aqui1 {} {}".format(random_du, r.du))
 			if r.du == None:
 				r.blocked = True
+				print("pau aqui2")
+			else:
+				print("r du {}".format(r.du))
 		#now, tries to allocate the lambda that equals the VDU allocated to the RRH
 		if r.blocked == False:
 			if checkVPON(r.du, r.node, n_state):
@@ -179,8 +188,10 @@ def reduceDelay(rrh, solution, n_state):
 							r.wavelength = vpon
 							updateSwitch(r.node, n_state)
 			if r.wavelength == None:
+				#print("no lambda")
 				r.blocked = True
 		if r.blocked:
+			#print("bloqueou")
 			blocked_rrhs.append(r)
 		else:
 			updateVDU(r.du, r.node, n_state)

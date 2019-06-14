@@ -244,17 +244,19 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
-		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
-		#self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes))
+		#minVPON
+		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
+		self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes))
 
-		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) +
-		self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes) + 
-		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
-		self.mdl.sum(self.g[i,j,w] * switch_cost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
-		(self.mdl.sum(self.s[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
-		self.mdl.sum(self.rd[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
-		self.mdl.sum(self.e[j] * switch_cost[j] for j in self.nodes))
+		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) +
+		#self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes) + 
+		#(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
+		#self.mdl.sum(self.g[i,j,w] * switch_cost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes)) + 
+		#(self.mdl.sum(self.s[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes) + 
+		#self.mdl.sum(self.rd[w,j] * du_cost[j][w] for w in self.lambdas for j in self.nodes)) + 
+		#self.mdl.sum(self.e[j] * switch_cost[j] for j in self.nodes))
 
+		#minRedir (or it is the above commented lines?)
 		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) +
 		#self.mdl.sum(self.x[i,j,w] * lc_cost[w] for i in self.rrhs for w in self.lambdas for j in self.nodes) +
 		#self.mdl.sum(self.x[i,j,w] * nodeCost[j] for i in self.rrhs for w in self.lambdas for j in self.nodes) + 
@@ -1101,13 +1103,17 @@ class ILP(object):
 		global rrhs_on_nodes, lambda_node, du_processing, du_state, nodeState, nodeCost, du_cost, lc_cost, switchBandwidth, switch_cost 
 		global wavelength_capacity, lambda_state, switch_state
 		#to keep the amount of RRHs being processed on each node
-		rrhs_on_nodes = [0,0,0]
+		#to keep the amount of RRHs being processed on each node
+		rrhs_on_nodes = [0,0,0,0,0]
+
 		#to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 		lambda_node = [
-		[1,1,1],
-		[1,1,1],
-		[1,1,1],
-		[1,1,1],
+		[1,1,1,1,1],
+		[1,1,1,1,1],
+		[1,1,1,1,1],
+		[1,1,1,1,1],
+		[1,1,1,1,1],
+		[1,1,1,1,1],
 
 		]
 
@@ -1118,75 +1124,80 @@ class ILP(object):
 		[1,1,0,0,0,0,0,0,0,0],
 		]
 		du_processing = [
-		[8.0, 8.0, 8.0, 8.0],
-		[4.0, 4.0, 4.0, 4.0 ],
-		[4.0, 4.0, 4.0, 4.0 ],
-
-
-
+		[3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
 
 		]
 
 		#used to calculate the processing usage of the node
 		dus_total_capacity = [
-		[8.0, 8.0, 8.0, 8.0],
-		[4.0, 4.0, 4.0, 4.0 ],
-		[4.0, 4.0, 4.0, 4.0 ],
-
+		[3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
 
 		]
 
 		du_state = [
-		[0, 0, 0, 0],
-		[0, 0, 0, 0],
-		[0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0],
 
 
 		]
 
-		nodeState = [0,0,0]
+		nodeState = [0,0,0,0,0]
 
 		nodeCost = [
-		0.0,
-		300.0,
-		300.0,
-
+		600.0,
+		500.0,
+		500.0,
+		500.0,
+		500.0,
 
 		]
 
 		du_cost = [
-		[100.0, 100.0, 100.0, 100.0],
-		[50.0, 50.0, 50.0, 50.0],
-		[50.0, 50.0, 50.0, 50.0],
+		[100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+		[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+		[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+		[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+		[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
 
 
 		]
-
 		lc_cost = [
 		20.0,
 		20.0,
 		20.0,
 		20.0,
-
+		20.0,
+		20.0,
 
 		]
 
-		switch_cost = [15.0, 15.0, 15.0]
-		switchBandwidth = [10000.0,10000.0,10000.0]
-		wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
+		switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0]
+		switchBandwidth = [10000.0,10000.0,10000.0, 10000.0,10000.0]
+		wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0,10000.0,]
 		RRHband = 614.4;
 		#lc_cost = 20
 		B = 1000000
 		cloud_du_capacity = 9.0
 		fog_du_capacity = 1.0
-		lambda_state = [0,0,0,0]
-		switch_state = [0,0,0]
+		lambda_state = [0,0,0,0,0,0]
+		switch_state = [0,0,0,0,0]
 		#number of rrhs
 		rrhs = range(0,1)
 		#number of nodes
-		nodes = range(0, 3)
+		nodes = range(0, 5)
 		#number of lambdas
-		lambdas = range(0, 4)
+		lambdas = range(0, 6)
 
 
 
@@ -1451,16 +1462,16 @@ class Util(object):
 util = Util()
 
 #to keep the amount of RRHs being processed on each node
-#rrhs_on_nodes = [0,0,0]
+rrhs_on_nodes = [0,0,0,0,0]
 
-#to keep the amount of RRHs being processed on each node
-rrhs_on_nodes = [0,0,0]
 #to assure that each lamba allocatedto a node can only be used on that node on the incremental execution of the ILP
 lambda_node = [
-[1,1,1],
-[1,1,1],
-[1,1,1],
-[1,1,1],
+[1,1,1,1,1],
+[1,1,1,1,1],
+[1,1,1,1,1],
+[1,1,1,1,1],
+[1,1,1,1,1],
+[1,1,1,1,1],
 
 ]
 
@@ -1470,76 +1481,81 @@ fog = [
 [1,1,0,0,0,0,0,0,0,0],
 [1,1,0,0,0,0,0,0,0,0],
 ]
-
 du_processing = [
-[8.0, 8.0, 8.0, 8.0],
-[4.0, 4.0, 4.0, 4.0 ],
-[4.0, 4.0, 4.0, 4.0 ],
+[3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+
 ]
 
-#du_processing = [[1.0, 1.0, 1.0, 0.0],[1.0, 0.0, 0.0, 0.0 ],[1.0, 0.0, 0.0, 0.0 ]]
 #used to calculate the processing usage of the node
 dus_total_capacity = [
-[8.0, 8.0, 8.0, 8.0],
-[4.0, 4.0, 4.0, 4.0 ],
-[4.0, 4.0, 4.0, 4.0 ],
-
+[3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
 
 ]
 
 du_state = [
-[0, 0, 0, 0],
-[0, 0, 0, 0],
-[0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0, 0],
 
 
 ]
 
-nodeState = [0,0,0]
+nodeState = [0,0,0,0,0]
 
 nodeCost = [
-0.0,
-300.0,
-300.0,
-
+600.0,
+500.0,
+500.0,
+500.0,
+500.0,
 
 ]
 
 du_cost = [
-[100.0, 100.0, 100.0, 100.0],
-[50.0, 50.0, 50.0, 50.0],
-[50.0, 50.0, 50.0, 50.0],
+[100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+[50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
 
 
 ]
-
 lc_cost = [
 20.0,
 20.0,
 20.0,
 20.0,
-
+20.0,
+20.0,
 
 ]
 
-
-
-switch_cost = [15.0, 15.0, 15.0]
-switchBandwidth = [10000.0,10000.0,10000.0]
-wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0]
+switch_cost = [15.0, 15.0, 15.0, 15.0, 15.0]
+switchBandwidth = [10000.0,10000.0,10000.0, 10000.0,10000.0]
+wavelength_capacity = [10000.0, 10000.0, 10000.0, 10000.0, 10000.0,10000.0,]
 RRHband = 614.4;
 #lc_cost = 20
 B = 1000000
 cloud_du_capacity = 9.0
 fog_du_capacity = 1.0
-lambda_state = [0,0,0,0]
-switch_state = [0,0,0]
+lambda_state = [0,0,0,0,0,0]
+switch_state = [0,0,0,0,0]
 #number of rrhs
 rrhs = range(0,1)
 #number of nodes
-nodes = range(0, 3)
+nodes = range(0, 5)
 #number of lambdas
-lambdas = range(0, 4)
+lambdas = range(0, 6)
 
 nodes_lambda = {}
 

@@ -160,14 +160,16 @@ def reloadModule(aModule):
     importlib.reload(aModule)
 
 #lists
-exec_number = 2
+exec_number = 20
+#number of repetitions of the relaxed solution
+repeats = 2
 util = sim.Util()
 #u = plp.Util()
 #sim.load_threshold = 10
 #incremental simulation
 
 #number_of_rrhs = sim.rrhs_quantity
-number_of_rrhs = 64
+number_of_rrhs = 42
 '''
 for i in range(exec_number):
 	b_mig = []
@@ -263,18 +265,18 @@ for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION 1 ---STARTING BATCH SIMULATION 1 ---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", 2, "firstFitVPON", "mostProbability", "power", "min")
+	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", repeats, "reduceDelay", "mostProbability", "power", "min")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
 	print("\Begin at "+str(env.now))
 	env.run(until = 86401)
 	print("\End at "+str(env.now))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
-	print(sim.inc_batch_average_consumption)
-	print("-------------------------------------")
-	print(len(sim.inc_batch_average_consumption))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print(sim.inc_batch_average_consumption)
+	#print("-------------------------------------")
+	#print(len(sim.inc_batch_average_consumption))
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
 	total_inc_batch.append(sim.inc_batch_average_consumption)
 	total_inc_batch_nodes.append(sim.inc_batch_average_act_nodes)
 	total_inc_batch_DUs.append(sim.inc_batch_average_act_dus)
@@ -295,7 +297,7 @@ for i in range(exec_number):
 	inc_batch_served.append(sim.avg_total_allocated)
 	inc_batch_req.append(sim.total_requested)
 	util.resetParams()
-
+#print("Power",total_inc_batch[0])
 	#batch simulation
 sim.network_threshold = 0.6
 sim.count_rrhs = 0
@@ -306,18 +308,18 @@ for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION 2---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", 2, "firstFitVPON", "mostProbability", "power", "min")
+	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", repeats, "reduceDelay", "mostProbability", "power", "min")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
 	print("\Begin at "+str(env.now))
 	env.run(until = 86401)
 	print("\End at "+str(env.now))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
-	print(sim.inc_batch_average_consumption)
-	print("-------------------------------------")
-	print(len(sim.inc_batch_average_consumption))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print(sim.inc_batch_average_consumption)
+	#print("-------------------------------------")
+	#print(len(sim.inc_batch_average_consumption))
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
 	total_inc_batch2.append(sim.inc_batch_average_consumption)
 	total_inc_batch_nodes2.append(sim.inc_batch_average_act_nodes)
 	total_inc_batch_DUs2.append(sim.inc_batch_average_act_dus)
@@ -339,7 +341,7 @@ for i in range(exec_number):
 	inc_batch_served2.append(sim.avg_total_allocated)
 	inc_batch_req2.append(sim.total_requested)
 	util.resetParams()
-
+#print("Power",total_inc_batch2[0])
 
 sim.network_threshold = 0.4
 sim.count_rrhs = 0
@@ -350,18 +352,18 @@ for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION 3---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", 2, "firstFitVPON", "mostProbability", "power", "min")
+	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", repeats, "reduceDelay", "mostProbability", "power", "min")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
 	print("\Begin at "+str(env.now))
 	env.run(until = 86401)
 	print("\End at "+str(env.now))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
-	print(sim.inc_batch_average_consumption)
-	print("-------------------------------------")
-	print(len(sim.inc_batch_average_consumption))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print(sim.inc_batch_average_consumption)
+	#print("-------------------------------------")
+	#print(len(sim.inc_batch_average_consumption))
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
 	total_inc_batch3.append(sim.inc_batch_average_consumption)
 	total_inc_batch_nodes3.append(sim.inc_batch_average_act_nodes)
 	total_inc_batch_DUs3.append(sim.inc_batch_average_act_dus)
@@ -383,7 +385,7 @@ for i in range(exec_number):
 	inc_batch_served3.append(sim.avg_total_allocated)
 	inc_batch_req3.append(sim.total_requested)
 	util.resetParams()
-
+#print("Power",total_inc_batch3[0])
 
 sim.network_threshold = 0.2
 sim.count_rrhs = 0
@@ -394,18 +396,18 @@ for i in range(exec_number):
 	print("STARTING INC BATCH SIMULATION 4---STARTING BATCH SIMULATION 2---STARTING BATCH SIMULATION---STARTING BATCH SIMULATION---")
 	print("Execution # {}".format(i))
 	env = simpy.Environment()
-	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", 2, "firstFitVPON", "mostProbability", "power", "min")
+	cp = sim.Control_Plane(env, plp, util, "load_inc_batch", repeats, "reduceDelay", "mostProbability", "power", "min")
 	sim.rrhs = util.createRRHs(number_of_rrhs, env, sim.service_time, cp)
 	np.shuffle(sim.rrhs)
 	t = sim.Traffic_Generator(env, sim.distribution, sim.service_time, cp)
 	print("\Begin at "+str(env.now))
 	env.run(until = 86401)
 	print("\End at "+str(env.now))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
-	print(sim.inc_batch_average_consumption)
-	print("-------------------------------------")
-	print(len(sim.inc_batch_average_consumption))
-	print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
+	#print(sim.inc_batch_average_consumption)
+	#print("-------------------------------------")
+	#print(len(sim.inc_batch_average_consumption))
+	#print("#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|##|#|#|#|")
 	total_inc_batch4.append(sim.inc_batch_average_consumption)
 	total_inc_batch_nodes4.append(sim.inc_batch_average_act_nodes)
 	total_inc_batch_DUs4.append(sim.inc_batch_average_act_dus)
@@ -427,7 +429,7 @@ for i in range(exec_number):
 	inc_batch_served4.append(sim.avg_total_allocated)
 	inc_batch_req4.append(sim.total_requested)
 	util.resetParams()
-
+#print("Power",total_inc_batch4[0])
 '''
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0*numpy.array(data)
