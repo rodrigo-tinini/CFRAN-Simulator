@@ -1698,10 +1698,10 @@ class Util(object):
 				i.printNode()
 
 	#create a list of RRHs with its own connected processing nodes
-	def createRRHs(self, amount,env, service_time, cp):
+	def createRRHs(self, amount,env, service_time, cp, nodes_matrix):
 		rrhs = []
 		f_matrix = []
-		for i in range(plp.number_of_nodes):
+		for i in range(nodes_matrix):
 			if i == 0:
 				f_matrix.append(1)
 			else:

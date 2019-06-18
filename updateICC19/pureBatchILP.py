@@ -7,6 +7,8 @@ from enum import Enum
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import incrementalWithBatchILP as sim
+import copy
+
 #This ILP does the allocation of batches of RRHs to the processing nodes.
 #It considers that each RRH is connected to the cloud and to only one fog node.
 
@@ -57,6 +59,23 @@ def setInputParameters(aNumber_of_nodes, aNumber_of_lambdas, aCloud_du_capacity,
 	aFog_du_capacity, aCloud_cost, aFog_cost, aLc_cost, aSwitchCost, aSwitch_band, aWavelengthCapacity):
 	global rrhs_on_nodes, lambda_node, du_processing, du_state, nodeState, nodeCost, du_cost, lc_cost, switchBandwidth, switch_cost 
 	global wavelength_capacity, lambda_state, switch_state, rrhs, nodes, lambdas
+	du_processing = []
+	dus_total_capacity =[]
+	cloud_capac = []
+	fog_capac = []
+	for i in range(aNumber_of_lambdas):
+		cloud_capac.append(aCloud_du_capacity)
+		fog_capac.append(aFog_du_capacity)
+	for i in range(aNumber_of_nodes):
+		if i == 0:
+			du_processing.append(copy.copy(cloud_capac))
+			dus_total_capacity.append(copy.copy(cloud_capac))
+		else:
+			du_processing.append(copy.copy(fog_capac))
+			dus_total_capacity.append(copy.copy(fog_capac))
+	#print(du_processing)
+	#print(cloud_capac)
+	#print(fog_capac)
 	for i in range(aNumber_of_nodes):
 		rrhs_on_nodes.append(0)
 	for i in range(aNumber_of_lambdas):
@@ -64,26 +83,6 @@ def setInputParameters(aNumber_of_nodes, aNumber_of_lambdas, aCloud_du_capacity,
 		for j in range(aNumber_of_nodes):
 			lambda_node[i].append(1)
 		#lambda_node.append(copy.copy(aux_lambda_node))
-	for i in range(aNumber_of_nodes):
-		du_processing.append([])
-		dus_total_capacity.append([])
-
-	for i in range(len(du_processing)):
-		if i == 0:
-			for j in range(number_of_lambdas):
-				du_processing[i].append(cloud_du_capacity)
-				dus_total_capacity[i].append(cloud_du_capacity)
-		else:
-			for j in range(number_of_lambdas):
-				du_processing[i].append(fog_du_capacity)
-				dus_total_capacity[i].append(fog_du_capacity)
-		#for j in range(len(i))
-		#if i == 0:
-		#	du_processing[i].append(aCloud_du_capacity)
-		#	dus_total_capacity[i].append(aCloud_du_capacity)
-		#else:
-		#	du_processing[i].append(aFog_du_capacity)
-		#	dus_total_capacity[i].append(aFog_du_capacity)
 	for i in range(aNumber_of_nodes):
 		du_state.append([])
 		for j in range(aNumber_of_lambdas):
@@ -114,7 +113,7 @@ def setInputParameters(aNumber_of_nodes, aNumber_of_lambdas, aCloud_du_capacity,
 	lambdas = range(0, aNumber_of_lambdas)
 
 #initiate the parameters
-setInputParameters(number_of_nodes, number_of_lambdas, cloud_du_capacity, fog_du_capacity, cloud_cost, fog_cost, line_card_cost, switchCost, switch_band, wavelengthCapacity)
+#setInputParameters(number_of_nodes, number_of_lambdas, cloud_du_capacity, fog_du_capacity, cloud_cost, fog_cost, line_card_cost, switchCost, switch_band, wavelengthCapacity)
 
 #create the ilp class
 class ILP(object):
@@ -214,9 +213,11 @@ class ILP(object):
 
 	#set the objective function
 	def setObjective(self):
+		#minVPON
 		#self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
 		#(self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes)))
 		
+		#minRedir
 		self.mdl.minimize(self.mdl.sum(self.xn[j] * nodeCost[j] for j in self.nodes) + 
 		self.mdl.sum(self.z[w,j] * lc_cost[w] for w in self.lambdas for j in self.nodes) + 
 		(self.mdl.sum(self.k[i,j] for i in self.rrhs for j in self.nodes) + 
@@ -786,10 +787,17 @@ class Util(object):
 		return rrhs
 
 	#create a list of RRHs with its own connected processing nodes
-	def newCreateRRHs(self, amount):
+	def newCreateRRHs(self, amount, nodes_matrix):
 		rrhs = []
+		f_matrix = []
+		for i in range(nodes_matrix):
+			if i == 0:
+				f_matrix.append(1)
+			else:
+				f_matrix.append(0)
 		for i in range(amount):
-			r = RRH(i, [1,0,0,0,0])
+			r = RRH(i, copy.copy(f_matrix))
+			#r = RRH(i, [1,0,0,0,0])
 			rrhs.append(r)
 		self.setMatrix(rrhs)
 		return rrhs

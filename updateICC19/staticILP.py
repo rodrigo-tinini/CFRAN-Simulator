@@ -20,7 +20,7 @@ number_of_rrhs = 5
 #increment of each run
 rrhs_increment = 5
 #number of executions
-exec_number = 12
+exec_number = 2
 #down time of live migration
 lm_downtime = 1.5
 #array of RRHs to be solved
@@ -38,7 +38,7 @@ for i in range(42):
 #print(rrhs_array)
 
 #numbers of executions
-amount_exec = 5
+amount_exec = 7
 
 #metrics for the average calculation of the static case
 power_static = []
@@ -50,6 +50,8 @@ activated_dus_static = []
 activated_switches_static = []
 cloud_use_static = []
 fog_use_static = []
+usage_lambda = []
+usage_du = []
 
 #metrics
 power = []
@@ -76,49 +78,37 @@ util = plp.Util()
 def logResults(dest_file):
 	with open(dest_file,'w') as filehandle:  
 		filehandle.write("Power\n\n")
-		filehandle.writelines("%s\n" % p for p in power)
+		filehandle.writelines("%s\n" % p for p in average_batch_power)
 		filehandle.write("\n")
 		filehandle.write("Redirected\n\n")
-		filehandle.writelines("%s\n" % p for p in redirected)
+		filehandle.writelines("%s\n" % p for p in average_redirected)
 		filehandle.write("\n")   
-		filehandle.write("Lambda usage\n\n")
-		filehandle.writelines("%s\n" % p for p in lambda_usage)
-		filehandle.write("\n")
-		filehandle.write("VDUs usage\n\n")
-		filehandle.writelines("%s\n" % p for p in proc_usage)
-		filehandle.write("\n")
-		filehandle.write("Execution time\n\n")
-		filehandle.writelines("%s\n" % p for p in execution_time)
-		filehandle.write("\n")
 		filehandle.write("Activated nodes\n\n")
-		filehandle.writelines("%s\n" % p for p in activated_nodes)
+		filehandle.writelines("%s\n" % p for p in average_act_nodes)
 		filehandle.write("\n")
 		filehandle.write("Activated lambdas\n\n")
-		filehandle.writelines("%s\n" % p for p in activated_lambdas)
+		filehandle.writelines("%s\n" % p for p in average_act_lambdas)
 		filehandle.write("\n")
 		filehandle.write("Activated dus\n\n")
-		filehandle.writelines("%s\n" % p for p in activated_dus)
+		filehandle.writelines("%s\n" % p for p in average_act_dus)
 		filehandle.write("\n")
 		filehandle.write("Activated switches\n\n")
-		filehandle.writelines("%s\n" % p for p in activated_switchs)
+		filehandle.writelines("%s\n" % p for p in average_act_switches)
 		filehandle.write("\n")
 		filehandle.write("Cloud use\n\n")
-		filehandle.writelines("%s\n" % p for p in cloud_use)
+		filehandle.writelines("%s\n" % p for p in average_cloud_use)
 		filehandle.write("\n")
 		filehandle.write("Fog use\n\n")
-		filehandle.writelines("%s\n" % p for p in fog_use)
+		filehandle.writelines("%s\n" % p for p in average_fog_use)
 		filehandle.write("\n")
-		filehandle.write("Migrations\n\n")
-		filehandle.writelines("%s\n" % p for p in migrations)
+		filehandle.write("Lamba usage\n\n")
+		filehandle.writelines("%s\n" % p for p in average_lambda_usage)
 		filehandle.write("\n")
-		filehandle.write("Migrations time\n\n")
-		filehandle.writelines("%s\n" % p for p in total_vm_migrations_time)
+		filehandle.write("VDUs usage\n\n")
+		filehandle.writelines("%s\n" % p for p in average_du_usage)
 		filehandle.write("\n")
-		filehandle.write("Down time Migrations\n\n")
-		filehandle.writelines("%s\n" % p for p in total_down_time)
-		filehandle.write("\n")
-		filehandle.write("Down time Probability\n\n")
-		filehandle.writelines("%s\n" % p/3600 for p in total_down_time)
+		filehandle.write("Execution time\n\n")
+		filehandle.writelines("%s\n" % p for p in average_execution_time)
 		filehandle.write("\n")
 
 def countNodes(ilp):
@@ -147,6 +137,7 @@ def extSingleMigrations(ilp_module, copy_state, run):
 	external_migrations = 0
 	migrating_vpons = 10000
 	for i in ilp_module.nodes:
+		print(i)
 		#print(copy_state[i])
 		#print(ilp_module.rrhs_on_nodes[i])
 		if copy_state[i] > ilp_module.rrhs_on_nodes[i] and copy_state[0] < ilp_module.rrhs_on_nodes[0]:
@@ -165,9 +156,9 @@ cloud_before = []
 cloud_after = []
 nodes_before = {}
 nodes_after = {}
-for i in plp.nodes:
-	nodes_before[i] = []
-	nodes_after[i] = []
+#for i in plp.nodes:
+#	nodes_before[i] = []
+#	nodes_after[i] = []
 count = 1
 
 #set the maximum load for a simulated scenario given the vdus capacity and the lambdas
@@ -176,86 +167,134 @@ def setMaximumLoad(cloud_vdu, fog_vdu, number_of_fogs, number_of_lambdas):
 	total_vdus_load = total_fog+(cloud_vdu*number_of_lambdas)
 	return total_vdus_load
 
+#keep results of each iteration
+pwr = []
+redir = []
+exec_t = []
+c_nodes = []
+c_lambdas = []
+c_dus = []
+c_switches = []
+l_usage = []
+d_usage = []
+a_cloud = []
+a_fog = []
+
 #begin the simulations varying number of fog nodes
 #initial amount of resources
-number_of_nodes = 2
-number_of_lambdas = 3
-for i in range(amount_exec):
-	#count lambdas and VDUs
-	count_lambdas = 0
-	count_dus = 0
-	count_nodes = 0
-	count_switches = 0
-	rrhs_amount = setMaximumLoad(3, 1, number_of_nodes-1, number_of_lambdas)
-	solution = None
-	antenas = util.newCreateRRHs(rrhs_amount)
-	plp.setInputParameters(number_of_nodes, number_of_lambdas, plp.cloud_du_capacity, 
-	plp.fog_du_capacity, plp.cloud_cost, plp.fog_cost, plp.lc_cost, plp.switchCost, plp.switch_band, plp.wavelengthCapacity)
-	print("Execution of {} RRHs {} Nodes and {} Lambdas".format(rrhs_amount, number_of_nodes, number_of_lambdas))
-	ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas)
-	solution = ilp.run()
-	if solution != None:
-		solution_values = ilp.return_solution_values()
-		ilp.updateValues(solution_values)
-		if count > 1:
-			extSingleMigrations(plp, network_copy, i)
-		cost = util.getPowerConsumption()
-		power.append(cost)
-		execution_time.append(solution.solve_details.time)
-		print("Time: {}".format(solution.solve_details.time))
-		countNodes(plp)
-		if solution_values.var_k:
-			redirected.append(len(solution_values.var_k))
-		else:
-			redirected.append(0)
-		for i in plp.nodeState:
-			if i == 1:
-				count_nodes += 1
-		activated_nodes.append(count_nodes)
-		for i in plp.lambda_state:
-			if i == 1:
-				count_lambdas += 1
-		activated_lambdas.append(count_lambdas)
-		for i in plp.du_state:
-			for j in i:
-				if j == 1:
-					count_dus += 1
-		activated_dus.append(count_dus)
-		for i in plp.switch_state:
-			if i == 1:
-				count_switches += 1
-		activated_switchs.append(count_switches)
-		#count DUs and lambdas usage
-		if count_lambdas > 0:
-			lambda_usage.append((number_of_rrhs*614.4)/(count_lambdas*10000.0))
-		if count_dus > 0:
-			proc_usage.append(number_of_rrhs/getProcUsage(plp))
-		if act_cloud:
-			cloud_use.append(act_cloud)
-		else:
-			cloud_use.append(0)
-		act_cloud = 0
-		if act_fog:
-			fog_use.append(act_fog)
-		else:
-			fog_use.append(0)
-		act_fog = 0
-		power_static.append(copy.copy(power))
-		execution_static.append(copy.copy(execution_time))
-		redirected_static.append(copy.copy(redirected))
-		activated_nodes_static.append(copy.copy(activated_nodes))
-		activated_lambdas_static.append(copy.copy(activated_lambdas))
-		activated_dus_static.append(copy.copy(activated_dus))
-		activated_switches_static.append(copy.copy(activated_switchs))
-		cloud_use_static.append(copy.copy(cloud_use))
-		fog_use_static.append(copy.copy(fog_use))
-		#print(total_down_time)
-		#number_of_rrhs += rrhs_increment
-		network_copy = copy.copy(plp.rrhs_on_nodes)
-		importlib.reload(plp)
-		count += 1
-		number_of_nodes += 1
-		number_of_lambdas += 1
+for e in range(exec_number):
+	power = []
+	redirected = []
+	lambda_usage = []
+	proc_usage = []
+	execution_time = []
+	activated_nodes = []
+	activated_lambdas = []
+	activated_dus = []
+	activated_switchs = []
+	cloud_use = []
+	fog_use = []
+	print("Primal Execution # {}".format(e))
+	number_of_nodes = 2
+	number_of_lambdas = 3
+	for m in range(amount_exec):
+		#count lambdas and VDUs
+		count_lambdas = 0
+		count_dus = 0
+		count_nodes = 0
+		count_switches = 0
+		rrhs_amount = setMaximumLoad(3, 1, number_of_nodes-1, number_of_lambdas)
+		solution = None
+		antenas = util.newCreateRRHs(rrhs_amount, number_of_nodes)
+		plp.setInputParameters(number_of_nodes, number_of_lambdas, plp.cloud_du_capacity, 
+		plp.fog_du_capacity, plp.cloud_cost, plp.fog_cost, plp.line_card_cost, plp.switchCost, plp.switch_band, plp.wavelengthCapacity)
+		print("Execution of {} RRHs {} Nodes and {} Lambdas".format(rrhs_amount, number_of_nodes, number_of_lambdas))
+		#print("DUs", plp.du_processing)
+		#print("Lambdas", plp.wavelength_capacity)
+		ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas)
+		solution = ilp.run()
+		if solution != None:
+			solution_values = ilp.return_solution_values()
+			ilp.updateValues(solution_values)
+			#if count > 1:
+			#	print("hi", plp.du_processing)
+			#	extSingleMigrations(plp, network_copy, i)
+			cost = util.getPowerConsumption()
+			power.append(cost)
+			execution_time.append(solution.solve_details.time)
+			print("Time: {}".format(solution.solve_details.time))
+			countNodes(plp)
+			if solution_values.var_k:
+				redirected.append(len(solution_values.var_k))
+			else:
+				redirected.append(0)
+			for i in plp.nodeState:
+				if i == 1:
+					count_nodes += 1
+			activated_nodes.append(count_nodes)
+			for i in plp.lambda_state:
+				if i == 1:
+					count_lambdas += 1
+			activated_lambdas.append(count_lambdas)
+			for i in plp.du_state:
+				for j in i:
+					if j == 1:
+						count_dus += 1
+			activated_dus.append(count_dus)
+			for i in plp.switch_state:
+				if i == 1:
+					count_switches += 1
+			activated_switchs.append(count_switches)
+			#count DUs and lambdas usage
+			if count_lambdas > 0:
+				lambda_usage.append((number_of_rrhs*614.4)/(count_lambdas*10000.0))
+			if count_dus > 0:
+				proc_usage.append(number_of_rrhs/getProcUsage(plp))
+			if act_cloud:
+				cloud_use.append(act_cloud)
+			else:
+				cloud_use.append(0)
+			act_cloud = 0
+			if act_fog:
+				fog_use.append(act_fog)
+			else:
+				fog_use.append(0)
+			act_fog = 0
+			
+			#print(total_down_time)
+			#number_of_rrhs += rrhs_increment
+			network_copy = copy.copy(plp.rrhs_on_nodes)
+			importlib.reload(plp)
+			count += 1
+			number_of_nodes += 1
+			number_of_lambdas += 1
+	power_static.append(copy.copy(power))
+	execution_static.append(copy.copy(execution_time))
+	redirected_static.append(copy.copy(redirected))
+	activated_nodes_static.append(copy.copy(activated_nodes))
+	activated_lambdas_static.append(copy.copy(activated_lambdas))
+	activated_dus_static.append(copy.copy(activated_dus))
+	activated_switches_static.append(copy.copy(activated_switchs))
+	cloud_use_static.append(copy.copy(cloud_use))
+	fog_use_static.append(copy.copy(fog_use))
+	usage_lambda.append(copy.copy(lambda_usage))
+	usage_du.append(copy.copy(proc_usage))
+	print("exec {} {}".format(m,power_static))
+
+average_batch_power = [float(sum(col))/len(col) for col in zip(*power_static)]
+average_execution_time = [float(sum(col))/len(col) for col in zip(*execution_static)]
+average_redirected = [float(sum(col))/len(col) for col in zip(*redirected_static)]
+average_act_nodes = [float(sum(col))/len(col) for col in zip(*activated_nodes_static)]
+average_act_lambdas = [float(sum(col))/len(col) for col in zip(*activated_lambdas_static)]
+average_act_dus = [float(sum(col))/len(col) for col in zip(*activated_dus_static)]
+average_act_switches = [float(sum(col))/len(col) for col in zip(*activated_switches_static)]
+average_cloud_use = [float(sum(col))/len(col) for col in zip(*cloud_use_static)]
+average_fog_use = [float(sum(col))/len(col) for col in zip(*fog_use_static)]
+average_lambda_usage = [float(sum(col))/len(col) for col in zip(*usage_lambda)]
+average_du_usage = [float(sum(col))/len(col) for col in zip(*usage_du)]
+
+print(average_batch_power)
+
 '''
 #executions that goes up and then goes down in the number of RRHs
 #start executions
@@ -431,5 +470,5 @@ for i in range(len(rrhs_array)):
 #print(plp.lambda_node)
 	#print(dus_total_capacity)
 #print(migrations)
-logResults('/home/tinini/Área de Trabalho/logsTeseILP/outputs.txt')
+logResults('/home/tinini/Área de Trabalho/logsTeseILP/outputsMinRedir.txt')
 
