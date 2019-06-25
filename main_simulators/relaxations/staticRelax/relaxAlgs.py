@@ -126,6 +126,7 @@ def reduceDelay(rrh, solution, n_state):
 		r_lambda = i[2]
 		du = getVarU(i, solution)
 		r_du = du[2]
+		#print(r.fog)
 		#print("Solution VPON of RRH {} is {}".format(r.id, r_lambda))
 		#allocate the node
 		if checkNodeCapacity(r_node, n_state):
@@ -160,12 +161,14 @@ def reduceDelay(rrh, solution, n_state):
 				elif random_du != None:
 					r.du = random_du
 				else:
-					print("pau aqui1 {} {}".format(random_du, r.du))
+					pass
+					#print("Sem switch {} {}".format(random_du, r.du))
 			if r.du == None:
 				r.blocked = True
-				print("pau aqui2")
+				#print("sem DU")
 			else:
-				print("r du {}".format(r.du))
+				pass
+				#print("r du {}".format(r.du))
 		#now, tries to allocate the lambda that equals the VDU allocated to the RRH
 		if r.blocked == False:
 			if checkVPON(r.du, r.node, n_state):
@@ -188,16 +191,176 @@ def reduceDelay(rrh, solution, n_state):
 							r.wavelength = vpon
 							updateSwitch(r.node, n_state)
 			if r.wavelength == None:
-				#print("no lambda")
 				r.blocked = True
 		if r.blocked:
-			#print("bloqueou")
+			print("bloqueou")
 			blocked_rrhs.append(r)
 		else:
 			updateVDU(r.du, r.node, n_state)
 			updateVponState(r.node, r.wavelength, n_state)
 			updateNode(r.node, n_state)
 	return blocked_rrhs
+
+
+#this heuristic tries to reduce the switch intercommunication delay, the idea is that it behaves just like the minRedir case
+def softReduceDelay(rrh, solution, n_state):
+	blocked_rrhs = []
+	for i in solution.var_x:
+		#print(n_state.wavelength_capacity)
+		#get the RRH and the node, lambda and vdu returned on the relaxation
+		r = rrh[i[0]]
+		r_node = i[1]
+		r_lambda = i[2]
+		du = getVarU(i, solution)
+		r_du = du[2]
+		#print(r.fog)
+		#print("Solution VPON of RRH {} is {}".format(r.id, r_lambda))
+		#allocate the node
+		if checkNodeCapacity(r_node, n_state):
+			r.node = r_node
+		elif checkNodeCapacity(r.fog, n_state):
+			r.node = r.fog
+		#print("RRH {} has node {}".format(r.id, r.node))
+		if r.node == None:
+			#print("RRH {} no node".format(r.id))
+			r.blocked = True
+		#if RRH was not blocked, allocates the VPON
+		#now, tries to allocate the VDU in the solution
+		if r.blocked == False:
+			#first, tries to allocate the VDU on the solution
+			if checkVduCapacity(r_du, r.node, n_state):
+				#if the vdu has capacity, check if the switch needs to be used
+				if checkSwitch(r_du, r.wavelength):
+					#updates the switch capacity and cost
+					r.du = r_du
+					updateSwitch(r.node, n_state)
+				else:
+					r.du = r_du
+			else:
+				r_du = None
+				#take a random DU and verify if it the switch is needed
+				random_du = getRandomVDU(r.node, n_state, r)
+				if type(random_du) is tuple:
+					#use the switch
+					r.du = random_du[0]
+					updateSwitch(r.node, n_state)
+				#else:
+				elif random_du != None:
+					r.du = random_du
+				else:
+					pass
+					#print("Sem switch {} {}".format(random_du, r.du))
+			if r.du == None:
+				r.blocked = True
+				#print("sem DU")
+			else:
+				pass
+				#print("r du {}".format(r.du))
+		#now, tries to allocate the lambda that equals the VDU allocated to the RRH
+		if r.blocked == False:
+			if checkVPON(r.du, r.node, n_state):
+				if checkLambdaCapacity(r.du, n_state):	
+					r.wavelength = r.du
+			else:
+				#tries to allocate this VPON on the node
+				if checkLambdaNode(r.node, r.du, n_state):
+					r.wavelength = r.du
+				else:
+					#the VPON equal to the VDU is not available, tries to allocate any available VPON in the node (if the ndoe has VPONs)
+					if not checkNodesLambda(r.node, n_state):
+						vpon = getFreeVPON(n_state)
+						if vpon != None:
+							r.wavelength = vpon
+							updateSwitch(r.node, n_state)
+					else:
+						vpon = getFirstFitVPON(r.node, n_state)
+						if vpon != None:
+							r.wavelength = vpon
+							updateSwitch(r.node, n_state)
+			if r.wavelength == None:
+				#if the fog node of the RRH has no lambda, take one from the cloud
+				#gets the lambda with more free capacity
+				new_lambda = getCloudLightlyLambda(n_state)
+				#l_vdu = getCloudLightlyVDU(n_state)
+				print(new_lambda)
+				print(n_state.du_processing[0])
+				#print(l_vdu)
+				#print("to be allocated on {}".format(r.fog))
+				#print("no lambda")
+				r.blocked = True
+		if r.blocked:
+			print("bloqueou")
+			blocked_rrhs.append(r)
+		else:
+			updateVDU(r.du, r.node, n_state)
+			updateVponState(r.node, r.wavelength, n_state)
+			updateNode(r.node, n_state)
+	return blocked_rrhs
+
+#check if the lambda that will receive the traffic has capacity as well if the switch must be used and if it has capacity
+def checkVPONMigrationCapacity(n_state, new_vpon, vdu):
+	if checkLambdaCapacity(new_vpon, n_state):
+		if new_vpon != vdu:
+			if checkSwitchCapacity(0, n_state):
+				return True
+			else:
+				return False
+		else:
+			return True
+	else:
+		return False
+
+#this method gathers all the VPON lending process
+def migrateVPON(n_state, new_vpon, rrh, old_vpon, fog):
+	pass
+
+#update all data structures related to the changed vpon
+def updateChangedVPON(n_state, vpon, fog):
+	n_state.nodes_lambda[0].remove(vpon)
+	n_state.nodes_lambda[fog].append(vpon)
+	#update the VPON capacity and the nodes_vpon_capacity data structure
+	clearWavelengthCapacity(n_state, vpon)
+	del n_state.nodes_vpons_capacity[0][vpon]
+	updateVponState(fog, vpon, n_state)
+
+#move VPON from cloud to fog
+def moveFogCloudVPON(n_state, vpon, fog):
+	#deallocate the vpon from the cloud
+	n_state.lambda_node[vpon][0] = 0
+	#allocate the vpon to the fog node
+	n_state.lambda_node[vpon][fog] = 0
+
+#move RRHs from a leased wavelength to another one
+def changeRRHsVPON(n_state, rrh, new_vpon):
+	i.wavelength = new_vpon			
+
+#clear vpon capacity
+def clearWavelengthCapacity(n_state, vpon):
+	n_state.wavelength_capacity[vpon] = 10000
+
+#get the index of the lambdas allcoated on the cloud
+def getCloudLambdas(n_state):
+	index = []
+	for i in range(len(n_state.lambda_node)):
+		if n_state.lambda_node[i][0] == 1:# lambda is is allocated in the cloud
+			index.append(i)
+	return index
+
+#get the index of the lambda with more free capacity that is allocated in the cloud
+def getCloudLightlyLambda(n_state):
+	index = getCloudLambdas(n_state)
+	capacities = {}
+	for i in index:
+		capacities[i] = n_state.wavelength_capacity[i]
+	#print(capacities)
+	l = min(capacities, key = capacities.get)
+	#print(l)
+	return l
+
+#get the VDU with less traffic
+def getCloudLightlyVDU(n_state):
+	cloud = n_state.du_processing[0]
+	vdu = min(cloud, key = cloud.get)
 
 #check if the VPON is allocated on a node
 def checkVPON(vpon, node, n_state):
@@ -650,7 +813,44 @@ def setMaximumLoad(cloud_vdu, fog_vdu, number_of_fogs, number_of_lambdas):
 
 
 
-#ALL BELOW WILL BE MOVED TO staticRelax FILE-----------------------------------------
+#ALL BELOW IS THE STATIC RELAXED SCENAIOS SIMULATED----------------------------------------
+
+#log the results
+def logResults(dest_file):
+	with open(dest_file,'w') as filehandle:  
+		filehandle.write("Power\n\n")
+		filehandle.writelines("%s\n" % p for p in average_batch_power)
+		filehandle.write("\n")
+		filehandle.write("Redirected\n\n")
+		filehandle.writelines("%s\n" % p for p in average_redirected)
+		filehandle.write("\n")   
+		filehandle.write("Activated nodes\n\n")
+		filehandle.writelines("%s\n" % p for p in average_act_nodes)
+		filehandle.write("\n")
+		filehandle.write("Activated lambdas\n\n")
+		filehandle.writelines("%s\n" % p for p in average_act_lambdas)
+		filehandle.write("\n")
+		filehandle.write("Activated dus\n\n")
+		filehandle.writelines("%s\n" % p for p in average_act_dus)
+		filehandle.write("\n")
+		filehandle.write("Activated switches\n\n")
+		filehandle.writelines("%s\n" % p for p in average_act_switches)
+		filehandle.write("\n")
+		filehandle.write("Cloud use\n\n")
+		filehandle.writelines("%s\n" % p for p in average_cloud_use)
+		filehandle.write("\n")
+		filehandle.write("Fog use\n\n")
+		filehandle.writelines("%s\n" % p for p in average_fog_use)
+		filehandle.write("\n")
+		filehandle.write("Lamba usage\n\n")
+		filehandle.writelines("%s\n" % p for p in average_lambda_usage)
+		filehandle.write("\n")
+		filehandle.write("VDUs usage\n\n")
+		filehandle.writelines("%s\n" % p for p in average_du_usage)
+		filehandle.write("\n")
+		filehandle.write("Execution time\n\n")
+		filehandle.writelines("%s\n" % p for p in average_execution_time)
+		filehandle.write("\n")
 
 def countNodes(ilp):
 	global act_cloud, act_fog
@@ -708,10 +908,10 @@ act_fog = 0
 
 metric = "power"
 method = "min"
-
+'''
 #general tests
 #count lambdas and VDUs
-for j in range(5):
+for j in range(2):
 	importlib.reload(plp)
 	number_of_nodes = 2
 	number_of_lambdas = 3
@@ -728,10 +928,13 @@ for j in range(5):
 	fog_use = []
 	print("Primal execution # {}".format(j))
 	for e in range(8):
+		#importlib.reload(plp)
+		#print("Iniciando",plp.du_processing)
 		count_lambdas = 0
 		count_dus = 0
 		count_nodes = 0
 		count_switches = 0
+		count_redir = 0
 		util = sim.Util()
 		solution_time = 0
 		solutions_list = []
@@ -739,10 +942,12 @@ for j in range(5):
 		antenas = util.createRRHs(rrhs_amount, number_of_nodes, None, None, None)
 		print("Execution of {} RRHs {} Nodes and {} Lambdas".format(rrhs_amount, number_of_nodes, number_of_lambdas))
 		for i in range(2):
+			importlib.reload(plp)
 			#for i in antenas:
 			#	print(i.fog)
 			plp.setInputParameters(number_of_nodes, number_of_lambdas, plp.cloud_du_capacity, 
 			plp.fog_du_capacity, plp.cloud_cost, plp.fog_cost, plp.line_card_cost, plp.switchCost, plp.switch_band, plp.wavelengthCapacity)
+			print("Iniciando",plp.du_processing)
 			start = time.time()
 			ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas, True)
 			solution = ilp.run()
@@ -750,8 +955,12 @@ for j in range(5):
 			solution_values = ilp.return_decision_variables()
 			rlx.mostProbability(solution_values, ilp, plp)
 			blocked = []
-			#blocked = reduceDelay(antenas, solution_values, plp)
-			blocked = firstFitVPON(antenas, solution_values, plp)
+			blocked = reduceDelay(antenas, solution_values, plp)
+			if blocked:
+				print("Bloqueou{}".format(len(blocked)))
+			else:
+				print("Nenhum")
+			#blocked = firstFitVPON(antenas, solution_values, plp)
 			#print(len(blocked))
 			relaxSol = rm.NetworkState(plp, i)
 			relaxSol.relaxTime = solution_time
@@ -767,14 +976,17 @@ for j in range(5):
 		#now, updates the main network state to take the metrics(so far I am using the on plp file, which is the ILP module file)
 		rm.updateRealNetworkState(bestSolution, plp)
 		power.append(util.getPowerConsumption(plp))
+		#print("POIWER", power)
 		execution_time.append(solution_time)
 		countNodes(plp)
 		for a in antenas:
 			#count the redirection, if it exists of the allocated RRH
 			if a.wavelength != a.du:
-				redirected.append(1)
-			else:
-				redirected.append(0)
+				count_redir += 1
+				#redirected.append(1)
+			#else:
+				#redirected.append(0)
+		redirected.append(count_redir)
 		for i in bestSolution.nodeState:
 			if i == 1:
 				count_nodes += 1
@@ -820,7 +1032,21 @@ for j in range(5):
 	fog_use_static.append(copy.copy(fog_use))
 	usage_lambda.append(copy.copy(lambda_usage))
 	usage_du.append(copy.copy(proc_usage))
-print("Time", execution_static)
+#print("Time", execution_static)
+
+average_batch_power = [float(sum(col))/len(col) for col in zip(*power_static)]
+average_execution_time = [float(sum(col))/len(col) for col in zip(*execution_static)]
+average_redirected = [float(sum(col))/len(col) for col in zip(*redirected_static)]
+average_act_nodes = [float(sum(col))/len(col) for col in zip(*activated_nodes_static)]
+average_act_lambdas = [float(sum(col))/len(col) for col in zip(*activated_lambdas_static)]
+average_act_dus = [float(sum(col))/len(col) for col in zip(*activated_dus_static)]
+average_act_switches = [float(sum(col))/len(col) for col in zip(*activated_switches_static)]
+average_cloud_use = [float(sum(col))/len(col) for col in zip(*cloud_use_static)]
+average_fog_use = [float(sum(col))/len(col) for col in zip(*fog_use_static)]
+average_lambda_usage = [float(sum(col))/len(col) for col in zip(*usage_lambda)]
+average_du_usage = [float(sum(col))/len(col) for col in zip(*usage_du)]
+
+logResults('/home/tinini/Área de Trabalho/logsTeseILP/relaxStatic/outputsRelaxedMinVPON.txt')
 
 #for i in blocked:
 #	print("RRH {} is blocked? {}".format(i.id, i.blocked))
@@ -828,6 +1054,7 @@ print("Time", execution_static)
 #print(plp.wavelength_capacity)
 #print(plp.nodes_lambda)
 #print(s.solve_details.time)
+'''
 
 '''
 number_of_rrhs = 64
@@ -839,3 +1066,34 @@ runBatchRelaxed("firstFitVPON", "mostProbability", plp, "power", "min", rrhs, rh
 print(batch_power_consumption)
 print(time_b)
 '''
+
+util = sim.Util()
+number_of_nodes = 3
+number_of_lambdas = 4
+power = []
+rrhs_amount = setMaximumLoad(3, 1, number_of_nodes-1, number_of_lambdas)
+antenas = util.createRRHs(rrhs_amount, number_of_nodes, None, None, None)
+print("Execution of {} RRHs {} Nodes and {} Lambdas".format(rrhs_amount, number_of_nodes, number_of_lambdas))
+plp.setInputParameters(number_of_nodes, number_of_lambdas, plp.cloud_du_capacity, 
+plp.fog_du_capacity, plp.cloud_cost, plp.fog_cost, plp.line_card_cost, plp.switchCost, plp.switch_band, plp.wavelengthCapacity)
+print("Iniciando",plp.du_processing, plp.lambda_node)
+start = time.time()
+ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas, True)
+solution = ilp.run()
+#get the values high probabilities
+solution_values = ilp.return_decision_variables()
+rlx.mostProbability(solution_values, ilp, plp)
+blocked = []
+blocked = reduceDelay(antenas, solution_values, plp)
+if blocked:
+	print("Bloqueou{}".format(len(blocked)))
+else:
+	print("Nenhum")
+print(plp.du_processing)
+print(plp.lambda_node)
+#now get the best solution
+#now, updates the main network state to take the metrics(so far I am using the on plp file, which is the ILP module file)
+#rm.updateRealNetworkState(bestSolution, plp)
+#power.append(util.getPowerConsumption(plp))
+#print("POIWER", power)
+#execution_time.append(solution_time)
