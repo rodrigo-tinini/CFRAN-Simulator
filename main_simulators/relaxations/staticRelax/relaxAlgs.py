@@ -278,16 +278,11 @@ def softReduceDelay(rrh, solution, n_state):
 							r.wavelength = vpon
 							updateSwitch(r.node, n_state)
 			if r.wavelength == None:
-				#if the fog node of the RRH has no lambda, take one from the cloud
-				#gets the lambda with more free capacity
-				new_lambda = getCloudLightlyLambda(n_state)
-				#l_vdu = getCloudLightlyVDU(n_state)
-				print(new_lambda)
-				print(n_state.du_processing[0])
-				#print(l_vdu)
-				#print("to be allocated on {}".format(r.fog))
-				#print("no lambda")
-				r.blocked = True
+				#migrate one VPON from the cloud to the fog node
+				if migrateVPON(n_state, rrh, r.fog, r):
+					pass
+				else:
+					r.blocked = True
 		if r.blocked:
 			print("bloqueou")
 			blocked_rrhs.append(r)
@@ -296,6 +291,8 @@ def softReduceDelay(rrh, solution, n_state):
 			updateVponState(r.node, r.wavelength, n_state)
 			updateNode(r.node, n_state)
 	return blocked_rrhs
+
+#e se eu pegar todos os bloqueados e alocar o lambda só nesse momento?
 
 #check if the lambda that will receive the traffic has capacity as well if the switch must be used and if it has capacity
 def checkVPONMigrationCapacity(n_state, new_vpon, vdu):
@@ -310,9 +307,35 @@ def checkVPONMigrationCapacity(n_state, new_vpon, vdu):
 	else:
 		return False
 
+#move all traffic after blocking
+def moveAllTraffic(n_state, rrhs, new_vpon):
+	count = 0
+	old_vpon = getCloudLightlyLambda(n_state)
+	for i in rrhs:
+		if i.wavelength == new_vpon:
+			if n_state.wavelength_capacity[old_vpon] >= n_state.RRHband:
+				i.wavelength = old_vpon
+				n_state.wavelength_capacity[old_vpon] -= n_state.RRHband
+				count += 1
+			else:
+				print("não deu pra mover todos")
+
 #this method gathers all the VPON lending process
-def migrateVPON(n_state, new_vpon, rrh, old_vpon, fog):
-	pass
+def migrateVPON(n_state, rrhs, fog, rrh):
+	#chooses the VPON that will be migrated
+	vpon = getCloudLightlyLambda(n_state)
+	print("Before", n_state.lambda_node)
+	#move this VPON to the fog node
+	moveFogCloudVPON(n_state, vpon, fog)
+	#now, take another VPON to receive the traffic in the cloud
+	c_vpon = getCloudLightlyLambda(n_state)
+	#now, move the RRHs from the migrated VPON to the VPON in the cloud that will receive the traffic
+	#moveAllRRHs(n_state, rrhs, vpon)
+	moveAllTraffic(n_state, rrhs, vpon)
+	#allocate the RRH to the migrated VPON
+	rrh.wavelength = vpon
+	#at this moment, always returns true
+	return True
 
 #update all data structures related to the changed vpon
 def updateChangedVPON(n_state, vpon, fog):
@@ -328,11 +351,84 @@ def moveFogCloudVPON(n_state, vpon, fog):
 	#deallocate the vpon from the cloud
 	n_state.lambda_node[vpon][0] = 0
 	#allocate the vpon to the fog node
-	n_state.lambda_node[vpon][fog] = 0
+	n_state.lambda_node[vpon][fog] = 1
+
+#take the RRHs that lost their VPON and allocates in one or more VPONs in the cloud
+def moveAllRRHs(n_state, rrhs, mig_vpon):
+	count = 0
+	migrated_traffic = 0
+	migrated_rrhs = []
+	#count the number of VPONs to be migrated to a new VPON in the cloud
+	for i in rrhs:
+		if i.wavelength == mig_vpon:
+			count += 1
+			migrated_rrhs.append(i)
+			print("append {} {}".format(i.id, i.wavelength))
+	#amount of traffic to be migrated
+	migrated_traffic = count * n_state.RRHband
+	#while there is traffic to be migrated and the cloud has capacity, put it in the VPONs in the cloud
+	old_vpon = getCloudLightlyLambda(n_state)
+	#move RRHs
+	for i in migrated_rrhs:
+		if i.wavelength == mig_vpon:
+			print("erro")
+		else:
+			print(i.id)
+		if n_state.wavelength_capacity[old_vpon] >= migrated_traffic:
+			i.wavelength = old_vpon
+			migrated_traffic -= n_state.RRHband
+			n_state.wavelength_capacity[old_vpon] -= n_state.RRHband
+			#migrated_rrhs.remove(i)
+			print("removed",i.id)
+		else:
+			print("pau")
+	if migrated_rrhs:
+		for j in migrated_rrhs:
+			print("rrh",j.id)
+	#if some RRHs were not migrated, take another VPON
+	if migrated_rrhs:
+		print("ainda tem",len(migrated_rrhs))
+		if checkCloudBandCapacity(n_state):
+			#while there is capacity on the cloud, migrate RRHs
+			while migrated_rrhs: #or not checkCloudBandCapacity(n_state):
+				print("loop", len(migrated_rrhs))
+				old_vpon = getCloudLightlyLambda(n_state)
+				for i in migrated_rrhs:
+					if n_state.wavelength_capacity[old_vpon] >= migrated_traffic:
+						i.wavelength = old_vpon
+						migrated_traffic -= n_state.RRHband
+						n_state.wavelength_capacity[old_vpon] -= n_state.RRHband
+						migrated_rrhs.remove(i)
+	blocked = len(migrated_rrhs)
+	return blocked
+
+#calculate the bandwidth capacity of the cloud
+def getCloudBandwidth(n_state):
+	band = 0
+	for i in range(len(n_state.lambda_node)):
+		if n_state.lambda_node[i][0] == 1:
+			band += n_state.wavelength_capacity[i]
+	return band
+
+#check if the cloud has bandwidth capacity
+def checkCloudBandCapacity(n_state):
+	if getCloudBandwidth(n_state) > 0:
+		return True
+	else:
+		return False
+
+#update a VPON that received migrated traffic
+def updateOldVPON(n_state, vpon, traffic):
+	n_state.wavelength_capacity[vpon] -= traffic
 
 #move RRHs from a leased wavelength to another one
-def changeRRHsVPON(n_state, rrh, new_vpon):
-	i.wavelength = new_vpon			
+def changeRRHsVPON(n_state, rrhs, new_vpon, old_vpon):
+	count = 0
+	for i in rrhs:
+		if i.wavelength == old_vpon:
+			i.wavelength = new_vpon
+			count += 1
+	return count			
 
 #clear vpon capacity
 def clearWavelengthCapacity(n_state, vpon):
@@ -1068,15 +1164,15 @@ print(time_b)
 '''
 
 util = sim.Util()
-number_of_nodes = 3
-number_of_lambdas = 4
+number_of_nodes = 2
+number_of_lambdas = 3
 power = []
 rrhs_amount = setMaximumLoad(3, 1, number_of_nodes-1, number_of_lambdas)
 antenas = util.createRRHs(rrhs_amount, number_of_nodes, None, None, None)
 print("Execution of {} RRHs {} Nodes and {} Lambdas".format(rrhs_amount, number_of_nodes, number_of_lambdas))
 plp.setInputParameters(number_of_nodes, number_of_lambdas, plp.cloud_du_capacity, 
 plp.fog_du_capacity, plp.cloud_cost, plp.fog_cost, plp.line_card_cost, plp.switchCost, plp.switch_band, plp.wavelengthCapacity)
-print("Iniciando",plp.du_processing, plp.lambda_node)
+#print("Iniciando",plp.du_processing, plp.lambda_node)
 start = time.time()
 ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas, True)
 solution = ilp.run()
@@ -1084,7 +1180,8 @@ solution = ilp.run()
 solution_values = ilp.return_decision_variables()
 rlx.mostProbability(solution_values, ilp, plp)
 blocked = []
-blocked = reduceDelay(antenas, solution_values, plp)
+#blocked = reduceDelay(antenas, solution_values, plp)
+blocked = softReduceDelay(antenas, solution_values, plp)
 if blocked:
 	print("Bloqueou{}".format(len(blocked)))
 else:
