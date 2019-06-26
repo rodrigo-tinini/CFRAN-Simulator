@@ -278,6 +278,8 @@ def softReduceDelay(rrh, solution, n_state):
 							r.wavelength = vpon
 							updateSwitch(r.node, n_state)
 			if r.wavelength == None:
+				#print(n_state.wavelength_capacity)
+				#print(n_state.rrhs_on_nodes)
 				#migrate one VPON from the cloud to the fog node
 				if migrateVPON(n_state, rrh, r.fog, r):
 					pass
@@ -324,9 +326,10 @@ def moveAllTraffic(n_state, rrhs, new_vpon):
 def migrateVPON(n_state, rrhs, fog, rrh):
 	#chooses the VPON that will be migrated
 	vpon = getCloudLightlyLambda(n_state)
-	print("Before", n_state.lambda_node)
+	#print("Before", n_state.lambda_node)
 	#move this VPON to the fog node
 	moveFogCloudVPON(n_state, vpon, fog)
+	updateChangedVPON(n_state, vpon, fog)
 	#now, take another VPON to receive the traffic in the cloud
 	c_vpon = getCloudLightlyLambda(n_state)
 	#now, move the RRHs from the migrated VPON to the VPON in the cloud that will receive the traffic
@@ -335,12 +338,14 @@ def migrateVPON(n_state, rrhs, fog, rrh):
 	#allocate the RRH to the migrated VPON
 	rrh.wavelength = vpon
 	#at this moment, always returns true
+	print(n_state.lambda_node)
 	return True
 
 #update all data structures related to the changed vpon
 def updateChangedVPON(n_state, vpon, fog):
 	n_state.nodes_lambda[0].remove(vpon)
-	n_state.nodes_lambda[fog].append(vpon)
+	if vpon not in n_state.nodes_lambda[fog]:
+		n_state.nodes_lambda[fog].append(vpon)
 	#update the VPON capacity and the nodes_vpon_capacity data structure
 	clearWavelengthCapacity(n_state, vpon)
 	del n_state.nodes_vpons_capacity[0][vpon]
@@ -444,8 +449,12 @@ def getCloudLambdas(n_state):
 
 #get the index of the lambda with more free capacity that is allocated in the cloud
 def getCloudLightlyLambda(n_state):
+	#print(n_state.lambda_node)
+	#print(n_state.wavelength_capacity)
+	#print(n_state.du_processing)
 	index = getCloudLambdas(n_state)
 	capacities = {}
+	#print(index)
 	for i in index:
 		capacities[i] = n_state.wavelength_capacity[i]
 	#print(capacities)
@@ -1004,7 +1013,7 @@ act_fog = 0
 
 metric = "power"
 method = "min"
-'''
+
 #general tests
 #count lambdas and VDUs
 for j in range(2):
@@ -1043,7 +1052,7 @@ for j in range(2):
 			#	print(i.fog)
 			plp.setInputParameters(number_of_nodes, number_of_lambdas, plp.cloud_du_capacity, 
 			plp.fog_du_capacity, plp.cloud_cost, plp.fog_cost, plp.line_card_cost, plp.switchCost, plp.switch_band, plp.wavelengthCapacity)
-			print("Iniciando",plp.du_processing)
+			#print("Iniciando",plp.du_processing)
 			start = time.time()
 			ilp = plp.ILP(antenas, range(len(antenas)), plp.nodes, plp.lambdas, True)
 			solution = ilp.run()
@@ -1051,7 +1060,8 @@ for j in range(2):
 			solution_values = ilp.return_decision_variables()
 			rlx.mostProbability(solution_values, ilp, plp)
 			blocked = []
-			blocked = reduceDelay(antenas, solution_values, plp)
+			#blocked = reduceDelay(antenas, solution_values, plp)
+			blocked = softReduceDelay(antenas, solution_values, plp)
 			if blocked:
 				print("Bloqueou{}".format(len(blocked)))
 			else:
@@ -1142,7 +1152,7 @@ average_fog_use = [float(sum(col))/len(col) for col in zip(*fog_use_static)]
 average_lambda_usage = [float(sum(col))/len(col) for col in zip(*usage_lambda)]
 average_du_usage = [float(sum(col))/len(col) for col in zip(*usage_du)]
 
-logResults('/home/tinini/Área de Trabalho/logsTeseILP/relaxStatic/outputsRelaxedMinVPON.txt')
+logResults('/home/tinini/Área de Trabalho/logsTeseILP/relaxStatic/outputsRelaxedSoftMinVPON.txt')
 
 #for i in blocked:
 #	print("RRH {} is blocked? {}".format(i.id, i.blocked))
@@ -1150,7 +1160,7 @@ logResults('/home/tinini/Área de Trabalho/logsTeseILP/relaxStatic/outputsRelaxe
 #print(plp.wavelength_capacity)
 #print(plp.nodes_lambda)
 #print(s.solve_details.time)
-'''
+
 
 '''
 number_of_rrhs = 64
@@ -1163,9 +1173,10 @@ print(batch_power_consumption)
 print(time_b)
 '''
 
+'''
 util = sim.Util()
-number_of_nodes = 2
-number_of_lambdas = 3
+number_of_nodes = 4
+number_of_lambdas = 5
 power = []
 rrhs_amount = setMaximumLoad(3, 1, number_of_nodes-1, number_of_lambdas)
 antenas = util.createRRHs(rrhs_amount, number_of_nodes, None, None, None)
@@ -1194,3 +1205,4 @@ print(plp.lambda_node)
 #power.append(util.getPowerConsumption(plp))
 #print("POIWER", power)
 #execution_time.append(solution_time)
+'''
